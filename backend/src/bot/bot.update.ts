@@ -4,6 +4,7 @@ import { BotService } from './bot.service';
 import { UsersService } from '../users/users.service';
 import { UserRole } from '../users/entities/user.entity';
 import { normalizeToE164 } from './utils/phone.util';
+import { isValidMiniAppUrl } from '../config/env.validation';
 
 /**
  * Bo'lim 4.1: /start va contact handlerlar. Handlerlar shu yerda ro'yxatdan
@@ -21,6 +22,18 @@ export class BotUpdate implements OnModuleInit {
   async onModuleInit() {
     const miniAppUrl = process.env.MINI_APP_URL || '';
     const { bot } = this.botService;
+
+    if (!isValidMiniAppUrl(miniAppUrl)) {
+      const message =
+        "MINI_APP_URL noto'g'ri sozlangan, Mini App tugmasi ishlamaydi " +
+        `(hozirgi qiymat: "${miniAppUrl || '(bo\'sh)'}"). HTTPS domen kerak — ` +
+        "aks holda foydalanuvchida \"Webview crashed\" xatosi chiqadi.";
+      this.logger.error(message);
+
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error(message);
+      }
+    }
 
     bot.command('start', async (ctx) => {
       const { id: telegramId, first_name, last_name, username } = ctx.from;

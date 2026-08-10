@@ -2,6 +2,7 @@ import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
+import { IconLock } from '../components/icons';
 
 /** POST /api/v1/admin/auth/login — bo'lim 5.3, Mini App'dan mustaqil kirish. */
 export function LoginPage() {
@@ -34,6 +35,7 @@ export function LoginPage() {
   return (
     <div className="login-page">
       <form className="login-form" onSubmit={handleSubmit}>
+        <span className="login-mark">S</span>
         <h1>Silknode Support</h1>
         <p className="subtitle">Web Admin Panel</p>
 
@@ -52,7 +54,12 @@ export function LoginPage() {
           />
         </label>
 
-        {error && <p className="form-error">{error}</p>}
+        {error && (
+          <p className="form-error">
+            <IconLock width={14} height={14} />
+            {error}
+          </p>
+        )}
 
         <button type="submit" disabled={isSubmitting}>
           {isSubmitting ? 'Kirilmoqda...' : 'Kirish'}

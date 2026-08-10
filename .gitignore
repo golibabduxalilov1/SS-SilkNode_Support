@@ -4,3 +4,4 @@ dist/
 *.local
 npm-debug.log*
 backend/uploads/
+.claude

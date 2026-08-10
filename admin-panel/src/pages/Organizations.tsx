@@ -1,6 +1,8 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
+import { AppShell } from '../components/AppShell';
+import { IconBuilding, IconEdit, IconPlus, IconPower } from '../components/icons';
+import { EmptyState, TableSkeleton } from '../components/ui';
 
 interface Organization {
   id: string;
@@ -9,7 +11,6 @@ interface Organization {
 }
 
 export function OrganizationsPage() {
-  const navigate = useNavigate();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [newName, setNewName] = useState('');
@@ -56,61 +57,70 @@ export function OrganizationsPage() {
   };
 
   return (
-    <div className="dashboard">
-      <header className="dashboard-header">
-        <div>
-          <button className="back-link" onClick={() => navigate('/dashboard')}>
-            ← Dashboard
-          </button>
-          <h1>Tashkilotlar</h1>
-        </div>
-      </header>
-
+    <AppShell title="Tashkilotlar" breadcrumb="Dashboard / Tashkilotlar">
       <form className="inline-form" onSubmit={handleCreate}>
         <input
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           placeholder="Yangi tashkilot nomi"
         />
-        <button type="submit" disabled={isCreating}>
+        <button className="btn btn-primary" type="submit" disabled={isCreating}>
+          <IconPlus width={15} height={15} />
           {isCreating ? 'Qo\'shilmoqda...' : "Qo'shish"}
         </button>
       </form>
       {error && <p className="form-error">{error}</p>}
 
       {isLoading ? (
-        <p>Yuklanmoqda...</p>
+        <TableSkeleton rows={4} cols={3} />
       ) : organizations.length === 0 ? (
-        <p>Hozircha tashkilotlar yo'q.</p>
+        <EmptyState
+          icon={<IconBuilding width={24} height={24} />}
+          title="Hozircha tashkilotlar yo'q"
+          description="Yuqoridagi forma orqali birinchi tashkilotni qo'shing."
+        />
       ) : (
-        <table className="tickets-table">
-          <thead>
-            <tr>
-              <th>Nomi</th>
-              <th>Holati</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {organizations.map((o) => (
-              <tr key={o.id}>
-                <td>{o.name}</td>
-                <td>
-                  <span className={`status status--${o.isActive ? 'active' : 'inactive'}`}>
-                    {o.isActive ? 'Faol' : "Nofaol"}
-                  </span>
-                </td>
-                <td className="table-actions">
-                  <button onClick={() => handleRename(o)}>Tahrirlash</button>
-                  <button onClick={() => handleToggleActive(o)}>
-                    {o.isActive ? "O'chirish" : 'Yoqish'}
-                  </button>
-                </td>
+        <div className="table-wrap">
+          <table className="tickets-table">
+            <thead>
+              <tr>
+                <th>Nomi</th>
+                <th>Holati</th>
+                <th></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {organizations.map((o) => (
+                <tr key={o.id}>
+                  <td>
+                    <div className="cell-user">
+                      <span className="avatar avatar--sm">
+                        <IconBuilding width={12} height={12} />
+                      </span>
+                      <span className="cell-primary">{o.name}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span className={`status status--${o.isActive ? 'active' : 'inactive'}`}>
+                      {o.isActive ? 'Faol' : "Nofaol"}
+                    </span>
+                  </td>
+                  <td className="table-actions">
+                    <button onClick={() => handleRename(o)}>
+                      <IconEdit width={13} height={13} />
+                      Tahrirlash
+                    </button>
+                    <button onClick={() => handleToggleActive(o)}>
+                      <IconPower width={13} height={13} />
+                      {o.isActive ? "O'chirish" : 'Yoqish'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
-    </div>
+    </AppShell>
   );
 }

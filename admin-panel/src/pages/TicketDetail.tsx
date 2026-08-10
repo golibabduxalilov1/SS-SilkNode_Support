@@ -1,6 +1,9 @@
 import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/client';
+import { AppShell } from '../components/AppShell';
+import { IconChevronLeft, IconInbox, IconPaperclip, IconSend } from '../components/icons';
+import { Avatar, EmptyState } from '../components/ui';
 
 interface Attachment {
   id: string;
@@ -123,26 +126,42 @@ export function TicketDetailPage() {
     }
   };
 
-  if (isLoading) return <p className="dashboard">Yuklanmoqda...</p>;
-  if (!ticket) return <p className="dashboard">Murojaat topilmadi.</p>;
+  if (isLoading) {
+    return (
+      <AppShell title="Yuklanmoqda…" breadcrumb="Dashboard / Murojaat">
+        <div className="table-wrap" style={{ padding: 24 }}>
+          <div className="skeleton skeleton-line" style={{ width: '40%', marginBottom: 12 }} />
+          <div className="skeleton skeleton-line" style={{ width: '70%', marginBottom: 12 }} />
+          <div className="skeleton skeleton-line" style={{ width: '55%' }} />
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (!ticket) {
+    return (
+      <AppShell title="Murojaat" breadcrumb="Dashboard / Murojaat">
+        <EmptyState
+          icon={<IconInbox width={24} height={24} />}
+          title="Murojaat topilmadi"
+          description="Bu murojaat o'chirilgan yoki mavjud emas bo'lishi mumkin."
+        />
+      </AppShell>
+    );
+  }
 
   return (
-    <div className="dashboard ticket-detail-page">
-      <header className="dashboard-header">
-        <div>
-          <button className="back-link" onClick={() => navigate('/dashboard')}>
-            ← Dashboard
-          </button>
-          <h1>
-            #{ticket.number} — {ticket.title}
-          </h1>
-          <p className="subtitle">
-            {ticket.organization?.name ?? '—'} · {ticket.createdBy?.fullname ?? '—'} ·{' '}
-            {ticket.createdBy?.phoneNumber ?? '—'}
-          </p>
-        </div>
-      </header>
-
+    <AppShell
+      title={`#${ticket.number} — ${ticket.title}`}
+      breadcrumb={`${ticket.organization?.name ?? '—'} · ${ticket.createdBy?.fullname ?? '—'} · ${ticket.createdBy?.phoneNumber ?? '—'}`}
+      actions={
+        <button className="btn btn-ghost btn-sm" onClick={() => navigate('/dashboard')}>
+          <IconChevronLeft width={15} height={15} />
+          Dashboard
+        </button>
+      }
+    >
+      <div className="ticket-detail-page">
       <div className="ticket-detail-controls">
         <label>
           Holat
@@ -178,33 +197,41 @@ export function TicketDetailPage() {
 
       <p className="ticket-detail-description">{ticket.description}</p>
 
-      <div className="chat">
-        {messages.map((m) => {
-          const isAdmin = m.sender && m.sender.role !== 'user';
-          return (
-            <div
-              key={m.id}
-              className={`chat-message ${isAdmin ? 'chat-message--admin' : 'chat-message--user'}`}
-            >
-              <div className="chat-message-meta">
-                {m.sender?.fullname ?? (isAdmin ? 'Admin' : 'Foydalanuvchi')} ·{' '}
-                {new Date(m.createdAt).toLocaleString('uz-UZ')}
-              </div>
-              <div className="chat-message-text">{m.text}</div>
-              {m.attachments && m.attachments.length > 0 && (
-                <div className="chat-message-attachments">
-                  {m.attachments.map((a) => (
-                    <a key={a.id} href={`${API_ORIGIN}${a.fileUrl}`} target="_blank" rel="noreferrer">
-                      📎 {a.fileName}
-                    </a>
-                  ))}
+      {messages.length === 0 ? (
+        <EmptyState
+          icon={<IconInbox width={22} height={22} />}
+          title="Hozircha xabarlar yo'q"
+          description="Suhbat boshlanishi bilan xabarlar shu yerda ko'rinadi."
+        />
+      ) : (
+        <div className="chat">
+          {messages.map((m) => {
+            const isAdmin = m.sender && m.sender.role !== 'user';
+            return (
+              <div
+                key={m.id}
+                className={`chat-message ${isAdmin ? 'chat-message--admin' : 'chat-message--user'}`}
+              >
+                <div className="chat-message-meta">
+                  <Avatar name={m.sender?.fullname ?? (isAdmin ? 'Admin' : 'Foydalanuvchi')} size="sm" />{' '}
+                  {m.sender?.fullname ?? (isAdmin ? 'Admin' : 'Foydalanuvchi')} ·{' '}
+                  {new Date(m.createdAt).toLocaleString('uz-UZ')}
                 </div>
-              )}
-            </div>
-          );
-        })}
-        {messages.length === 0 && <p>Hozircha xabarlar yo'q.</p>}
-      </div>
+                <div className="chat-message-text">{m.text}</div>
+                {m.attachments && m.attachments.length > 0 && (
+                  <div className="chat-message-attachments">
+                    {m.attachments.map((a) => (
+                      <a key={a.id} href={`${API_ORIGIN}${a.fileUrl}`} target="_blank" rel="noreferrer">
+                        <IconPaperclip width={12} height={12} /> {a.fileName}
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <form className="chat-form" onSubmit={handleSend}>
         <textarea
@@ -213,12 +240,20 @@ export function TicketDetailPage() {
           placeholder="Javob yozing..."
           rows={3}
         />
-        <input type="file" onChange={handleFileChange} />
+        <div className="chat-form-row">
+          <label className="file-input">
+            <IconPaperclip width={14} height={14} />
+            {file ? file.name : 'Fayl biriktirish'}
+            <input type="file" onChange={handleFileChange} style={{ display: 'none' }} />
+          </label>
+          <button className="btn btn-primary btn-sm" type="submit" disabled={isSending}>
+            <IconSend width={14} height={14} />
+            {isSending ? 'Yuborilmoqda...' : 'Yuborish'}
+          </button>
+        </div>
         {error && <p className="form-error">{error}</p>}
-        <button type="submit" disabled={isSending}>
-          {isSending ? 'Yuborilmoqda...' : 'Yuborish'}
-        </button>
       </form>
-    </div>
+      </div>
+    </AppShell>
   );
 }
