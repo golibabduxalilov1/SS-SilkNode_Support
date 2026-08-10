@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
-import { Telegraf } from 'telegraf';
+import { Markup, Telegraf } from 'telegraf';
 
 /**
  * Telegraf instansiyasini o'raydi. Handlerlarni ro'yxatdan o'tkazish va
@@ -27,6 +27,25 @@ export class BotService implements OnModuleDestroy {
     if (!process.env.BOT_TOKEN) return;
     try {
       await this.bot.telegram.sendMessage(telegramId, text);
+    } catch (err) {
+      this.logger.error(`Xabar yuborib bo'lmadi (telegramId=${telegramId}): ${err.message}`);
+    }
+  }
+
+  /** Mini App'ning muayyan sahifasiga olib boruvchi web_app tugmasi bilan xabar (bo'lim 5). */
+  async sendMessageWithWebAppButton(
+    telegramId: string,
+    text: string,
+    buttonText: string,
+    webAppUrl: string,
+  ): Promise<void> {
+    if (!process.env.BOT_TOKEN) return;
+    try {
+      await this.bot.telegram.sendMessage(
+        telegramId,
+        text,
+        Markup.inlineKeyboard([Markup.button.webApp(buttonText, webAppUrl)]),
+      );
     } catch (err) {
       this.logger.error(`Xabar yuborib bo'lmadi (telegramId=${telegramId}): ${err.message}`);
     }

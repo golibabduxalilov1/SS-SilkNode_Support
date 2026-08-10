@@ -13,11 +13,17 @@ interface Ticket {
 const STATUS_LABELS: Record<string, string> = {
   new: 'Yangi',
   in_progress: 'Jarayonda',
+  waiting_user: 'Javobingiz kutilmoqda',
   resolved: 'Yechilgan',
   closed: 'Yopilgan',
 };
 
-export function MyTicketsPage({ refreshKey }: { refreshKey: number }) {
+interface MyTicketsPageProps {
+  refreshKey: number;
+  onOpenTicket: (ticketId: string) => void;
+}
+
+export function MyTicketsPage({ refreshKey, onOpenTicket }: MyTicketsPageProps) {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -35,9 +41,12 @@ export function MyTicketsPage({ refreshKey }: { refreshKey: number }) {
   return (
     <ul className="ticket-list">
       {tickets.map((t) => (
-        <li key={t.id} className="ticket-list-item">
-          <span className="ticket-number">#{t.number}</span>
-          <span className="ticket-title">{t.title}</span>
+        <li key={t.id} className="ticket-list-item" onClick={() => onOpenTicket(t.id)}>
+          <div className="ticket-list-item-main">
+            <span className="ticket-number">#{t.number}</span>
+            <span className="ticket-title">{t.title}</span>
+            <span className="ticket-date">{new Date(t.createdAt).toLocaleString('uz-UZ')}</span>
+          </div>
           <span className={`ticket-status ticket-status--${t.status}`}>
             {STATUS_LABELS[t.status] ?? t.status}
           </span>

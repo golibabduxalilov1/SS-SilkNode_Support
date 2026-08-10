@@ -129,6 +129,15 @@ body {
   border-radius: 10px;
   background: var(--tg-theme-secondary-bg-color, #fff);
   gap: 8px;
+  cursor: pointer;
+}
+
+.ticket-list-item-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
 }
 
 .ticket-number {
@@ -137,8 +146,12 @@ body {
 }
 
 .ticket-title {
-  flex: 1;
   font-size: 14px;
+}
+
+.ticket-date {
+  font-size: 12px;
+  opacity: 0.6;
 }
 
 .ticket-status {
@@ -146,4 +159,118 @@ body {
   padding: 4px 8px;
   border-radius: 999px;
   background: #e5e5ea;
+  white-space: nowrap;
+}
+
+.file-list {
+  font-size: 12px;
+  opacity: 0.7;
+  margin: -6px 0 0;
+}
+
+.ticket-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.back-button {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  color: var(--tg-theme-link-color, #2481cc);
+  font-size: 15px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.ticket-detail-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ticket-detail-header h2 {
+  margin: 0;
+}
+
+.ticket-detail-description {
+  font-size: 14px;
+  line-height: 1.5;
+  opacity: 0.85;
+}
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chat-message {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--tg-theme-secondary-bg-color, #fff);
+  max-width: 85%;
+}
+
+.chat-message--admin {
+  align-self: flex-start;
+}
+
+.chat-message--user {
+  align-self: flex-end;
+  background: var(--tg-theme-button-color, #2481cc);
+  color: var(--tg-theme-button-text-color, #fff);
+}
+
+.chat-message-meta {
+  font-size: 11px;
+  opacity: 0.7;
+  margin-bottom: 4px;
+}
+
+.chat-message-text {
+  font-size: 14px;
+  white-space: pre-wrap;
+}
+
+.chat-message-attachments {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 6px;
+  font-size: 12px;
+}
+
+.chat-message-attachments a {
+  color: inherit;
+}
+
+.chat-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chat-form textarea {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 15px;
+  resize: vertical;
+}
+
+.chat-form button[type='submit'] {
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: var(--tg-theme-button-color, #2481cc);
+  color: var(--tg-theme-button-text-color, #fff);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.chat-form button[type='submit']:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

@@ -14,6 +14,13 @@ export class AttachmentsService {
     return this.attachmentsRepository.find({ where: { messageId } });
   }
 
+  findByTicket(ticketId: string): Promise<Attachment[]> {
+    return this.attachmentsRepository.find({
+      where: { ticketId },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
   create(data: Partial<Attachment>): Promise<Attachment> {
     return this.attachmentsRepository.save(this.attachmentsRepository.create(data));
   }

@@ -1,15 +1,29 @@
-import { FormEvent, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
 import { api } from '../../api/client';
 import { AuthStatus } from '../../hooks/useCurrentUser';
 import { WarningBanner } from './WarningBanner';
 
-const CATEGORIES = ['Uskuna', 'Dastur', 'Tarmoq', 'Boshqa'];
+const CATEGORIES = [
+  'ERP',
+  'CRM',
+  'Ishlab chiqarish',
+  'Veb-sayt',
+  'Telefoniya',
+  'Elektron pochta',
+  'Tarmoq',
+  'Boshqa',
+];
 const PRIORITIES = [
   { value: 'low', label: 'Past' },
   { value: 'medium', label: "O'rta" },
   { value: 'high', label: 'Yuqori' },
   { value: 'critical', label: 'Kritik' },
 ];
+
+interface Organization {
+  id: string;
+  name: string;
+}
 
 interface NewTicketPageProps {
   status: AuthStatus;
@@ -23,23 +37,53 @@ interface NewTicketPageProps {
 export function NewTicketPage({ status, onCreated }: NewTicketPageProps) {
   const canSubmit = status.isStarted && status.isPhoneVerified;
 
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [organizationId, setOrganizationId] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [priority, setPriority] = useState('medium');
+  const [files, setFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!canSubmit) return;
+    api
+      .get('/organizations')
+      .then((res) => setOrganizations(res.data.data))
+      .catch(() => setOrganizations([]));
+  }, [canSubmit]);
+
+  const handleFilesChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setFiles(e.target.files ? Array.from(e.target.files) : []);
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit || !organizationId) return;
 
     setIsSubmitting(true);
     setError(null);
     try {
-      await api.post('/tickets', { title, description, category, priority });
+      const res = await api.post('/tickets', {
+        title,
+        description,
+        category,
+        priority,
+        organizationId,
+      });
+      const ticketId = res.data.data.id;
+
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append('file', file);
+        await api.post(`/tickets/${ticketId}/attachments`, formData);
+      }
+
       setTitle('');
       setDescription('');
+      setFiles([]);
       onCreated();
     } catch (err: any) {
       const message = err?.response?.data?.error?.message ?? 'Xatolik yuz berdi.';
@@ -56,6 +100,24 @@ export function NewTicketPage({ status, onCreated }: NewTicketPageProps) {
   return (
     <form className="ticket-form" onSubmit={handleSubmit}>
       <h2>Yangi murojaat</h2>
+
+      <label>
+        Tashkilot
+        <select
+          value={organizationId}
+          onChange={(e) => setOrganizationId(e.target.value)}
+          required
+        >
+          <option value="" disabled>
+            Tanlang...
+          </option>
+          {organizations.map((o) => (
+            <option key={o.id} value={o.id}>
+              {o.name}
+            </option>
+          ))}
+        </select>
+      </label>
 
       <label>
         Mavzu
@@ -94,9 +156,17 @@ export function NewTicketPage({ status, onCreated }: NewTicketPageProps) {
         />
       </label>
 
+      <label>
+        Fayl biriktirish
+        <input type="file" multiple onChange={handleFilesChange} />
+      </label>
+      {files.length > 0 && (
+        <p className="file-list">{files.map((f) => f.name).join(', ')}</p>
+      )}
+
       {error && <p className="form-error">{error}</p>}
 
-      <button type="submit" disabled={isSubmitting}>
+      <button type="submit" disabled={isSubmitting || !organizationId}>
         {isSubmitting ? 'Yuborilmoqda...' : 'Yuborish'}
       </button>
     </form>

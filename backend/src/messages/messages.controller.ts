@@ -14,10 +14,14 @@ import { UserEligibilityGuard } from '../auth/guards/user-eligibility.guard';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '../users/entities/user.entity';
+import { NotifyUserService } from '../bot/notify-user.service';
 
 @Controller()
 export class MessagesController {
-  constructor(private readonly messagesService: MessagesService) {}
+  constructor(
+    private readonly messagesService: MessagesService,
+    private readonly notifyUserService: NotifyUserService,
+  ) {}
 
   @Get('tickets/:ticketId/messages')
   @UseGuards(TelegramAuthGuard, UserEligibilityGuard)
@@ -53,7 +57,13 @@ export class MessagesController {
     @Body() dto: CreateMessageDto,
     @CurrentUser() admin: User,
   ) {
-    const message = await this.messagesService.create(ticketId, admin.id, dto.text);
+    const message = await this.messagesService.create(ticketId, admin.id, dto.text, true);
+
+    const ticket = await this.messagesService.findTicketForNotification(ticketId);
+    if (ticket) {
+      await this.notifyUserService.notifyNewMessage(ticket, dto.text);
+    }
+
     return { success: true, data: message };
   }
 

@@ -6,9 +6,10 @@ import { MessagesService } from './messages.service';
 import { MessagesController } from './messages.controller';
 import { AuthModule } from '../auth/auth.module';
 import { UsersModule } from '../users/users.module';
+import { BotModule } from '../bot/bot.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Message, Ticket]), AuthModule, UsersModule],
+  imports: [TypeOrmModule.forFeature([Message, Ticket]), AuthModule, UsersModule, BotModule],
   providers: [MessagesService],
   controllers: [MessagesController],
   exports: [MessagesService],

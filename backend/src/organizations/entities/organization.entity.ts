@@ -17,6 +17,9 @@ export class Organization {
   @Column({ type: 'varchar', length: 255 })
   name: string;
 
+  @Column({ name: 'is_active', type: 'boolean', default: true })
+  isActive: boolean;
+
   @OneToMany(() => User, (user) => user.organization)
   users: User[];
 
