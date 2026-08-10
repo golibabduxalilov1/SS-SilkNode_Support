@@ -4,6 +4,7 @@ import { Organization } from '../organizations/entities/organization.entity';
 import { Ticket } from '../tickets/entities/ticket.entity';
 import { Message } from '../messages/entities/message.entity';
 import { Attachment } from '../attachments/entities/attachment.entity';
+import { Category } from '../categories/entities/category.entity';
 
 export function typeOrmConfig(): TypeOrmModuleOptions {
   return {
@@ -13,7 +14,7 @@ export function typeOrmConfig(): TypeOrmModuleOptions {
     username: process.env.DB_USERNAME || 'silknode',
     password: process.env.DB_PASSWORD || 'silknode',
     database: process.env.DB_DATABASE || 'silknode_support',
-    entities: [User, Organization, Ticket, Message, Attachment],
+    entities: [User, Organization, Ticket, Message, Attachment, Category],
     // Ishlab chiqarishda migratsiyalardan foydalaning (npm run migration:run).
     // synchronize faqat lokal ishlab chiqish uchun.
     synchronize: process.env.NODE_ENV !== 'production',
