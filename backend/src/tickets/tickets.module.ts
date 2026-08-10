@@ -5,6 +5,7 @@ import { TicketsService } from './tickets.service';
 import { TicketsController } from './tickets.controller';
 import { AuthModule } from '../auth/auth.module';
 import { OrganizationsModule } from '../organizations/organizations.module';
+import { CategoriesModule } from '../categories/categories.module';
 import { BotModule } from '../bot/bot.module';
 import { UsersModule } from '../users/users.module';
 
@@ -13,6 +14,7 @@ import { UsersModule } from '../users/users.module';
     TypeOrmModule.forFeature([Ticket]),
     AuthModule,
     OrganizationsModule,
+    CategoriesModule,
     BotModule,
     UsersModule,
   ],

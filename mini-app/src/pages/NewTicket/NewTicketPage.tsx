@@ -3,16 +3,6 @@ import { api } from '../../api/client';
 import { AuthStatus } from '../../hooks/useCurrentUser';
 import { WarningBanner } from './WarningBanner';
 
-const CATEGORIES = [
-  'ERP',
-  'CRM',
-  'Ishlab chiqarish',
-  'Veb-sayt',
-  'Telefoniya',
-  'Elektron pochta',
-  'Tarmoq',
-  'Boshqa',
-];
 const PRIORITIES = [
   { value: 'low', label: 'Past' },
   { value: 'medium', label: "O'rta" },
@@ -21,6 +11,11 @@ const PRIORITIES = [
 ];
 
 interface Organization {
+  id: string;
+  name: string;
+}
+
+interface Category {
   id: string;
   name: string;
 }
@@ -39,9 +34,10 @@ export function NewTicketPage({ status, onCreated }: NewTicketPageProps) {
 
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [organizationId, setOrganizationId] = useState('');
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryId, setCategoryId] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState(CATEGORIES[0]);
   const [priority, setPriority] = useState('medium');
   const [files, setFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,6 +49,10 @@ export function NewTicketPage({ status, onCreated }: NewTicketPageProps) {
       .get('/organizations')
       .then((res) => setOrganizations(res.data.data))
       .catch(() => setOrganizations([]));
+    api
+      .get('/categories')
+      .then((res) => setCategories(res.data.data))
+      .catch(() => setCategories([]));
   }, [canSubmit]);
 
   const handleFilesChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -61,7 +61,7 @@ export function NewTicketPage({ status, onCreated }: NewTicketPageProps) {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!canSubmit || !organizationId) return;
+    if (!canSubmit || !organizationId || !categoryId) return;
 
     setIsSubmitting(true);
     setError(null);
@@ -69,7 +69,7 @@ export function NewTicketPage({ status, onCreated }: NewTicketPageProps) {
       const res = await api.post('/tickets', {
         title,
         description,
-        category,
+        categoryId,
         priority,
         organizationId,
       });
@@ -126,10 +126,17 @@ export function NewTicketPage({ status, onCreated }: NewTicketPageProps) {
 
       <label>
         Kategoriya
-        <select value={category} onChange={(e) => setCategory(e.target.value)}>
-          {CATEGORIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
+        <select
+          value={categoryId}
+          onChange={(e) => setCategoryId(e.target.value)}
+          required
+        >
+          <option value="" disabled>
+            Tanlang...
+          </option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
             </option>
           ))}
         </select>
@@ -166,7 +173,7 @@ export function NewTicketPage({ status, onCreated }: NewTicketPageProps) {
 
       {error && <p className="form-error">{error}</p>}
 
-      <button type="submit" disabled={isSubmitting || !organizationId}>
+      <button type="submit" disabled={isSubmitting || !organizationId || !categoryId}>
         {isSubmitting ? 'Yuborilmoqda...' : 'Yuborish'}
       </button>
     </form>

@@ -3,8 +3,11 @@ import { AuthProvider } from './auth/AuthContext';
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import { LoginPage } from './pages/Login';
 import { DashboardPage } from './pages/Dashboard';
+import { TicketsPage } from './pages/Tickets';
 import { TicketDetailPage } from './pages/TicketDetail';
 import { OrganizationsPage } from './pages/Organizations';
+import { CategoriesPage } from './pages/Categories';
+import { EmployeesPage } from './pages/Employees';
 
 export function App() {
   return (
@@ -14,8 +17,11 @@ export function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/tickets" element={<TicketsPage />} />
             <Route path="/dashboard/tickets/:id" element={<TicketDetailPage />} />
             <Route path="/organizations" element={<OrganizationsPage />} />
+            <Route path="/employees" element={<EmployeesPage />} />
+            <Route path="/categories" element={<CategoriesPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

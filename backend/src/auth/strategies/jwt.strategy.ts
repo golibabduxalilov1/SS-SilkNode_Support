@@ -23,7 +23,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: JwtPayload): Promise<User> {
     const user = await this.usersService.findByAdminLogin(payload.adminLogin);
-    if (!user || (user.role !== UserRole.ADMIN && user.role !== UserRole.SUPERADMIN)) {
+    if (
+      !user ||
+      !user.isActive ||
+      (user.role !== UserRole.ADMIN && user.role !== UserRole.SUPERADMIN)
+    ) {
       throw new UnauthorizedException();
     }
     return user;

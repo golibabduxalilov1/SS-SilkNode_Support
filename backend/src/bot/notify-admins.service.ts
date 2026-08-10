@@ -15,18 +15,23 @@ export class NotifyAdminsService {
     private readonly usersService: UsersService,
   ) {}
 
-  async notifyNewTicket(ticket: Ticket, organizationName: string): Promise<void> {
+  async notifyNewTicket(
+    ticket: Ticket,
+    organizationName: string,
+    categoryName: string,
+  ): Promise<void> {
     const admins = await this.usersService.findAdmins();
 
     const text =
       `🔔 Yangi murojaat #${ticket.number}\n` +
       `Tashkilot: ${organizationName}\n` +
       `Mavzu: ${ticket.title}\n` +
-      `Kategoriya: ${ticket.category}\n` +
+      `Kategoriya: ${categoryName}\n` +
       `Muhimlik: ${ticket.priority}\n\n` +
       `Batafsil: Web Admin Panel orqali ko'ring.`;
 
     for (const admin of admins) {
+      if (!admin.telegramId) continue;
       // Faqat oddiy matn xabar — tugma yoki webApp havolasi YO'Q (bo'lim 5.2, 5.3).
       await this.botService.sendMessage(admin.telegramId, text);
     }

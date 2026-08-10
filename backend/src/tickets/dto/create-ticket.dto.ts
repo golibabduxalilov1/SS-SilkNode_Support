@@ -13,8 +13,7 @@ export class CreateTicketDto {
 
   @IsString()
   @IsNotEmpty()
-  @MaxLength(100)
-  category: string;
+  categoryId: string;
 
   @IsOptional()
   @IsEnum(TicketPriority)

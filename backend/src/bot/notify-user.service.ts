@@ -13,7 +13,7 @@ export class NotifyUserService {
   constructor(private readonly botService: BotService) {}
 
   async notifyNewMessage(ticket: Ticket, messageText: string): Promise<void> {
-    if (!ticket.createdBy) return;
+    if (!ticket.createdBy?.telegramId) return;
 
     const preview =
       messageText.length > 200 ? `${messageText.slice(0, 200)}…` : messageText;

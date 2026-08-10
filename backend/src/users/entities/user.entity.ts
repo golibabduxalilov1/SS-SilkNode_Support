@@ -27,8 +27,8 @@ export class User {
   id: string;
 
   @Index('idx_users_telegram_id', { unique: true })
-  @Column({ name: 'telegram_id', type: 'bigint', unique: true })
-  telegramId: string;
+  @Column({ name: 'telegram_id', type: 'bigint', unique: true, nullable: true })
+  telegramId: string | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   fullname: string | null;
@@ -60,6 +60,10 @@ export class User {
 
   @Column({ name: 'admin_login', type: 'varchar', length: 255, nullable: true, unique: true })
   adminLogin: string | null;
+
+  /** Web Admin Panel — xodim/admin hisobini vaqtincha bloklash uchun (o'chirilmaydi, faqat faolsizlantiriladi). */
+  @Column({ name: 'is_active', type: 'boolean', default: true })
+  isActive: boolean;
 
   @ManyToOne(() => Organization, (org) => org.users, { nullable: true })
   @JoinColumn({ name: 'organization_id' })

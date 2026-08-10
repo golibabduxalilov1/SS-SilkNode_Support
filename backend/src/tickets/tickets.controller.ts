@@ -1,6 +1,7 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { TicketsService } from './tickets.service';
 import { OrganizationsService } from '../organizations/organizations.service';
+import { CategoriesService } from '../categories/categories.service';
 import { NotifyAdminsService } from '../bot/notify-admins.service';
 import { UsersService } from '../users/users.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
@@ -19,6 +20,7 @@ export class TicketsController {
   constructor(
     private readonly ticketsService: TicketsService,
     private readonly organizationsService: OrganizationsService,
+    private readonly categoriesService: CategoriesService,
     private readonly notifyAdminsService: NotifyAdminsService,
     private readonly usersService: UsersService,
   ) {}
@@ -37,7 +39,14 @@ export class TicketsController {
     const organization = ticket.organizationId
       ? await this.organizationsService.findById(ticket.organizationId)
       : null;
-    await this.notifyAdminsService.notifyNewTicket(ticket, organization?.name ?? '—');
+    const category = ticket.categoryId
+      ? await this.categoriesService.findById(ticket.categoryId)
+      : null;
+    await this.notifyAdminsService.notifyNewTicket(
+      ticket,
+      organization?.name ?? '—',
+      category?.name ?? '—',
+    );
 
     return { success: true, data: ticket };
   }

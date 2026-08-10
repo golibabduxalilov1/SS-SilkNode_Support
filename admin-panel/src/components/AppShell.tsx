@@ -1,11 +1,14 @@
 import { ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { IconBuilding, IconGrid, IconLogout } from './icons';
+import { IconBuilding, IconGrid, IconInbox, IconLayers, IconLogout, IconUsers } from './icons';
 
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: IconGrid },
+  { to: '/tickets', label: 'Murojaatlar', icon: IconInbox },
   { to: '/organizations', label: 'Tashkilotlar', icon: IconBuilding },
+  { to: '/categories', label: 'Kategoriyalar', icon: IconLayers },
+  { to: '/employees', label: 'Xodimlar', icon: IconUsers, superadminOnly: true },
 ];
 
 interface AppShellProps {
@@ -40,7 +43,8 @@ export function AppShell({ title, breadcrumb, actions, children }: AppShellProps
         </div>
 
         <nav className="sidebar-nav">
-          {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
+          {NAV_ITEMS.filter((item) => !item.superadminOnly || user?.role === 'superadmin').map(
+            ({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}

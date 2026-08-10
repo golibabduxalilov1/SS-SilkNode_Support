@@ -1,7 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
+import * as bcrypt from 'bcrypt';
 import { User, UserRole } from './entities/user.entity';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -56,6 +59,67 @@ export class UsersService {
     return this.usersRepository.find({
       where: [{ role: UserRole.ADMIN }, { role: UserRole.SUPERADMIN }],
     });
+  }
+
+  /** Web Admin Panel — Xodimlar sahifasi uchun barcha admin/superadmin ro'yxati. */
+  findAllAdmins(organizationId?: string): Promise<User[]> {
+    return this.usersRepository.find({
+      where: {
+        role: In([UserRole.ADMIN, UserRole.SUPERADMIN]),
+        ...(organizationId ? { organizationId } : {}),
+      },
+      relations: { organization: true },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  findById(id: string): Promise<User | null> {
+    return this.usersRepository.findOne({ where: { id }, relations: { organization: true } });
+  }
+
+  async createAdmin(dto: CreateUserDto): Promise<User> {
+    const existing = await this.findByAdminLogin(dto.adminLogin);
+    if (existing) {
+      throw new ConflictException("Bu login band, boshqasini tanlang.");
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const user = this.usersRepository.create({
+      fullname: dto.fullname,
+      adminLogin: dto.adminLogin,
+      passwordHash,
+      role: dto.role ?? UserRole.ADMIN,
+      organizationId: dto.organizationId ?? null,
+      isActive: true,
+      isStarted: false,
+      isPhoneVerified: false,
+    });
+
+    return this.usersRepository.save(user);
+  }
+
+  async updateAdmin(id: string, dto: UpdateUserDto): Promise<User> {
+    const user = await this.findById(id);
+    if (!user) {
+      throw new NotFoundException('Foydalanuvchi topilmadi.');
+    }
+
+    if (dto.fullname !== undefined) user.fullname = dto.fullname;
+    if (dto.role !== undefined) user.role = dto.role;
+    if (dto.organizationId !== undefined) user.organizationId = dto.organizationId;
+    if (dto.isActive !== undefined) user.isActive = dto.isActive;
+    if (dto.password) user.passwordHash = await bcrypt.hash(dto.password, 10);
+
+    return this.usersRepository.save(user);
+  }
+
+  async deactivateAdmin(id: string): Promise<User> {
+    const user = await this.findById(id);
+    if (!user) {
+      throw new NotFoundException('Foydalanuvchi topilmadi.');
+    }
+    user.isActive = false;
+    return this.usersRepository.save(user);
   }
 
   save(user: User): Promise<User> {

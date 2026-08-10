@@ -9,6 +9,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Organization } from '../../organizations/entities/organization.entity';
+import { Category } from '../../categories/entities/category.entity';
 import { User } from '../../users/entities/user.entity';
 import { Message } from '../../messages/entities/message.entity';
 
@@ -41,8 +42,12 @@ export class Ticket {
   @Column({ type: 'text' })
   description: string;
 
-  @Column({ type: 'varchar', length: 100 })
-  category: string;
+  @ManyToOne(() => Category, (category) => category.tickets, { nullable: true })
+  @JoinColumn({ name: 'category_id' })
+  categoryEntity: Category | null;
+
+  @Column({ name: 'category_id', type: 'bigint', nullable: true })
+  categoryId: string | null;
 
   @Column({ type: 'enum', enum: TicketPriority, default: TicketPriority.MEDIUM })
   priority: TicketPriority;

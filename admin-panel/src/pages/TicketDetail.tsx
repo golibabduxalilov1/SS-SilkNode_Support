@@ -30,7 +30,7 @@ interface Ticket {
   number: string;
   title: string;
   description: string;
-  category: string;
+  categoryEntity?: { id: string; name: string } | null;
   priority: string;
   status: string;
   createdAt: string;
@@ -190,6 +190,7 @@ export function TicketDetailPage() {
         </label>
 
         <div className="ticket-detail-time">
+          <span>Kategoriya: {ticket.categoryEntity?.name ?? '—'}</span>
           <span>Birinchi javob: {ticket.firstResponseMinutes ?? '—'} daq.</span>
           <span>Yopilish: {ticket.resolutionMinutes ?? '—'} daq.</span>
         </div>

@@ -16,6 +16,12 @@ admin-panel/   Web Admin Panel (admin/superadmin uchun, login/parol bilan)
 docker-compose.yml   Lokal PostgreSQL
 ```
 
+> **Production'ga joylashtirish:** to'liq bosqichma-bosqich qo'llanma
+> uchun [DEPLOY.md](./DEPLOY.md) ga qarang (PM2 + Nginx, domen/SSL
+> sozlash, keyingi deploy'lar). Xususan `MINI_APP_URL` HTTPS bo'lmasa
+> Telegram Mini App'da "Webview crashed" xatosi chiqadi — shuni oldini
+> olish tafsilotlari ham o'sha faylda.
+
 ## 1. PostgreSQL'ni ishga tushirish
 
 ```bash

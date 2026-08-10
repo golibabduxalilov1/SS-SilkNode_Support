@@ -85,7 +85,7 @@ export class TicketsService {
       number: this.generateTicketNumber(),
       title: dto.title,
       description: dto.description,
-      category: dto.category,
+      categoryId: dto.categoryId,
       priority: dto.priority ?? TicketPriority.MEDIUM,
       organizationId: dto.organizationId ?? createdBy.organizationId ?? null,
       createdById: createdBy.id,
@@ -96,6 +96,7 @@ export class TicketsService {
   findMine(userId: string): Promise<Ticket[]> {
     return this.ticketsRepository.find({
       where: { createdById: userId },
+      relations: ['organization', 'categoryEntity'],
       order: { createdAt: 'DESC' },
     });
   }
@@ -103,7 +104,7 @@ export class TicketsService {
   async findOneForUser(id: string, userId: string): Promise<Ticket> {
     const ticket = await this.ticketsRepository.findOne({
       where: { id },
-      relations: ['organization', 'createdBy', 'assignedTo', 'messages'],
+      relations: ['organization', 'categoryEntity', 'createdBy', 'assignedTo', 'messages'],
     });
     if (!ticket || ticket.createdById !== userId) {
       throw new NotFoundException('Murojaat topilmadi.');
@@ -113,7 +114,7 @@ export class TicketsService {
 
   findAllForAdmin(): Promise<Ticket[]> {
     return this.ticketsRepository.find({
-      relations: ['organization', 'createdBy', 'assignedTo', 'messages'],
+      relations: ['organization', 'categoryEntity', 'createdBy', 'assignedTo', 'messages'],
       order: { createdAt: 'DESC' },
     });
   }
@@ -121,7 +122,7 @@ export class TicketsService {
   findById(id: string): Promise<Ticket | null> {
     return this.ticketsRepository.findOne({
       where: { id },
-      relations: ['organization', 'createdBy', 'assignedTo', 'messages'],
+      relations: ['organization', 'categoryEntity', 'createdBy', 'assignedTo', 'messages'],
     });
   }
 

@@ -24,7 +24,7 @@ export class AuthService {
   /** POST /admin/auth/login (bo'lim 5.3) — Mini App'dan mustaqil, alohida login. */
   async adminLogin(login: string, password: string): Promise<{ accessToken: string; user: Pick<User, 'id' | 'fullname' | 'role'> }> {
     const user = await this.usersService.findByAdminLogin(login);
-    if (!user || !user.passwordHash) {
+    if (!user || !user.passwordHash || !user.isActive) {
       throw new UnauthorizedException('Login yoki parol noto\'g\'ri.');
     }
 

@@ -6,7 +6,7 @@ interface Ticket {
   number: string;
   title: string;
   description: string;
-  category: string;
+  categoryEntity?: { id: string; name: string } | null;
   priority: string;
   status: string;
   createdAt: string;
