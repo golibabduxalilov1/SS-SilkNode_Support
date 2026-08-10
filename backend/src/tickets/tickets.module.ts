@@ -6,6 +6,7 @@ import { TicketsController } from './tickets.controller';
 import { AuthModule } from '../auth/auth.module';
 import { OrganizationsModule } from '../organizations/organizations.module';
 import { BotModule } from '../bot/bot.module';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { BotModule } from '../bot/bot.module';
     AuthModule,
     OrganizationsModule,
     BotModule,
+    UsersModule,
   ],
   providers: [TicketsService],
   controllers: [TicketsController],
