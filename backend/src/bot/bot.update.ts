@@ -80,7 +80,9 @@ export class BotUpdate implements OnModuleInit {
     });
 
     if (process.env.BOT_TOKEN) {
-      await bot.launch();
+      // bot.launch() long-polling paytida hech qachon resolve bo'lmaydi —
+      // await qilinsa onModuleInit (demak butun Nest bootstrap) abadiy bloklanadi.
+      bot.launch().catch((err) => this.logger.error(`Bot launch xatosi: ${err.message}`));
       this.logger.log('Telegram bot ishga tushdi (long polling).');
     }
   }
