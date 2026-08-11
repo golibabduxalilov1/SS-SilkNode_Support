@@ -1,63 +1,67 @@
 /* ==========================================================================
-   Design tokens — Twilight Graphite (mid-tone professional)
+   Design tokens — Aurora Light (soft off-white, premium gradients)
    ========================================================================== */
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
   /* Typography */
   --font-display: 'Plus Jakarta Sans', 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
   --font-sans: 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
 
-  /* Surfaces — mid-tone slate, neither light nor dark */
-  --canvas: #383e4b;
-  --panel: #454c5c;
-  --sunken: #2f3540;
-  --veil: #515a6d;
+  /* Surfaces — off-white, soft blue-gray */
+  --canvas: #f6f7fb;
+  --panel: #ffffff;
+  --sunken: #f0f1f7;
+  --veil: #e7e9f2;
 
   /* Text */
-  --text: #f3f5f8;
-  --text-secondary: #c7cdda;
-  --text-muted: #949cb0;
+  --text: #171a2b;
+  --text-secondary: #545b72;
+  --text-muted: #8b91a6;
 
   /* Borders */
-  --border: rgba(255, 255, 255, 0.09);
-  --border-strong: rgba(255, 255, 255, 0.18);
+  --border: rgba(23, 26, 43, 0.08);
+  --border-strong: rgba(23, 26, 43, 0.14);
 
   /* Darkest chrome accents (brand chip, dark buttons) */
-  --dark-surface: #1e212a;
-  --dark-hover: #2a2e3a;
+  --dark-surface: #171a2b;
+  --dark-hover: #262a40;
 
-  /* Accent — indigo → violet gradient, single decorative hue family */
-  --accent: #6366f1;
-  --accent-2: #8b5cf6;
-  --accent-hover: #5457e5;
-  --dark-accent: #c7d2fe;
-  --accent-tint: rgba(129, 140, 248, 0.16);
-  --gradient-accent: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  /* Accent — soft purple → blue gradient, single decorative hue family */
+  --accent: #6d5ef0;
+  --accent-2: #4f7cff;
+  --accent-hover: #5a4be0;
+  --dark-accent: #4c3fd1;
+  --accent-tint: rgba(109, 94, 240, 0.1);
+  --gradient-accent: linear-gradient(135deg, #7c6ff0 0%, #4f7cff 100%);
 
-  /* Semantic — lightened tonal variants for mid/dark surfaces */
-  --success: #4ade80;
-  --success-tint: rgba(74, 222, 128, 0.15);
-  --warning: #fbbf24;
-  --warning-tint: rgba(251, 191, 36, 0.15);
-  --error: #f87171;
-  --error-tint: rgba(248, 113, 113, 0.15);
-  --info: #38bdf8;
-  --info-tint: rgba(56, 189, 248, 0.15);
+  /* Secondary gradients — used sparingly for accents/highlights */
+  --gradient-warm: linear-gradient(135deg, #ff7a59 0%, #ffa24b 100%);
+  --gradient-mint: linear-gradient(135deg, #34d399 0%, #14b8a6 100%);
+
+  /* Semantic — accessible tonal variants on light surfaces */
+  --success: #059669;
+  --success-tint: rgba(5, 150, 105, 0.12);
+  --warning: #b45309;
+  --warning-tint: rgba(217, 119, 6, 0.12);
+  --error: #dc2626;
+  --error-tint: rgba(220, 38, 38, 0.1);
+  --info: #0284c7;
+  --info-tint: rgba(2, 132, 199, 0.1);
 
   /* Radius — soft minimalism */
-  --radius-xs: 4px;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
 
-  /* Elevation */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.22);
-  --shadow-md: 0 10px 24px rgba(0, 0, 0, 0.32);
-  --shadow-lg: 0 24px 56px rgba(0, 0, 0, 0.42);
-  --glow-accent: 0 0 0 3px rgba(99, 102, 241, 0.28);
+  /* Elevation — soft, diffuse */
+  --shadow-sm: 0 1px 2px rgba(23, 26, 43, 0.04), 0 1px 1px rgba(23, 26, 43, 0.03);
+  --shadow-md: 0 10px 28px rgba(23, 26, 43, 0.08);
+  --shadow-lg: 0 24px 56px rgba(23, 26, 43, 0.14);
+  --glow-accent: 0 0 0 3px rgba(109, 94, 240, 0.18);
 
   /* Motion */
   --ease: cubic-bezier(0.2, 0, 0, 1);
@@ -134,8 +138,8 @@ body {
   margin: 0;
   font-family: var(--font-sans);
   font-size: 15px;
-  background: radial-gradient(1100px 560px at 12% -8%, rgba(99, 102, 241, 0.16), transparent 60%),
-    radial-gradient(900px 520px at 100% 0%, rgba(139, 92, 246, 0.12), transparent 55%), var(--canvas);
+  background: radial-gradient(1100px 560px at 12% -8%, rgba(124, 111, 240, 0.08), transparent 60%),
+    radial-gradient(900px 520px at 100% 0%, rgba(79, 124, 255, 0.06), transparent 55%), var(--canvas);
   background-attachment: fixed;
   color: var(--text);
   -webkit-font-smoothing: antialiased;
@@ -239,7 +243,7 @@ button {
 
 /* Outline glass */
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(23, 26, 43, 0.03);
   border-color: var(--border-strong);
   color: var(--text);
 }
@@ -275,7 +279,7 @@ button {
 
 /* Destructive */
 .btn-danger {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(220, 38, 38, 0.04);
   border-color: var(--border-strong);
   color: var(--error);
 }
@@ -314,8 +318,8 @@ button {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: radial-gradient(900px 500px at 20% 10%, rgba(99, 102, 241, 0.28), transparent 60%),
-    radial-gradient(700px 460px at 85% 90%, rgba(139, 92, 246, 0.22), transparent 55%), var(--dark-surface);
+  background: radial-gradient(900px 500px at 20% 10%, rgba(124, 111, 240, 0.16), transparent 60%),
+    radial-gradient(700px 460px at 85% 90%, rgba(255, 122, 89, 0.1), transparent 55%), var(--canvas);
   padding: 24px;
 }
 
@@ -327,7 +331,7 @@ button {
   gap: 16px;
   padding: 40px 36px;
   border-radius: var(--radius-lg);
-  background: rgba(69, 76, 92, 0.78);
+  background: rgba(255, 255, 255, 0.82);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border-strong);
@@ -389,7 +393,7 @@ button {
   padding: 10px 14px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-strong);
-  background: rgba(0, 0, 0, 0.16);
+  background: rgba(23, 26, 43, 0.03);
   color: var(--text);
   font-size: 15px;
   font-family: var(--font-sans);
@@ -470,7 +474,7 @@ button {
 .sidebar {
   width: var(--sidebar-width);
   flex-shrink: 0;
-  background: rgba(69, 76, 92, 0.72);
+  background: rgba(255, 255, 255, 0.78);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-right: 1px solid var(--border);
@@ -630,7 +634,7 @@ button {
   justify-content: space-between;
   gap: 16px;
   padding: 0 40px;
-  background: rgba(69, 76, 92, 0.72);
+  background: rgba(255, 255, 255, 0.78);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border);
@@ -923,28 +927,28 @@ button {
   padding: 8px 12px;
   border-radius: var(--radius-sm);
   background: var(--dark-surface);
-  border: 1px solid var(--border-strong);
-  box-shadow: var(--shadow-md);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: var(--shadow-lg);
   font-size: 12.5px;
 }
 
 .chart-tooltip-label {
   font-weight: 700;
   margin-bottom: 4px;
-  color: var(--text);
+  color: #ffffff;
 }
 
 .chart-tooltip-row {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .chart-tooltip-row strong {
   margin-left: auto;
   font-family: var(--font-mono);
-  color: var(--text);
+  color: #ffffff;
 }
 
 .chart-tooltip-swatch {
@@ -1387,7 +1391,7 @@ button {
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.14), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
   animation: skeleton-shimmer 1.4s infinite;
 }
 
@@ -1421,7 +1425,7 @@ button {
   border-radius: var(--radius-md);
   overflow: hidden;
   border: 1px solid var(--border);
-  background: var(--border);
+  background: var(--sunken);
 }
 
 .table-skeleton-row {
@@ -1599,7 +1603,7 @@ button {
   padding: 10px 14px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-strong);
-  background: rgba(0, 0, 0, 0.16);
+  background: rgba(23, 26, 43, 0.03);
   color: var(--text);
   font-size: 14px;
   font-family: var(--font-sans);
@@ -1622,7 +1626,7 @@ button {
   padding: 6px 12px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(23, 26, 43, 0.03);
   color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
