@@ -1,7 +1,9 @@
 import { ReactNode, useEffect, useRef, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import {
+  IconBell,
   IconBuilding,
   IconChevronLeft,
   IconClose,
@@ -48,6 +50,11 @@ function initials(name: string | null | undefined): string {
   return letters.join('') || '?';
 }
 
+const ROLE_LABELS: Record<string, string> = {
+  admin: 'Admin',
+  superadmin: 'Superadmin',
+};
+
 function useIsMobile(breakpoint: number): boolean {
   const [isMobile, setIsMobile] = useState(
     () => typeof window !== 'undefined' && window.innerWidth <= breakpoint,
@@ -72,8 +79,16 @@ export function AppShell({ title, breadcrumb, actions, children }: AppShellProps
 
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSE_KEY) === '1');
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [newTicketsCount, setNewTicketsCount] = useState(0);
   const menuBtnRef = useRef<HTMLButtonElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    api
+      .get('/admin/dashboard/stats')
+      .then((res) => setNewTicketsCount(res.data.data?.statusCounts?.new ?? 0))
+      .catch(() => {});
+  }, [location.pathname === '/dashboard']);
 
   const effectiveCollapsed = collapsed && !isMobile;
 
@@ -151,6 +166,9 @@ export function AppShell({ title, breadcrumb, actions, children }: AppShellProps
                   >
                     <Icon className="sidebar-nav-icon" />
                     <span>{label}</span>
+                    {to === '/tickets' && newTicketsCount > 0 && (
+                      <span className="sidebar-nav-badge">{newTicketsCount > 99 ? '99+' : newTicketsCount}</span>
+                    )}
                   </NavLink>
                 ))}
               </div>
@@ -163,7 +181,7 @@ export function AppShell({ title, breadcrumb, actions, children }: AppShellProps
             <span className="avatar avatar--md">{initials(user?.fullname)}</span>
             <div className="sidebar-user-info">
               <span className="sidebar-user-name">{user?.fullname ?? 'Admin'}</span>
-              <span className="sidebar-user-role">{user?.role ?? '—'}</span>
+              <span className="sidebar-user-role">{user?.role ? ROLE_LABELS[user.role] ?? user.role : '—'}</span>
             </div>
           </div>
           <button
@@ -198,6 +216,25 @@ export function AppShell({ title, breadcrumb, actions, children }: AppShellProps
             <h1 className="topbar-title">{title}</h1>
           </div>
           {actions && <div className="topbar-actions">{actions}</div>}
+          <div className="topbar-right">
+            {user?.role && <span className="role-badge">{ROLE_LABELS[user.role] ?? user.role}</span>}
+            <button
+              type="button"
+              className="topbar-bell"
+              onClick={() => navigate('/tickets')}
+              aria-label="Bildirishnomalar"
+              title="Bildirishnomalar"
+            >
+              <IconBell width={19} height={19} />
+              {newTicketsCount > 0 && (
+                <span className="topbar-bell-badge">{newTicketsCount > 99 ? '99+' : newTicketsCount}</span>
+              )}
+            </button>
+            <div className="topbar-user">
+              <span className="avatar avatar--sm">{initials(user?.fullname)}</span>
+              <span className="topbar-user-name">{user?.fullname ?? 'Admin'}</span>
+            </div>
+          </div>
         </header>
 
         <main className="app-content">{children}</main>
