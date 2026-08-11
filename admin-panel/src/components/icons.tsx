@@ -22,6 +22,7 @@ import {
   Menu,
   X,
   Bell,
+  Trash2,
 } from 'lucide-react';
 
 type IconProps = SVGProps<SVGSVGElement>;
@@ -50,3 +51,4 @@ export const IconLock = (props: IconProps) => <Lock strokeWidth={STROKE} {...pro
 export const IconMenu = (props: IconProps) => <Menu strokeWidth={STROKE} {...props} />;
 export const IconClose = (props: IconProps) => <X strokeWidth={STROKE} {...props} />;
 export const IconBell = (props: IconProps) => <Bell strokeWidth={STROKE} {...props} />;
+export const IconTrash = (props: IconProps) => <Trash2 strokeWidth={STROKE} {...props} />;

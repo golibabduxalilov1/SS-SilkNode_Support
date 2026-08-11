@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { AppShell } from '../components/AppShell';
-import { IconEdit, IconLayers, IconPlus, IconPower } from '../components/icons';
+import { IconEdit, IconLayers, IconPlus, IconPower, IconTrash } from '../components/icons';
 import { EmptyState, TableSkeleton } from '../components/ui';
 
 interface Category {
@@ -54,6 +54,19 @@ export function CategoriesPage() {
   const handleToggleActive = async (category: Category) => {
     await api.patch(`/admin/categories/${category.id}`, { isActive: !category.isActive });
     load();
+  };
+
+  const handleDelete = async (category: Category) => {
+    if (!window.confirm(`"${category.name}" kategoriyasini o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.`)) return;
+    try {
+      await api.delete(`/admin/categories/${category.id}`);
+      load();
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
+          ?.message ?? "Kategoriyani o'chirib bo'lmadi.";
+      setError(message);
+    }
   };
 
   return (
@@ -112,7 +125,11 @@ export function CategoriesPage() {
                     </button>
                     <button onClick={() => handleToggleActive(c)}>
                       <IconPower width={13} height={13} />
-                      {c.isActive ? "O'chirish" : 'Yoqish'}
+                      {c.isActive ? 'Nofaollashtirish' : 'Faollashtirish'}
+                    </button>
+                    <button className="danger" onClick={() => handleDelete(c)}>
+                      <IconTrash width={13} height={13} />
+                      O'chirish
                     </button>
                   </td>
                 </tr>

@@ -84,6 +84,25 @@ export class UsersService {
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
+
+    let telegramOwner: User | null = null;
+    if (dto.telegramId) {
+      telegramOwner = await this.findByTelegramId(dto.telegramId);
+      if (telegramOwner?.adminLogin) {
+        throw new ConflictException('Bu Telegram ID allaqachon boshqa xodimga biriktirilgan.');
+      }
+    }
+
+    if (telegramOwner) {
+      telegramOwner.fullname = dto.fullname;
+      telegramOwner.adminLogin = dto.adminLogin;
+      telegramOwner.passwordHash = passwordHash;
+      telegramOwner.role = dto.role ?? UserRole.ADMIN;
+      telegramOwner.organizationId = dto.organizationId ?? null;
+      telegramOwner.isActive = true;
+      return this.usersRepository.save(telegramOwner);
+    }
+
     const user = this.usersRepository.create({
       fullname: dto.fullname,
       adminLogin: dto.adminLogin,
@@ -93,6 +112,7 @@ export class UsersService {
       isActive: true,
       isStarted: false,
       isPhoneVerified: false,
+      telegramId: dto.telegramId ?? null,
     });
 
     return this.usersRepository.save(user);
@@ -109,6 +129,18 @@ export class UsersService {
     if (dto.organizationId !== undefined) user.organizationId = dto.organizationId;
     if (dto.isActive !== undefined) user.isActive = dto.isActive;
     if (dto.password) user.passwordHash = await bcrypt.hash(dto.password, 10);
+
+    if (dto.telegramId !== undefined) {
+      if (!dto.telegramId) {
+        user.telegramId = null;
+      } else {
+        const owner = await this.findByTelegramId(dto.telegramId);
+        if (owner && owner.id !== user.id) {
+          throw new ConflictException('Bu Telegram ID allaqachon boshqa xodimga biriktirilgan.');
+        }
+        user.telegramId = dto.telegramId;
+      }
+    }
 
     return this.usersRepository.save(user);
   }

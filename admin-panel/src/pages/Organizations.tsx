@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { AppShell } from '../components/AppShell';
-import { IconBuilding, IconEdit, IconPlus, IconPower } from '../components/icons';
+import { IconBuilding, IconEdit, IconPlus, IconPower, IconTrash } from '../components/icons';
 import { EmptyState, TableSkeleton } from '../components/ui';
 
 interface Organization {
@@ -54,6 +54,19 @@ export function OrganizationsPage() {
   const handleToggleActive = async (org: Organization) => {
     await api.patch(`/admin/organizations/${org.id}`, { isActive: !org.isActive });
     load();
+  };
+
+  const handleDelete = async (org: Organization) => {
+    if (!window.confirm(`"${org.name}" tashkilotini o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.`)) return;
+    try {
+      await api.delete(`/admin/organizations/${org.id}`);
+      load();
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
+          ?.message ?? "Tashkilotni o'chirib bo'lmadi.";
+      setError(message);
+    }
   };
 
   return (
@@ -112,7 +125,11 @@ export function OrganizationsPage() {
                     </button>
                     <button onClick={() => handleToggleActive(o)}>
                       <IconPower width={13} height={13} />
-                      {o.isActive ? "O'chirish" : 'Yoqish'}
+                      {o.isActive ? 'Nofaollashtirish' : 'Faollashtirish'}
+                    </button>
+                    <button className="danger" onClick={() => handleDelete(o)}>
+                      <IconTrash width={13} height={13} />
+                      O'chirish
                     </button>
                   </td>
                 </tr>

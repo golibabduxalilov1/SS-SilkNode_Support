@@ -17,6 +17,7 @@ interface Employee {
   role: 'admin' | 'superadmin';
   organization: Organization | null;
   isActive: boolean;
+  telegramId: string | null;
 }
 
 const emptyForm = {
@@ -25,6 +26,7 @@ const emptyForm = {
   password: '',
   role: 'admin' as 'admin' | 'superadmin',
   organizationId: '',
+  telegramId: '',
 };
 
 export function EmployeesPage() {
@@ -72,6 +74,7 @@ export function EmployeesPage() {
         fullname: form.fullname.trim(),
         role: form.role,
         organizationId: form.organizationId || null,
+        telegramId: form.telegramId.trim() || null,
       };
       if (form.password) payload.password = form.password;
 
@@ -100,6 +103,7 @@ export function EmployeesPage() {
       password: '',
       role: employee.role,
       organizationId: employee.organization?.id ?? '',
+      telegramId: employee.telegramId ?? '',
     });
   };
 
@@ -140,6 +144,14 @@ export function EmployeesPage() {
           onChange={(e) => setForm({ ...form, password: e.target.value })}
           placeholder={editingId ? 'Yangi parol (ixtiyoriy)' : 'Parol'}
         />
+        <input
+          value={form.telegramId}
+          onChange={(e) =>
+            setForm({ ...form, telegramId: e.target.value.replace(/\D/g, '') })
+          }
+          placeholder="Telegram ID (ixtiyoriy)"
+          inputMode="numeric"
+        />
         <select
           value={form.role}
           onChange={(e) => setForm({ ...form, role: e.target.value as 'admin' | 'superadmin' })}
@@ -171,7 +183,7 @@ export function EmployeesPage() {
       {error && <p className="form-error">{error}</p>}
 
       {isLoading ? (
-        <TableSkeleton rows={4} cols={5} />
+        <TableSkeleton rows={4} cols={6} />
       ) : employees.length === 0 ? (
         <EmptyState
           icon={<IconUsers width={24} height={24} />}
@@ -185,6 +197,7 @@ export function EmployeesPage() {
               <tr>
                 <th>F.I.Sh</th>
                 <th>Login</th>
+                <th>Telegram ID</th>
                 <th>Rol</th>
                 <th>Tashkilot</th>
                 <th>Holati</th>
@@ -203,6 +216,7 @@ export function EmployeesPage() {
                     </div>
                   </td>
                   <td>{emp.adminLogin ?? '—'}</td>
+                  <td>{emp.telegramId ?? '—'}</td>
                   <td>{emp.role === 'superadmin' ? 'Superadmin' : 'Admin'}</td>
                   <td>{emp.organization?.name ?? '—'}</td>
                   <td>

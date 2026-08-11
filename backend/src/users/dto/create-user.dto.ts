@@ -1,4 +1,4 @@
-import { IsIn, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsIn, IsNotEmpty, IsOptional, IsString, Matches, MinLength } from 'class-validator';
 import { UserRole } from '../entities/user.entity';
 
 export class CreateUserDto {
@@ -23,4 +23,9 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   organizationId?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d+$/, { message: 'Telegram ID faqat raqamlardan iborat bo\'lishi kerak.' })
+  telegramId?: string;
 }

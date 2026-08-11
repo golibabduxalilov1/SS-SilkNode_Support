@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { IsNotEmpty, IsString } from 'class-validator';
 import { CategoriesService } from './categories.service';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -34,6 +34,13 @@ export class CategoriesController {
   async update(@Param('id') id: string, @Body() dto: UpdateCategoryDto) {
     const category = await this.categoriesService.update(id, dto);
     return { success: true, data: category };
+  }
+
+  @Delete(':id')
+  @HttpCode(200)
+  async remove(@Param('id') id: string) {
+    await this.categoriesService.remove(id);
+    return { success: true };
   }
 }
 

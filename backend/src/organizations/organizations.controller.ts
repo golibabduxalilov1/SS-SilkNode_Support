@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { IsNotEmpty, IsString } from 'class-validator';
 import { OrganizationsService } from './organizations.service';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
@@ -34,6 +34,13 @@ export class OrganizationsController {
   async update(@Param('id') id: string, @Body() dto: UpdateOrganizationDto) {
     const organization = await this.organizationsService.update(id, dto);
     return { success: true, data: organization };
+  }
+
+  @Delete(':id')
+  @HttpCode(200)
+  async remove(@Param('id') id: string) {
+    await this.organizationsService.remove(id);
+    return { success: true };
   }
 }
 

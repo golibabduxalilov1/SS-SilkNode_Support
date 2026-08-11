@@ -139,7 +139,12 @@ export function TicketsPage() {
                       <td>
                         <div className="cell-user">
                           <Avatar name={t.createdBy?.fullname} />
-                          <span>{t.createdBy?.fullname ?? '—'}</span>
+                          <div className="cell-user-info">
+                            <span>{t.createdBy?.fullname ?? '—'}</span>
+                            {t.createdBy?.phoneNumber && (
+                              <span className="cell-muted cell-user-phone">{t.createdBy.phoneNumber}</span>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td className="cell-muted">{t.categoryEntity?.name ?? '—'}</td>

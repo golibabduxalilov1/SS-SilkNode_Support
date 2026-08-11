@@ -1412,6 +1412,16 @@ button {
   gap: 8px;
 }
 
+.cell-user-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.35;
+}
+
+.cell-user-phone {
+  font-size: 12px;
+}
+
 .cell-primary {
   font-weight: 600;
   color: var(--text);
@@ -1855,6 +1865,17 @@ button {
   background: var(--veil);
   color: var(--text);
   border-color: var(--text-muted);
+}
+
+.table-actions button.danger {
+  color: var(--error);
+  border-color: var(--error);
+}
+
+.table-actions button.danger:hover {
+  background: var(--error);
+  color: #ffffff;
+  border-color: var(--error);
 }
 
 /* ==========================================================================
