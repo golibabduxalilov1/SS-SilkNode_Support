@@ -228,10 +228,10 @@ export function EmployeesPage() {
         />
       ) : (
         <div className="table-wrap">
-          <table className="tickets-table">
+          <table className="tickets-table tickets-table--equal">
             <thead>
               <tr>
-                <th className="col-fill">F.I.Sh</th>
+                <th>F.I.Sh</th>
                 <th>Login</th>
                 <th>Telegram ID</th>
                 <th>Rol</th>
@@ -243,7 +243,7 @@ export function EmployeesPage() {
             <tbody>
               {employees.map((emp) => (
                 <tr key={emp.id}>
-                  <td className="col-fill">
+                  <td>
                     <div className="cell-user">
                       <span className="avatar avatar--sm">
                         <IconUsers width={12} height={12} />

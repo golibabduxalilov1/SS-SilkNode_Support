@@ -120,7 +120,6 @@
   /* Layout */
   --topbar-height: 64px;
   --sidebar-width: 260px;
-  --sidebar-width-collapsed: 76px;
 
   /* ---- Legacy aliases (referenced by inline styles / JS) ---- */
   --bg: var(--canvas);
@@ -340,10 +339,102 @@ button {
 
 .login-page {
   display: flex;
-  align-items: center;
-  justify-content: center;
   min-height: 100vh;
   background: var(--canvas);
+}
+
+/* Left brand showcase — hidden below --breakpoint, right form fills viewport */
+.login-showcase {
+  position: relative;
+  flex: 1 1 46%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 40px;
+  padding: 56px 64px;
+  background: linear-gradient(160deg, var(--indigo-600) 0%, var(--indigo-700) 55%, #312e81 100%);
+  color: #fff;
+  overflow: hidden;
+}
+
+.login-showcase-glow {
+  position: absolute;
+  inset: -20% -10% auto auto;
+  width: 480px;
+  height: 480px;
+  border-radius: var(--radius-full);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.16), transparent 70%);
+  pointer-events: none;
+}
+
+.login-showcase-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 380px;
+}
+
+.login-showcase-content .login-mark {
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+}
+
+.login-showcase-content h2 {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+.login-showcase-content > p {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.login-showcase-features {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.login-showcase-features li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.login-showcase-feature-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.login-showcase-footnote {
+  position: relative;
+  z-index: 1;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+}
+
+/* Right form panel */
+.login-panel {
+  flex: 1 1 54%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 24px;
 }
 
@@ -352,12 +443,7 @@ button {
   max-width: 380px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 40px 36px;
-  border-radius: var(--radius-lg);
-  background: var(--panel);
-  border: 1px solid var(--border-strong);
-  box-shadow: var(--shadow-md);
+  gap: 18px;
   animation: fadeSlideIn var(--duration-slow) var(--ease) both;
 }
 
@@ -373,26 +459,37 @@ button {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 17px;
+}
+
+.login-mark-mobile {
+  display: none;
+  margin-bottom: 4px;
+}
+
+.login-form-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   margin-bottom: 4px;
 }
 
 .login-form h1 {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
-.subtitle {
-  margin: 0 0 4px;
-  color: var(--text-muted);
-  font-size: 12px;
+.login-form-heading .subtitle {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
   font-family: var(--font-sans);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
 }
 
-.login-form label {
+.login-field {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -402,6 +499,19 @@ button {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-secondary);
+}
+
+.login-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.login-input-icon {
+  position: absolute;
+  left: 14px;
+  color: var(--text-muted);
+  pointer-events: none;
 }
 
 .login-form input,
@@ -420,6 +530,19 @@ button {
   font-size: 14px;
   font-family: var(--font-sans);
   transition: border-color var(--duration-fast) var(--ease), box-shadow var(--duration-fast) var(--ease);
+}
+
+.login-form input {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 14px 10px 40px;
+  font-weight: 400;
+  transition: border-color var(--duration-fast) var(--ease), box-shadow var(--duration-fast) var(--ease),
+    background var(--duration-fast) var(--ease);
+}
+
+.login-field-password input {
+  padding-right: 42px;
 }
 
 .login-form input::placeholder,
@@ -441,15 +564,44 @@ button {
   box-shadow: var(--glow-accent);
 }
 
+.login-form input:focus {
+  background: var(--panel);
+}
+
 .login-form input:disabled,
 .inline-form input:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 
-.login-form button[type='submit'] {
+.login-input-toggle {
+  position: absolute;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease), color var(--duration-fast) var(--ease);
+}
+
+.login-input-toggle:hover {
+  background: var(--veil);
+  color: var(--text-secondary);
+}
+
+.login-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   margin-top: 6px;
-  min-height: 44px;
+  min-height: 46px;
   padding: 10px 20px;
   border: 1px solid var(--primary);
   border-radius: var(--radius-sm);
@@ -458,29 +610,61 @@ button {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: background var(--duration-fast) var(--ease);
+  transition: background var(--duration-fast) var(--ease), box-shadow var(--duration-fast) var(--ease),
+    transform var(--duration-fast) var(--ease);
 }
 
-.login-form button[type='submit']:hover:not(:disabled) {
+.login-submit:hover:not(:disabled) {
   background: var(--primary-hover);
+  box-shadow: var(--shadow-md);
 }
 
-.login-form button[type='submit']:disabled {
-  opacity: 0.4;
+.login-submit:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.login-submit:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
+}
+
+.login-submit-spinner {
+  animation: icon-spin 0.8s linear infinite;
 }
 
 .form-error {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   color: var(--error-text);
   background: var(--error-tint);
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   padding: 10px 12px;
   font-size: 13px;
+  font-weight: 500;
   margin: 0;
+  animation: fadeSlideIn var(--duration-fast) var(--ease) both;
+}
+
+.form-error svg {
+  flex-shrink: 0;
+}
+
+@keyframes icon-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 860px) {
+  .login-showcase {
+    display: none;
+  }
+
+  .login-mark-mobile {
+    display: flex;
+  }
 }
 
 /* ==========================================================================
@@ -503,37 +687,6 @@ button {
   position: sticky;
   top: 0;
   height: 100vh;
-  transition: width var(--duration-base) var(--ease);
-}
-
-.sidebar[data-collapsed='true'] {
-  width: var(--sidebar-width-collapsed);
-  padding-left: 14px;
-  padding-right: 14px;
-}
-
-.sidebar[data-collapsed='true'] .sidebar-brand-text,
-.sidebar[data-collapsed='true'] .sidebar-collapse-btn,
-.sidebar[data-collapsed='true'] .sidebar-group-label,
-.sidebar[data-collapsed='true'] .sidebar-nav-item span,
-.sidebar[data-collapsed='true'] .sidebar-nav-badge,
-.sidebar[data-collapsed='true'] .sidebar-logout span,
-.sidebar[data-collapsed='true'] .sidebar-user-info {
-  display: none;
-}
-
-.sidebar[data-collapsed='true'] .sidebar-brand {
-  justify-content: center;
-  padding-left: 0;
-  padding-right: 0;
-}
-
-.sidebar[data-collapsed='true'] .sidebar-nav-item,
-.sidebar[data-collapsed='true'] .sidebar-logout,
-.sidebar[data-collapsed='true'] .sidebar-user {
-  justify-content: center;
-  padding-left: 0;
-  padding-right: 0;
 }
 
 .sidebar-brand {
@@ -569,36 +722,6 @@ button {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.sidebar-collapse-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  flex-shrink: 0;
-  border: none;
-  border-radius: var(--radius-xs);
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: background var(--duration-fast) var(--ease), color var(--duration-fast) var(--ease);
-}
-
-.sidebar-collapse-btn:hover {
-  background: var(--veil);
-  color: var(--text);
-}
-
-.sidebar-collapse-icon {
-  width: 16px;
-  height: 16px;
-  transition: transform var(--duration-base) var(--ease);
-}
-
-.sidebar[data-collapsed='true'] .sidebar-collapse-icon {
-  transform: rotate(180deg);
 }
 
 .sidebar-nav {
@@ -759,29 +882,6 @@ button {
   height: 18px;
 }
 
-.sidebar-overlay {
-  display: none;
-}
-
-.topbar-menu-btn {
-  display: none;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: background var(--duration-fast) var(--ease), color var(--duration-fast) var(--ease);
-}
-
-.topbar-menu-btn:hover {
-  background: var(--veil);
-  color: var(--text);
-}
 
 .app-main {
   flex: 1;
@@ -1406,14 +1506,15 @@ button {
   background: var(--indigo-50) !important;
 }
 
-.col-fill {
-  width: 100%;
+.tickets-table--equal {
+  table-layout: fixed;
 }
 
 .cell-user {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .cell-user-info {
@@ -1429,6 +1530,9 @@ button {
 .cell-primary {
   font-weight: 600;
   color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .cell-muted {
@@ -1845,6 +1949,7 @@ button {
 
 .table-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-end;
 }
@@ -1898,35 +2003,6 @@ button {
 }
 
 @media (max-width: 900px) {
-  .sidebar {
-    position: fixed;
-    inset: 0 auto 0 0;
-    z-index: 50;
-    width: 268px;
-    padding: 20px 16px;
-    transform: translateX(-100%);
-    box-shadow: none;
-    transition: transform var(--duration-base) var(--ease);
-  }
-
-  .sidebar[data-mobile-open='true'] {
-    transform: translateX(0);
-    box-shadow: var(--shadow-lg);
-  }
-
-  .topbar-menu-btn {
-    display: flex;
-  }
-
-  .sidebar-overlay {
-    display: block;
-    position: fixed;
-    inset: 0;
-    z-index: 40;
-    background: rgba(15, 23, 42, 0.42);
-    animation: fade-in var(--duration-base) var(--ease);
-  }
-
   .app-content {
     padding: 20px 20px 32px;
   }

@@ -94,10 +94,10 @@ export function OrganizationsPage() {
         />
       ) : (
         <div className="table-wrap">
-          <table className="tickets-table">
+          <table className="tickets-table tickets-table--equal">
             <thead>
               <tr>
-                <th className="col-fill">Nomi</th>
+                <th>Nomi</th>
                 <th>Holati</th>
                 <th></th>
               </tr>
@@ -105,7 +105,7 @@ export function OrganizationsPage() {
             <tbody>
               {organizations.map((o) => (
                 <tr key={o.id}>
-                  <td className="col-fill">
+                  <td>
                     <div className="cell-user">
                       <span className="avatar avatar--sm">
                         <IconBuilding width={12} height={12} />

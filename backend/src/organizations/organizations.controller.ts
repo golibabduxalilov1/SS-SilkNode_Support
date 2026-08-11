@@ -55,4 +55,11 @@ export class PublicOrganizationsController {
     const organizations = await this.organizationsService.findAllActive();
     return { success: true, data: organizations };
   }
+
+  @Post()
+  @UseGuards(TelegramAuthGuard, UserEligibilityGuard)
+  async create(@Body() dto: CreateOrganizationDto) {
+    const organization = await this.organizationsService.create(dto.name);
+    return { success: true, data: organization };
+  }
 }

@@ -23,6 +23,11 @@ import {
   X,
   Bell,
   Trash2,
+  User,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  ShieldCheck,
 } from 'lucide-react';
 
 type IconProps = SVGProps<SVGSVGElement>;
@@ -52,3 +57,8 @@ export const IconMenu = (props: IconProps) => <Menu strokeWidth={STROKE} {...pro
 export const IconClose = (props: IconProps) => <X strokeWidth={STROKE} {...props} />;
 export const IconBell = (props: IconProps) => <Bell strokeWidth={STROKE} {...props} />;
 export const IconTrash = (props: IconProps) => <Trash2 strokeWidth={STROKE} {...props} />;
+export const IconUser = (props: IconProps) => <User strokeWidth={STROKE} {...props} />;
+export const IconEye = (props: IconProps) => <Eye strokeWidth={STROKE} {...props} />;
+export const IconEyeOff = (props: IconProps) => <EyeOff strokeWidth={STROKE} {...props} />;
+export const IconAlert = (props: IconProps) => <AlertCircle strokeWidth={STROKE} {...props} />;
+export const IconShield = (props: IconProps) => <ShieldCheck strokeWidth={STROKE} {...props} />;

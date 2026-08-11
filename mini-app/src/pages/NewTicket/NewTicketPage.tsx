@@ -35,6 +35,7 @@ export function NewTicketPage({ status, onCreated }: NewTicketPageProps) {
 
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [organizationId, setOrganizationId] = useState('');
+  const [customOrgName, setCustomOrgName] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryId, setCategoryId] = useState('');
   const [title, setTitle] = useState('');
@@ -60,19 +61,34 @@ export function NewTicketPage({ status, onCreated }: NewTicketPageProps) {
     setFiles(e.target.files ? Array.from(e.target.files) : []);
   };
 
+  const isOtherOrg = organizationId === '__other__';
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!canSubmit || !organizationId || !categoryId) return;
+    if (!canSubmit || !categoryId) return;
+    if (isOtherOrg ? !customOrgName.trim() : !organizationId) return;
 
     setIsSubmitting(true);
     setError(null);
     try {
+      let resolvedOrganizationId = organizationId;
+      if (isOtherOrg) {
+        try {
+          const orgRes = await api.post('/organizations', { name: customOrgName.trim() });
+          resolvedOrganizationId = orgRes.data.data.id;
+        } catch {
+          setError('Tashkilot yaratib bo\'lmadi.');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       const res = await api.post('/tickets', {
         title,
         description,
         categoryId,
         priority,
-        organizationId,
+        organizationId: resolvedOrganizationId,
       });
       const ticketId = res.data.data.id;
 
@@ -85,6 +101,7 @@ export function NewTicketPage({ status, onCreated }: NewTicketPageProps) {
       setTitle('');
       setDescription('');
       setFiles([]);
+      setCustomOrgName('');
       onCreated();
     } catch (err: any) {
       const message = err?.response?.data?.error?.message ?? 'Xatolik yuz berdi.';
@@ -117,7 +134,17 @@ export function NewTicketPage({ status, onCreated }: NewTicketPageProps) {
               {o.name}
             </option>
           ))}
+          <option value="__other__">Boshqa</option>
         </select>
+        {isOtherOrg && (
+          <input
+            type="text"
+            value={customOrgName}
+            onChange={(e) => setCustomOrgName(e.target.value)}
+            placeholder="Tashkilot nomini kiriting"
+            required
+          />
+        )}
       </label>
 
       <label>
@@ -174,7 +201,14 @@ export function NewTicketPage({ status, onCreated }: NewTicketPageProps) {
 
       {error && <p className="form-error">{error}</p>}
 
-      <button type="submit" disabled={isSubmitting || !organizationId || !categoryId}>
+      <button
+        type="submit"
+        disabled={
+          isSubmitting ||
+          !categoryId ||
+          (isOtherOrg ? !customOrgName.trim() : !organizationId)
+        }
+      >
         <IconSend width={15} height={15} />
         {isSubmitting ? 'Yuborilmoqda...' : 'Yuborish'}
       </button>
