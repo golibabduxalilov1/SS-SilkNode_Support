@@ -6,8 +6,8 @@
   color-scheme: light;
 
   /* Typography */
-  --font-display: 'Plus Jakarta Sans', 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
-  --font-sans: 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'Roboto', -apple-system, 'Segoe UI', system-ui, sans-serif;
+  --font-sans: 'Roboto', -apple-system, 'Segoe UI', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
 
   /* Surfaces — off-white, soft blue-gray */
