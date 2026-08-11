@@ -80,6 +80,16 @@ export class UsersService {
     return this.usersRepository.findOne({ where: { id }, relations: { organization: true } });
   }
 
+  /** Loyihada faqat bitta superadmin bo'lishini ta'minlaydi. */
+  private async assertSuperadminSlotAvailable(excludeUserId?: string): Promise<void> {
+    const existing = await this.usersRepository.findOne({
+      where: { role: UserRole.SUPERADMIN },
+    });
+    if (existing && existing.id !== excludeUserId) {
+      throw new ConflictException("Loyihada faqat bitta superadmin bo'lishi mumkin.");
+    }
+  }
+
   async createAdmin(dto: CreateUserDto): Promise<User> {
     const existing = await this.findByAdminLogin(dto.adminLogin);
     if (existing) {
@@ -94,6 +104,10 @@ export class UsersService {
       if (telegramOwner?.adminLogin) {
         throw new ConflictException('Bu Telegram ID allaqachon boshqa xodimga biriktirilgan.');
       }
+    }
+
+    if (dto.role === UserRole.SUPERADMIN) {
+      await this.assertSuperadminSlotAvailable(telegramOwner?.id);
     }
 
     if (telegramOwner) {
@@ -128,7 +142,12 @@ export class UsersService {
     }
 
     if (dto.fullname !== undefined) user.fullname = dto.fullname;
-    if (dto.role !== undefined) user.role = dto.role;
+    if (dto.role !== undefined) {
+      if (dto.role === UserRole.SUPERADMIN) {
+        await this.assertSuperadminSlotAvailable(user.id);
+      }
+      user.role = dto.role;
+    }
     if (dto.organizationId !== undefined) user.organizationId = dto.organizationId;
     if (dto.isActive !== undefined) user.isActive = dto.isActive;
     if (dto.password) user.passwordHash = await bcrypt.hash(dto.password, 10);

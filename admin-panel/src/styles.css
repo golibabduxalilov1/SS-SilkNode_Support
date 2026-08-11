@@ -1773,13 +1773,121 @@ button {
    Ticket detail page
    ========================================================================== */
 
+.ticket-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 16px;
+  padding: 24px 26px;
+  border-radius: var(--radius-md);
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+.ticket-summary-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.ticket-summary-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ticket-summary-number {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+}
+
+.ticket-summary-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.ticket-summary-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.ticket-summary-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-strong);
+}
+
+.ticket-summary-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.ticket-summary-meta-label {
+  font-size: 11px;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.ticket-summary-meta-value {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text);
+  overflow-wrap: break-word;
+}
+
+.ticket-summary-meta-sub {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.ticket-summary-description {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-strong);
+}
+
+.ticket-summary-description p {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--sunken);
+  line-height: 1.65;
+  font-size: 14px;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+
 .ticket-detail-page .ticket-detail-controls {
   display: flex;
   flex-wrap: wrap;
   gap: 24px;
   align-items: flex-end;
   margin-bottom: 20px;
-  padding: 20px 22px;
+  padding: 16px 22px;
   border-radius: var(--radius-md);
   background: var(--panel);
   border: 1px solid var(--border-strong);
@@ -1800,25 +1908,6 @@ button {
 
 .ticket-detail-controls select {
   min-width: 220px;
-}
-
-.ticket-detail-time {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-.ticket-detail-description {
-  padding: 18px 22px;
-  border-radius: var(--radius-md);
-  background: var(--panel);
-  border: 1px solid var(--border-strong);
-  margin-bottom: 20px;
-  line-height: 1.65;
-  font-size: 14px;
-  color: var(--text);
 }
 
 .chat {
@@ -2005,6 +2094,50 @@ button {
   outline: none;
   border-color: var(--accent);
   box-shadow: var(--glow-accent);
+}
+
+.status-select {
+  min-height: 32px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  background: var(--veil);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  max-width: 160px;
+  cursor: pointer;
+}
+
+.status-select:focus {
+  outline: none;
+  box-shadow: var(--glow-accent);
+}
+
+.status-select--new {
+  background: var(--status-new-soft);
+  color: var(--status-new);
+}
+
+.status-select--in_progress {
+  background: var(--status-in_progress-soft);
+  color: var(--status-in_progress);
+}
+
+.status-select--waiting_user {
+  background: var(--status-waiting_user-soft);
+  color: var(--status-waiting_user);
+}
+
+.status-select--resolved {
+  background: var(--status-resolved-soft);
+  color: var(--status-resolved);
+}
+
+.status-select--closed {
+  background: var(--status-closed-soft);
+  color: var(--status-closed);
 }
 
 /* ==========================================================================

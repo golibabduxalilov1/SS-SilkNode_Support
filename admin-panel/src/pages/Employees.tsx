@@ -42,6 +42,9 @@ export function EmployeesPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const existingSuperadmin = employees.find((emp) => emp.role === 'superadmin');
+  const superadminTaken = !!existingSuperadmin && existingSuperadmin.id !== editingId;
+
   const load = () => {
     setIsLoading(true);
     api
@@ -185,7 +188,9 @@ export function EmployeesPage() {
           onChange={(e) => setForm({ ...form, role: e.target.value as 'admin' | 'superadmin' })}
         >
           <option value="admin">Admin</option>
-          <option value="superadmin">Superadmin</option>
+          <option value="superadmin" disabled={superadminTaken}>
+            Superadmin{superadminTaken ? ' (band)' : ''}
+          </option>
         </select>
         <select
           value={form.organizationId}

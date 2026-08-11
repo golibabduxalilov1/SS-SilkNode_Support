@@ -111,7 +111,7 @@ export class TicketsController {
   @Patch('admin/tickets/:id/assign')
   @UseGuards(AdminJwtAuthGuard)
   async assign(@Param('id') id: string, @Body() dto: AssignTicketDto) {
-    const ticket = await this.ticketsService.assign(id, dto.assignedToId);
+    const ticket = await this.ticketsService.assign(id, dto.assignedToId || null);
     return { success: true, data: ticket };
   }
 

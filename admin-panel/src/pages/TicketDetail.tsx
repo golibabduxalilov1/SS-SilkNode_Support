@@ -49,6 +49,10 @@ const STATUS_OPTIONS = [
   { value: 'closed', label: 'Yopilgan' },
 ];
 
+const STATUS_LABELS: Record<string, string> = Object.fromEntries(
+  STATUS_OPTIONS.map((o) => [o.value, o.label]),
+);
+
 const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1').replace(
   /\/api\/v1\/?$/,
   '',
@@ -92,7 +96,9 @@ export function TicketDetailPage() {
 
   const handleAssign = async (assignedToId: string) => {
     if (!ticket) return;
-    const res = await api.patch(`/admin/tickets/${ticket.id}/assign`, { assignedToId });
+    const res = await api.patch(`/admin/tickets/${ticket.id}/assign`, {
+      assignedToId: assignedToId || null,
+    });
     setTicket(res.data.data);
   };
 
@@ -152,8 +158,8 @@ export function TicketDetailPage() {
 
   return (
     <AppShell
-      title={`#${ticket.number} — ${ticket.title}`}
-      breadcrumb={`${ticket.organization?.name ?? '—'} · ${ticket.createdBy?.fullname ?? '—'} · ${ticket.createdBy?.phoneNumber ?? '—'}`}
+      title={`#${ticket.number}`}
+      breadcrumb="Dashboard / Murojaatlar"
       actions={
         <button className="btn btn-ghost btn-sm" onClick={() => navigate('/dashboard')}>
           <IconChevronLeft width={15} height={15} />
@@ -162,6 +168,64 @@ export function TicketDetailPage() {
       }
     >
       <div className="ticket-detail-page">
+      <div className="ticket-summary-card">
+        <div className="ticket-summary-top">
+          <div className="ticket-summary-heading">
+            <span className="ticket-summary-number">#{ticket.number}</span>
+            <h2 className="ticket-summary-title">{ticket.title}</h2>
+          </div>
+          <div className="ticket-summary-badges">
+            <span className={`priority priority--${ticket.priority}`}>{ticket.priority}</span>
+            <span className={`status status--${ticket.status}`}>
+              {STATUS_LABELS[ticket.status] ?? ticket.status}
+            </span>
+          </div>
+        </div>
+
+        <div className="ticket-summary-meta">
+          <div className="ticket-summary-meta-item">
+            <span className="ticket-summary-meta-label">Tashkilot</span>
+            <span className="ticket-summary-meta-value">{ticket.organization?.name ?? '—'}</span>
+          </div>
+          <div className="ticket-summary-meta-item">
+            <span className="ticket-summary-meta-label">Foydalanuvchi</span>
+            <span className="ticket-summary-meta-value">
+              {ticket.createdBy?.fullname ?? '—'}
+              {ticket.createdBy?.phoneNumber && (
+                <span className="ticket-summary-meta-sub"> · {ticket.createdBy.phoneNumber}</span>
+              )}
+            </span>
+          </div>
+          <div className="ticket-summary-meta-item">
+            <span className="ticket-summary-meta-label">Kategoriya</span>
+            <span className="ticket-summary-meta-value">{ticket.categoryEntity?.name ?? '—'}</span>
+          </div>
+          <div className="ticket-summary-meta-item">
+            <span className="ticket-summary-meta-label">Yaratildi</span>
+            <span className="ticket-summary-meta-value">
+              {new Date(ticket.createdAt).toLocaleString('uz-UZ')}
+            </span>
+          </div>
+          <div className="ticket-summary-meta-item">
+            <span className="ticket-summary-meta-label">Birinchi javob</span>
+            <span className="ticket-summary-meta-value">
+              {ticket.firstResponseMinutes != null ? `${ticket.firstResponseMinutes} daq.` : '—'}
+            </span>
+          </div>
+          <div className="ticket-summary-meta-item">
+            <span className="ticket-summary-meta-label">Yopilish vaqti</span>
+            <span className="ticket-summary-meta-value">
+              {ticket.resolutionMinutes != null ? `${ticket.resolutionMinutes} daq.` : '—'}
+            </span>
+          </div>
+        </div>
+
+        <div className="ticket-summary-description">
+          <span className="ticket-summary-meta-label">Tavsif</span>
+          <p>{ticket.description}</p>
+        </div>
+      </div>
+
       <div className="ticket-detail-controls">
         <label>
           Holat
@@ -188,15 +252,7 @@ export function TicketDetailPage() {
             ))}
           </select>
         </label>
-
-        <div className="ticket-detail-time">
-          <span>Kategoriya: {ticket.categoryEntity?.name ?? '—'}</span>
-          <span>Birinchi javob: {ticket.firstResponseMinutes ?? '—'} daq.</span>
-          <span>Yopilish: {ticket.resolutionMinutes ?? '—'} daq.</span>
-        </div>
       </div>
-
-      <p className="ticket-detail-description">{ticket.description}</p>
 
       {messages.length === 0 ? (
         <EmptyState

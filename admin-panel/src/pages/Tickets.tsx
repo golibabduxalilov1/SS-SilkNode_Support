@@ -37,13 +37,13 @@ interface AdminUser {
   role: string;
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  new: 'Yangi',
-  in_progress: 'Jarayonda',
-  waiting_user: 'Javob kutilmoqda',
-  resolved: 'Yechilgan',
-  closed: 'Yopilgan',
-};
+const STATUS_OPTIONS = [
+  { value: 'new', label: 'Yangi' },
+  { value: 'in_progress', label: 'Jarayonda' },
+  { value: 'waiting_user', label: 'Javob kutilmoqda' },
+  { value: 'resolved', label: 'Yechilgan' },
+  { value: 'closed', label: 'Yopilgan' },
+];
 
 function lastMessage(ticket: Ticket): string {
   if (!ticket.messages || ticket.messages.length === 0) return '—';
@@ -80,9 +80,24 @@ export function TicketsPage() {
 
   useEffect(load, []);
 
+  const handleStatusChange = async (ticket: Ticket, status: string) => {
+    try {
+      const res = await api.patch(`/admin/tickets/${ticket.id}/status`, { status });
+      const updated = res.data.data;
+      setTickets((prev) => prev.map((t) => (t.id === ticket.id ? { ...t, status: updated.status } : t)));
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
+          ?.message ?? "Holatni o'zgartirib bo'lmadi.";
+      setError(message);
+    }
+  };
+
   const handleAssign = async (ticket: Ticket, assignedToId: string) => {
     try {
-      const res = await api.patch(`/admin/tickets/${ticket.id}/assign`, { assignedToId });
+      const res = await api.patch(`/admin/tickets/${ticket.id}/assign`, {
+        assignedToId: assignedToId || null,
+      });
       const updated = res.data.data;
       setTickets((prev) => prev.map((t) => (t.id === ticket.id ? { ...t, assignedTo: updated.assignedTo } : t)));
     } catch (err: unknown) {
@@ -194,10 +209,18 @@ export function TicketsPage() {
                       <td>
                         <span className={`priority priority--${t.priority}`}>{t.priority}</span>
                       </td>
-                      <td>
-                        <span className={`status status--${t.status}`}>
-                          {STATUS_LABELS[t.status] ?? t.status}
-                        </span>
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <select
+                          className={`status-select status-select--${t.status}`}
+                          value={t.status}
+                          onChange={(e) => handleStatusChange(t, e.target.value)}
+                        >
+                          {STATUS_OPTIONS.map((o) => (
+                            <option key={o.value} value={o.value}>
+                              {o.label}
+                            </option>
+                          ))}
+                        </select>
                       </td>
                       <td onClick={(e) => e.stopPropagation()}>
                         <select
