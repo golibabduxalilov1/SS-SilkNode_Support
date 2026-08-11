@@ -1,4 +1,5 @@
 import { getTelegramWebApp } from '../../telegram/webApp';
+import { IconWarning } from '../../components/icons';
 
 /** Bo'lim 4.2: /start bosmagan yoki telefon tasdiqlamagan foydalanuvchi uchun ogohlantirish. */
 export function WarningBanner() {
@@ -10,6 +11,7 @@ export function WarningBanner() {
 
   return (
     <div className="warning-banner">
+      <IconWarning className="warning-banner-icon" width={26} height={26} />
       <p>
         Murojaat yuborish uchun avval botga o'ting, "/start" bosing va telefon
         raqamingizni tasdiqlang.

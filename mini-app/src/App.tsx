@@ -30,6 +30,8 @@ export function App() {
     const webApp = getTelegramWebApp();
     webApp?.ready();
     webApp?.expand();
+    webApp?.setHeaderColor?.('#383e4b');
+    webApp?.setBackgroundColor?.('#383e4b');
   }, []);
 
   if (isLoading) return <SplashScreen />;

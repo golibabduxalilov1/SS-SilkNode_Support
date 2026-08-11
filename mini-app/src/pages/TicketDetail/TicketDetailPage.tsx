@@ -1,5 +1,6 @@
 import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
 import { api } from '../../api/client';
+import { IconChevronLeft, IconPaperclip, IconSend, IconSpinner } from '../../components/icons';
 
 interface Ticket {
   id: string;
@@ -100,14 +101,22 @@ export function TicketDetailPage({ ticketId, onBack }: TicketDetailPageProps) {
     }
   };
 
-  if (isLoading) return <p>Yuklanmoqda...</p>;
+  if (isLoading) {
+    return (
+      <div className="inline-loading">
+        <IconSpinner width={18} height={18} />
+        Yuklanmoqda...
+      </div>
+    );
+  }
   if (error && !ticket) return <p className="form-error">{error}</p>;
   if (!ticket) return null;
 
   return (
     <div className="ticket-detail">
       <button type="button" className="back-button" onClick={onBack}>
-        ← Orqaga
+        <IconChevronLeft width={16} height={16} />
+        Orqaga
       </button>
 
       <div className="ticket-detail-header">
@@ -133,7 +142,7 @@ export function TicketDetailPage({ ticketId, onBack }: TicketDetailPageProps) {
                 <div className="chat-message-attachments">
                   {m.attachments.map((a) => (
                     <a key={a.id} href={`${API_ORIGIN}${a.fileUrl}`} target="_blank" rel="noreferrer">
-                      📎 {a.fileName}
+                      <IconPaperclip width={12} height={12} /> {a.fileName}
                     </a>
                   ))}
                 </div>
@@ -154,6 +163,7 @@ export function TicketDetailPage({ ticketId, onBack }: TicketDetailPageProps) {
         <input type="file" onChange={handleFileChange} />
         {error && <p className="form-error">{error}</p>}
         <button type="submit" disabled={isSending}>
+          <IconSend width={15} height={15} />
           {isSending ? 'Yuborilmoqda...' : 'Yuborish'}
         </button>
       </form>

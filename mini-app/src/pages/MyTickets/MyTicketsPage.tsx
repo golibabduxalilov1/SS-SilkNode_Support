@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../api/client';
+import { IconSpinner } from '../../components/icons';
 
 interface Ticket {
   id: string;
@@ -35,7 +36,14 @@ export function MyTicketsPage({ refreshKey, onOpenTicket }: MyTicketsPageProps) 
       .finally(() => setIsLoading(false));
   }, [refreshKey]);
 
-  if (isLoading) return <p>Yuklanmoqda...</p>;
+  if (isLoading) {
+    return (
+      <div className="inline-loading">
+        <IconSpinner width={18} height={18} />
+        Yuklanmoqda...
+      </div>
+    );
+  }
   if (tickets.length === 0) return <p>Hozircha murojaatlar yo'q.</p>;
 
   return (

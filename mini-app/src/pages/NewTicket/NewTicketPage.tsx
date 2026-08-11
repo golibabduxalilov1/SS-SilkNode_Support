@@ -2,6 +2,7 @@ import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
 import { api } from '../../api/client';
 import { AuthStatus } from '../../hooks/useCurrentUser';
 import { WarningBanner } from './WarningBanner';
+import { IconSend } from '../../components/icons';
 
 const PRIORITIES = [
   { value: 'low', label: 'Past' },
@@ -174,6 +175,7 @@ export function NewTicketPage({ status, onCreated }: NewTicketPageProps) {
       {error && <p className="form-error">{error}</p>}
 
       <button type="submit" disabled={isSubmitting || !organizationId || !categoryId}>
+        <IconSend width={15} height={15} />
         {isSubmitting ? 'Yuborilmoqda...' : 'Yuborish'}
       </button>
     </form>

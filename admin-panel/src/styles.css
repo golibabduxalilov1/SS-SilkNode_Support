@@ -1,60 +1,63 @@
 /* ==========================================================================
-   Design tokens — Swiss Modernism 2.0
+   Design tokens — Twilight Graphite (mid-tone professional)
    ========================================================================== */
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 
   /* Typography */
-  --font-display: 'Space Grotesk', 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'Plus Jakarta Sans', 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
   --font-sans: 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
 
-  /* Surfaces */
-  --canvas: #fafafa;
-  --panel: #ffffff;
-  --sunken: #fafafa;
-  --veil: #f4f4f5;
+  /* Surfaces — mid-tone slate, neither light nor dark */
+  --canvas: #383e4b;
+  --panel: #454c5c;
+  --sunken: #2f3540;
+  --veil: #515a6d;
 
   /* Text */
-  --text: #0a0a0a;
-  --text-secondary: #3f3f46;
-  --text-muted: #71717a;
+  --text: #f3f5f8;
+  --text-secondary: #c7cdda;
+  --text-muted: #949cb0;
 
   /* Borders */
-  --border: #e4e4e7;
-  --border-strong: #d4d4d8;
+  --border: rgba(255, 255, 255, 0.09);
+  --border-strong: rgba(255, 255, 255, 0.18);
 
-  /* Dark surfaces (chrome accents only) */
-  --dark-surface: #0a0a0a;
-  --dark-hover: #27272a;
+  /* Darkest chrome accents (brand chip, dark buttons) */
+  --dark-surface: #1e212a;
+  --dark-hover: #2a2e3a;
 
-  /* Accent — single decorative color */
-  --accent: #4f46e5;
-  --accent-hover: #4338ca;
-  --dark-accent: #3730a3;
-  --accent-tint: #eef2ff;
+  /* Accent — indigo → violet gradient, single decorative hue family */
+  --accent: #6366f1;
+  --accent-2: #8b5cf6;
+  --accent-hover: #5457e5;
+  --dark-accent: #c7d2fe;
+  --accent-tint: rgba(129, 140, 248, 0.16);
+  --gradient-accent: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
 
-  /* Semantic */
-  --success: #15803d;
-  --success-tint: #eaf6ee;
-  --warning: #b45309;
-  --warning-tint: #fef6ec;
-  --error: #dc2626;
-  --error-tint: #fdecec;
-  --info: #0369a1;
-  --info-tint: #eaf4fa;
+  /* Semantic — lightened tonal variants for mid/dark surfaces */
+  --success: #4ade80;
+  --success-tint: rgba(74, 222, 128, 0.15);
+  --warning: #fbbf24;
+  --warning-tint: rgba(251, 191, 36, 0.15);
+  --error: #f87171;
+  --error-tint: rgba(248, 113, 113, 0.15);
+  --info: #38bdf8;
+  --info-tint: rgba(56, 189, 248, 0.15);
 
-  /* Radius — sharp, restrained */
-  --radius-xs: 2px;
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
+  /* Radius — soft minimalism */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
 
-  /* Elevation — thin borders over shadows */
-  --shadow-sm: 0 1px 2px rgba(10, 10, 10, 0.04);
-  --shadow-md: 0 6px 16px rgba(10, 10, 10, 0.08);
-  --shadow-lg: 0 16px 40px rgba(10, 10, 10, 0.12);
+  /* Elevation */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.22);
+  --shadow-md: 0 10px 24px rgba(0, 0, 0, 0.32);
+  --shadow-lg: 0 24px 56px rgba(0, 0, 0, 0.42);
+  --glow-accent: 0 0 0 3px rgba(99, 102, 241, 0.28);
 
   /* Motion */
   --ease: cubic-bezier(0.2, 0, 0, 1);
@@ -68,7 +71,7 @@
   --sidebar-width: 232px;
 
   /* ---- Legacy aliases (referenced by inline styles / JS) ---- */
-  --bg: var(--sunken);
+  --bg: var(--canvas);
   --surface: var(--panel);
   --surface-alt: var(--veil);
   --border-color: var(--border);
@@ -131,7 +134,9 @@ body {
   margin: 0;
   font-family: var(--font-sans);
   font-size: 15px;
-  background: var(--sunken);
+  background: radial-gradient(1100px 560px at 12% -8%, rgba(99, 102, 241, 0.16), transparent 60%),
+    radial-gradient(900px 520px at 100% 0%, rgba(139, 92, 246, 0.12), transparent 55%), var(--canvas);
+  background-attachment: fixed;
   color: var(--text);
   -webkit-font-smoothing: antialiased;
 }
@@ -177,6 +182,17 @@ button {
   }
 }
 
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* ==========================================================================
    Buttons
    ========================================================================== */
@@ -195,7 +211,8 @@ button {
   font-weight: 600;
   cursor: pointer;
   transition: background var(--duration-fast) var(--ease), border-color var(--duration-fast) var(--ease),
-    color var(--duration-fast) var(--ease);
+    color var(--duration-fast) var(--ease), transform var(--duration-fast) var(--ease),
+    box-shadow var(--duration-fast) var(--ease);
   white-space: nowrap;
 }
 
@@ -204,21 +221,25 @@ button {
   cursor: not-allowed;
 }
 
-/* Accent indigo (primary action) */
+/* Gradient indigo → violet (primary action) */
 .btn-primary {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--gradient-accent);
+  border-color: transparent;
   color: #ffffff;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md), var(--glow-accent);
 }
 
-/* Outline */
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Outline glass */
 .btn-secondary {
-  background: var(--panel);
+  background: rgba(255, 255, 255, 0.04);
   border-color: var(--border-strong);
   color: var(--text);
 }
@@ -240,7 +261,7 @@ button {
   color: var(--text);
 }
 
-/* Solid black */
+/* Solid dark chip */
 .btn-dark {
   background: var(--dark-surface);
   border-color: var(--dark-surface);
@@ -254,7 +275,7 @@ button {
 
 /* Destructive */
 .btn-danger {
-  background: var(--panel);
+  background: rgba(255, 255, 255, 0.04);
   border-color: var(--border-strong);
   color: var(--error);
 }
@@ -293,7 +314,8 @@ button {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: var(--dark-surface);
+  background: radial-gradient(900px 500px at 20% 10%, rgba(99, 102, 241, 0.28), transparent 60%),
+    radial-gradient(700px 460px at 85% 90%, rgba(139, 92, 246, 0.22), transparent 55%), var(--dark-surface);
   padding: 24px;
 }
 
@@ -305,9 +327,12 @@ button {
   gap: 16px;
   padding: 40px 36px;
   border-radius: var(--radius-lg);
-  background: var(--panel);
-  border: 1px solid var(--border);
+  background: rgba(69, 76, 92, 0.78);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-strong);
   box-shadow: var(--shadow-lg);
+  animation: fadeSlideIn var(--duration-slow) var(--ease) both;
 }
 
 .login-mark {
@@ -317,12 +342,13 @@ button {
   width: 40px;
   height: 40px;
   border-radius: var(--radius-sm);
-  background: var(--dark-surface);
+  background: var(--gradient-accent);
   color: #fff;
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 17px;
   margin-bottom: 4px;
+  box-shadow: var(--shadow-md);
 }
 
 .login-form h1 {
@@ -363,7 +389,7 @@ button {
   padding: 10px 14px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-strong);
-  background: var(--panel);
+  background: rgba(0, 0, 0, 0.16);
   color: var(--text);
   font-size: 15px;
   font-family: var(--font-sans);
@@ -386,7 +412,7 @@ button {
 .toolbar select:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.16);
+  box-shadow: var(--glow-accent);
 }
 
 .login-form input:disabled,
@@ -399,19 +425,19 @@ button {
   margin-top: 6px;
   min-height: 44px;
   padding: 10px 20px;
-  border: 1px solid var(--accent);
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
-  background: var(--accent);
+  background: var(--gradient-accent);
   color: #fff;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: background var(--duration-fast) var(--ease), border-color var(--duration-fast) var(--ease);
+  transition: transform var(--duration-fast) var(--ease), box-shadow var(--duration-fast) var(--ease);
 }
 
 .login-form button[type='submit']:hover:not(:disabled) {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md), var(--glow-accent);
 }
 
 .login-form button[type='submit']:disabled {
@@ -444,7 +470,9 @@ button {
 .sidebar {
   width: var(--sidebar-width);
   flex-shrink: 0;
-  background: var(--panel);
+  background: rgba(69, 76, 92, 0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -468,11 +496,12 @@ button {
   width: 28px;
   height: 28px;
   border-radius: var(--radius-sm);
-  background: var(--dark-surface);
+  background: var(--gradient-accent);
   color: #fff;
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 13px;
+  box-shadow: var(--shadow-sm);
 }
 
 .sidebar-brand-text {
@@ -518,7 +547,7 @@ button {
 .sidebar-nav-item.is-active {
   background: var(--accent-tint);
   border-left-color: var(--accent);
-  color: var(--dark-accent);
+  color: var(--text);
   font-weight: 600;
 }
 
@@ -601,7 +630,9 @@ button {
   justify-content: space-between;
   gap: 16px;
   padding: 0 40px;
-  background: var(--panel);
+  background: rgba(69, 76, 92, 0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
@@ -674,6 +705,7 @@ button {
   align-items: center;
   gap: 12px;
   margin-bottom: 20px;
+  animation: fadeSlideIn var(--duration-slow) var(--ease) both;
 }
 
 .toolbar-search {
@@ -739,15 +771,34 @@ button {
   gap: 12px;
   padding: 20px;
   border-radius: var(--radius-md);
-  background: var(--panel);
+  background: linear-gradient(165deg, var(--panel) 0%, var(--sunken) 145%);
   border: 1px solid var(--border);
   box-shadow: none;
-  transition: border-color var(--duration-fast) var(--ease), box-shadow var(--duration-fast) var(--ease);
+  transition: border-color var(--duration-fast) var(--ease), box-shadow var(--duration-fast) var(--ease),
+    transform var(--duration-fast) var(--ease);
+  animation: fadeSlideIn var(--duration-slow) var(--ease) both;
+}
+
+.stat-cards .stat-card:nth-child(1) {
+  animation-delay: 0ms;
+}
+.stat-cards .stat-card:nth-child(2) {
+  animation-delay: 40ms;
+}
+.stat-cards .stat-card:nth-child(3) {
+  animation-delay: 80ms;
+}
+.stat-cards .stat-card:nth-child(4) {
+  animation-delay: 120ms;
+}
+.stat-cards .stat-card:nth-child(5) {
+  animation-delay: 160ms;
 }
 
 .stat-card:hover {
   border-color: var(--border-strong);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
 }
 
 .stat-card-icon {
@@ -797,8 +848,9 @@ button {
 .chart-card {
   padding: 22px 24px;
   border-radius: var(--radius-md);
-  background: var(--panel);
+  background: linear-gradient(165deg, var(--panel) 0%, var(--sunken) 145%);
   border: 1px solid var(--border);
+  animation: fadeSlideIn var(--duration-slow) var(--ease) both;
 }
 
 .chart-card h3 {
@@ -870,8 +922,8 @@ button {
 .chart-tooltip {
   padding: 8px 12px;
   border-radius: var(--radius-sm);
-  background: var(--panel);
-  border: 1px solid var(--border);
+  background: var(--dark-surface);
+  border: 1px solid var(--border-strong);
   box-shadow: var(--shadow-md);
   font-size: 12.5px;
 }
@@ -953,7 +1005,7 @@ button {
   border-top: 1px solid var(--border);
   cursor: pointer;
   font-size: 13.5px;
-  transition: background var(--duration-fast) var(--ease);
+  transition: background var(--duration-fast) var(--ease), transform var(--duration-fast) var(--ease);
 }
 
 .top-list-item:first-child {
@@ -962,6 +1014,7 @@ button {
 
 .top-list-item:hover {
   background: var(--sunken);
+  transform: translateX(2px);
 }
 
 .top-list-number {
@@ -992,7 +1045,7 @@ button {
   margin-bottom: 20px;
   padding: 22px 24px;
   border-radius: var(--radius-md);
-  background: var(--panel);
+  background: linear-gradient(165deg, var(--panel) 0%, var(--sunken) 145%);
   border: 1px solid var(--border);
 }
 
@@ -1060,8 +1113,9 @@ button {
   margin-bottom: 20px;
   padding: 22px 24px;
   border-radius: var(--radius-md);
-  background: var(--panel);
+  background: linear-gradient(165deg, var(--panel) 0%, var(--sunken) 145%);
   border: 1px solid var(--border);
+  animation: fadeSlideIn var(--duration-slow) var(--ease) both;
 }
 
 .section-card h3 {
@@ -1079,6 +1133,7 @@ button {
   border: 1px solid var(--border);
   background: var(--panel);
   overflow: auto;
+  animation: fadeSlideIn var(--duration-slow) var(--ease) both;
 }
 
 .section-card .tickets-table {
@@ -1171,7 +1226,7 @@ button {
   width: 36px;
   height: 36px;
   font-size: 12.5px;
-  background: var(--accent);
+  background: var(--gradient-accent);
   color: #ffffff;
 }
 
@@ -1288,6 +1343,7 @@ button {
   border-radius: var(--radius-md);
   background: var(--panel);
   border: 1px dashed var(--border-strong);
+  animation: fadeSlideIn var(--duration-slow) var(--ease) both;
 }
 
 .empty-state-icon {
@@ -1331,7 +1387,7 @@ button {
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.14), transparent);
   animation: skeleton-shimmer 1.4s infinite;
 }
 
@@ -1388,7 +1444,7 @@ button {
   margin-bottom: 20px;
   padding: 20px 22px;
   border-radius: var(--radius-md);
-  background: var(--panel);
+  background: linear-gradient(165deg, var(--panel) 0%, var(--sunken) 145%);
   border: 1px solid var(--border);
 }
 
@@ -1480,7 +1536,7 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: var(--accent);
+  color: var(--dark-accent);
   text-decoration: none;
 }
 
@@ -1543,7 +1599,7 @@ button {
   padding: 10px 14px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-strong);
-  background: var(--panel);
+  background: rgba(0, 0, 0, 0.16);
   color: var(--text);
   font-size: 14px;
   font-family: var(--font-sans);
@@ -1566,7 +1622,7 @@ button {
   padding: 6px 12px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
-  background: var(--panel);
+  background: rgba(255, 255, 255, 0.03);
   color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;

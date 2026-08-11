@@ -4,6 +4,8 @@ interface TelegramWebApp {
   expand: () => void;
   colorScheme: 'light' | 'dark';
   openTelegramLink: (url: string) => void;
+  setHeaderColor?: (color: string) => void;
+  setBackgroundColor?: (color: string) => void;
 }
 
 declare global {
