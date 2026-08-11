@@ -16,7 +16,7 @@ export class Message {
   @PrimaryGeneratedColumn('increment', { type: 'bigint' })
   id: string;
 
-  @ManyToOne(() => Ticket, (ticket) => ticket.messages, { nullable: false })
+  @ManyToOne(() => Ticket, (ticket) => ticket.messages, { nullable: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'ticket_id' })
   ticket: Ticket;
 

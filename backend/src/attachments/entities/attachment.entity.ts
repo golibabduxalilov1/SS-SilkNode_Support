@@ -15,14 +15,14 @@ export class Attachment {
   id: string;
 
   /** Har bir fayl to'g'ridan-to'g'ri murojaatga bog'lanadi (xabar orqali bo'lmasa ham). */
-  @ManyToOne(() => Ticket, { nullable: false })
+  @ManyToOne(() => Ticket, { nullable: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'ticket_id' })
   ticket: Ticket;
 
   @Column({ name: 'ticket_id', type: 'bigint' })
   ticketId: string;
 
-  @ManyToOne(() => Message, (message) => message.attachments, { nullable: true })
+  @ManyToOne(() => Message, (message) => message.attachments, { nullable: true, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'message_id' })
   message: Message | null;
 
