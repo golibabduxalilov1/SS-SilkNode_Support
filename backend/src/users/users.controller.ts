@@ -1,4 +1,18 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { Request } from 'express';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -38,5 +52,17 @@ export class UsersController {
   async update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
     const user = await this.usersService.updateAdmin(id, dto);
     return { success: true, data: toSafeUser(user) };
+  }
+
+  @Delete(':id')
+  @UseGuards(AdminRolesGuard)
+  @Roles(UserRole.SUPERADMIN)
+  @HttpCode(200)
+  async remove(@Param('id') id: string, @Req() req: Request & { user: User }) {
+    if (req.user.id === id) {
+      throw new BadRequestException("O'zingizni o'chira olmaysiz.");
+    }
+    await this.usersService.remove(id);
+    return { success: true };
   }
 }

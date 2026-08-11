@@ -5,12 +5,15 @@ import * as bcrypt from 'bcrypt';
 import { User, UserRole } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { Ticket } from '../tickets/entities/ticket.entity';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
+    @InjectRepository(Ticket)
+    private readonly ticketsRepository: Repository<Ticket>,
   ) {}
 
   findByTelegramId(telegramId: string): Promise<User | null> {
@@ -156,5 +159,23 @@ export class UsersService {
 
   save(user: User): Promise<User> {
     return this.usersRepository.save(user);
+  }
+
+  async remove(id: string): Promise<void> {
+    const user = await this.findById(id);
+    if (!user) {
+      throw new NotFoundException('Foydalanuvchi topilmadi.');
+    }
+
+    const ticketCount = await this.ticketsRepository.count({
+      where: [{ createdById: id }, { assignedToId: id }],
+    });
+    if (ticketCount > 0) {
+      throw new ConflictException(
+        "Bu xodimga bog'liq murojaatlar mavjud, uni o'chirib bo'lmaydi.",
+      );
+    }
+
+    await this.usersRepository.remove(user);
   }
 }

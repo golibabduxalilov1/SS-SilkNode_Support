@@ -1406,6 +1406,10 @@ button {
   background: var(--indigo-50) !important;
 }
 
+.col-fill {
+  width: 100%;
+}
+
 .cell-user {
   display: flex;
   align-items: center;
@@ -1842,6 +1846,7 @@ button {
 .table-actions {
   display: flex;
   gap: 8px;
+  justify-content: flex-end;
 }
 
 .table-actions button {

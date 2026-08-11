@@ -97,7 +97,7 @@ export function CategoriesPage() {
           <table className="tickets-table">
             <thead>
               <tr>
-                <th>Nomi</th>
+                <th className="col-fill">Nomi</th>
                 <th>Holati</th>
                 <th></th>
               </tr>
@@ -105,7 +105,7 @@ export function CategoriesPage() {
             <tbody>
               {categories.map((c) => (
                 <tr key={c.id}>
-                  <td>
+                  <td className="col-fill">
                     <div className="cell-user">
                       <span className="avatar avatar--sm">
                         <IconLayers width={12} height={12} />

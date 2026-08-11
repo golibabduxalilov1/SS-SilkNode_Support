@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { AppShell } from '../components/AppShell';
-import { IconEdit, IconPlus, IconPower, IconUsers } from '../components/icons';
+import { IconEdit, IconPlus, IconPower, IconTrash, IconUsers } from '../components/icons';
 import { EmptyState, TableSkeleton } from '../components/ui';
 
 interface Organization {
@@ -37,6 +37,7 @@ export function EmployeesPage() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [form, setForm] = useState(emptyForm);
+  const [newOrgName, setNewOrgName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +58,7 @@ export function EmployeesPage() {
 
   const resetForm = () => {
     setForm(emptyForm);
+    setNewOrgName('');
     setEditingId(null);
   };
 
@@ -66,14 +68,26 @@ export function EmployeesPage() {
       setError("Barcha maydonlarni to'ldiring, parol kamida 6 belgi bo'lishi kerak.");
       return;
     }
+    if (form.organizationId === '__other__' && !newOrgName.trim()) {
+      setError('Yangi tashkilot nomini kiriting.');
+      return;
+    }
 
     setIsSaving(true);
     setError(null);
     try {
+      let organizationId: string | null = form.organizationId || null;
+      if (form.organizationId === '__other__') {
+        const res = await api.post('/admin/organizations', { name: newOrgName.trim() });
+        const organization = res.data.data;
+        organizationId = organization.id;
+        setOrganizations((prev) => [...prev, organization]);
+      }
+
       const payload: Record<string, unknown> = {
         fullname: form.fullname.trim(),
         role: form.role,
-        organizationId: form.organizationId || null,
+        organizationId,
         telegramId: form.telegramId.trim() || null,
       };
       if (form.password) payload.password = form.password;
@@ -105,11 +119,25 @@ export function EmployeesPage() {
       organizationId: employee.organization?.id ?? '',
       telegramId: employee.telegramId ?? '',
     });
+    setNewOrgName('');
   };
 
   const handleToggleActive = async (employee: Employee) => {
     await api.patch(`/admin/users/${employee.id}`, { isActive: !employee.isActive });
     load();
+  };
+
+  const handleDelete = async (employee: Employee) => {
+    if (!window.confirm(`"${employee.fullname ?? employee.adminLogin}" xodimini o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.`)) return;
+    try {
+      await api.delete(`/admin/users/${employee.id}`);
+      load();
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
+          ?.message ?? "Xodimni o'chirib bo'lmadi.";
+      setError(message);
+    }
   };
 
   if (!isSuperadmin) {
@@ -169,7 +197,15 @@ export function EmployeesPage() {
               {org.name}
             </option>
           ))}
+          <option value="__other__">Boshqa...</option>
         </select>
+        {form.organizationId === '__other__' && (
+          <input
+            value={newOrgName}
+            onChange={(e) => setNewOrgName(e.target.value)}
+            placeholder="Yangi tashkilot nomi"
+          />
+        )}
         <button className="btn btn-primary" type="submit" disabled={isSaving}>
           <IconPlus width={15} height={15} />
           {isSaving ? 'Saqlanmoqda...' : editingId ? 'Saqlash' : "Qo'shish"}
@@ -195,7 +231,7 @@ export function EmployeesPage() {
           <table className="tickets-table">
             <thead>
               <tr>
-                <th>F.I.Sh</th>
+                <th className="col-fill">F.I.Sh</th>
                 <th>Login</th>
                 <th>Telegram ID</th>
                 <th>Rol</th>
@@ -207,7 +243,7 @@ export function EmployeesPage() {
             <tbody>
               {employees.map((emp) => (
                 <tr key={emp.id}>
-                  <td>
+                  <td className="col-fill">
                     <div className="cell-user">
                       <span className="avatar avatar--sm">
                         <IconUsers width={12} height={12} />
@@ -231,8 +267,14 @@ export function EmployeesPage() {
                     </button>
                     <button onClick={() => handleToggleActive(emp)}>
                       <IconPower width={13} height={13} />
-                      {emp.isActive ? "O'chirish" : 'Yoqish'}
+                      {emp.isActive ? 'Nofaollashtirish' : 'Faollashtirish'}
                     </button>
+                    {emp.id !== user?.id && (
+                      <button className="danger" onClick={() => handleDelete(emp)}>
+                        <IconTrash width={13} height={13} />
+                        O'chirish
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
