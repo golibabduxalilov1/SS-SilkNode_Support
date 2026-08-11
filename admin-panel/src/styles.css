@@ -70,9 +70,9 @@
   --duration-slow: 300ms;
 
   /* Layout */
-  --content-max: 1200px;
   --topbar-height: 64px;
-  --sidebar-width: 232px;
+  --sidebar-width: 240px;
+  --sidebar-width-collapsed: 76px;
 
   /* ---- Legacy aliases (referenced by inline styles / JS) ---- */
   --bg: var(--canvas);
@@ -183,6 +183,15 @@ button {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 
@@ -480,17 +489,47 @@ button {
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  padding: 20px 16px;
+  padding: 20px 14px;
   position: sticky;
   top: 0;
   height: 100vh;
+  transition: width var(--duration-base) var(--ease);
+}
+
+.sidebar[data-collapsed='true'] {
+  width: var(--sidebar-width-collapsed);
+  padding-left: 14px;
+  padding-right: 14px;
+}
+
+.sidebar[data-collapsed='true'] .sidebar-brand-text,
+.sidebar[data-collapsed='true'] .sidebar-collapse-btn,
+.sidebar[data-collapsed='true'] .sidebar-group-label,
+.sidebar[data-collapsed='true'] .sidebar-nav-item span,
+.sidebar[data-collapsed='true'] .sidebar-logout span,
+.sidebar[data-collapsed='true'] .sidebar-user-info {
+  display: none;
+}
+
+.sidebar[data-collapsed='true'] .sidebar-brand {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.sidebar[data-collapsed='true'] .sidebar-nav-item,
+.sidebar[data-collapsed='true'] .sidebar-logout,
+.sidebar[data-collapsed='true'] .sidebar-user {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .sidebar-brand {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 4px 8px 24px;
+  padding: 4px 6px 22px 8px;
 }
 
 .sidebar-brand-mark {
@@ -506,28 +545,87 @@ button {
   font-weight: 700;
   font-size: 13px;
   box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
 }
 
 .sidebar-brand-text {
+  flex: 1;
+  min-width: 0;
   color: var(--text);
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 15px;
   letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-collapse-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease), color var(--duration-fast) var(--ease);
+}
+
+.sidebar-collapse-btn:hover {
+  background: var(--veil);
+  color: var(--text);
+}
+
+.sidebar-collapse-icon {
+  width: 16px;
+  height: 16px;
+  transition: transform var(--duration-base) var(--ease);
+}
+
+.sidebar[data-collapsed='true'] .sidebar-collapse-icon {
+  transform: rotate(180deg);
 }
 
 .sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sidebar-group {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  flex: 1;
+}
+
+.sidebar-group + .sidebar-group {
+  margin-top: 16px;
+}
+
+.sidebar-group-label {
+  display: block;
+  padding: 0 12px;
+  margin-bottom: 6px;
+  font-size: 10.5px;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  opacity: 0.85;
 }
 
 .sidebar-nav-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
+  min-height: 40px;
+  padding: 9px 12px;
   border-radius: var(--radius-sm);
   border-left: 2px solid transparent;
   color: var(--text-secondary);
@@ -538,9 +636,18 @@ button {
     border-color var(--duration-fast) var(--ease);
 }
 
+.sidebar-nav-item span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .sidebar-nav-icon {
   flex-shrink: 0;
+  width: 18px;
+  height: 18px;
   opacity: 0.75;
+  transition: opacity var(--duration-fast) var(--ease), color var(--duration-fast) var(--ease);
 }
 
 .sidebar-nav-item:hover {
@@ -549,7 +656,7 @@ button {
 }
 
 .sidebar-nav-item.is-active {
-  background: var(--accent-tint);
+  background: linear-gradient(90deg, var(--accent-tint) 0%, rgba(109, 94, 240, 0.02) 100%);
   border-left-color: var(--accent);
   color: var(--text);
   font-weight: 600;
@@ -562,6 +669,7 @@ button {
 
 .sidebar-footer {
   border-top: 1px solid var(--border);
+  margin-top: 14px;
   padding-top: 14px;
   display: flex;
   flex-direction: column;
@@ -617,6 +725,36 @@ button {
 .sidebar-logout:hover {
   background: var(--error-tint);
   color: var(--error);
+}
+
+.sidebar-logout svg {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+
+.sidebar-overlay {
+  display: none;
+}
+
+.topbar-menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease), color var(--duration-fast) var(--ease);
+}
+
+.topbar-menu-btn:hover {
+  background: var(--veil);
+  color: var(--text);
 }
 
 .app-main {
@@ -676,7 +814,7 @@ button {
 
 .app-content {
   flex: 1;
-  max-width: var(--content-max);
+  min-width: 0;
   width: 100%;
   padding: 32px 40px 48px;
 }
@@ -1655,26 +1793,35 @@ button {
   }
 }
 
-@media (max-width: 860px) {
+@media (max-width: 900px) {
   .sidebar {
-    width: 72px;
-    padding: 16px 12px;
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 50;
+    width: 268px;
+    padding: 20px 16px;
+    transform: translateX(-100%);
+    box-shadow: none;
+    transition: transform var(--duration-base) var(--ease);
   }
 
-  .sidebar-brand-text,
-  .sidebar-nav-item span,
-  .sidebar-logout span,
-  .sidebar-user-info {
-    display: none;
+  .sidebar[data-mobile-open='true'] {
+    transform: translateX(0);
+    box-shadow: var(--shadow-lg);
   }
 
-  .sidebar-nav-item,
-  .sidebar-logout {
-    justify-content: center;
+  .topbar-menu-btn {
+    display: flex;
   }
 
-  .sidebar-user {
-    justify-content: center;
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: rgba(23, 26, 43, 0.42);
+    backdrop-filter: blur(2px);
+    animation: fade-in var(--duration-base) var(--ease);
   }
 
   .app-content {
@@ -1683,6 +1830,7 @@ button {
 
   .topbar {
     padding: 0 20px;
+    gap: 12px;
   }
 
   .split-panel {

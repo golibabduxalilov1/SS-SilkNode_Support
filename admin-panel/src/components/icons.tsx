@@ -19,6 +19,8 @@ import {
   Paperclip,
   Send,
   Lock,
+  Menu,
+  X,
 } from 'lucide-react';
 
 type IconProps = SVGProps<SVGSVGElement>;
@@ -44,3 +46,5 @@ export const IconPlus = (props: IconProps) => <Plus strokeWidth={STROKE} {...pro
 export const IconPaperclip = (props: IconProps) => <Paperclip strokeWidth={STROKE} {...props} />;
 export const IconSend = (props: IconProps) => <Send strokeWidth={STROKE} {...props} />;
 export const IconLock = (props: IconProps) => <Lock strokeWidth={STROKE} {...props} />;
+export const IconMenu = (props: IconProps) => <Menu strokeWidth={STROKE} {...props} />;
+export const IconClose = (props: IconProps) => <X strokeWidth={STROKE} {...props} />;
