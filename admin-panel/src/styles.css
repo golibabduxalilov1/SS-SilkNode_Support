@@ -1989,6 +1989,24 @@ button {
   border-color: var(--error);
 }
 
+.assign-select {
+  min-height: 32px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--sunken);
+  color: var(--text);
+  font-size: 12px;
+  font-family: var(--font-sans);
+  max-width: 160px;
+}
+
+.assign-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--glow-accent);
+}
+
 /* ==========================================================================
    Responsive
    ========================================================================== */

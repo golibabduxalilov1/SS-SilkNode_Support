@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { TicketsService } from './tickets.service';
 import { OrganizationsService } from '../organizations/organizations.service';
 import { CategoriesService } from '../categories/categories.service';
@@ -10,6 +10,7 @@ import { AssignTicketDto } from './dto/assign-ticket.dto';
 import { TelegramAuthGuard } from '../auth/guards/telegram-auth.guard';
 import { UserEligibilityGuard } from '../auth/guards/user-eligibility.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { AdminRolesGuard } from '../auth/guards/admin-roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt.guard';
@@ -112,5 +113,15 @@ export class TicketsController {
   async assign(@Param('id') id: string, @Body() dto: AssignTicketDto) {
     const ticket = await this.ticketsService.assign(id, dto.assignedToId);
     return { success: true, data: ticket };
+  }
+
+  /** DELETE /api/v1/admin/tickets/:id — murojaatni o'chirish, faqat superadmin uchun. */
+  @Delete('admin/tickets/:id')
+  @UseGuards(AdminJwtAuthGuard, AdminRolesGuard)
+  @Roles(UserRole.SUPERADMIN)
+  @HttpCode(HttpStatus.OK)
+  async remove(@Param('id') id: string) {
+    await this.ticketsService.remove(id);
+    return { success: true };
   }
 }

@@ -148,7 +148,18 @@ export class TicketsService {
     if (!ticket) throw new NotFoundException('Murojaat topilmadi.');
 
     ticket.assignedToId = assignedToId;
-    return this.ticketsRepository.save(ticket);
+    await this.ticketsRepository.save(ticket);
+
+    const updated = await this.ticketsRepository.findOne({ where: { id }, relations: ['assignedTo'] });
+    if (!updated) throw new NotFoundException('Murojaat topilmadi.');
+    return updated;
+  }
+
+  async remove(id: string): Promise<void> {
+    const ticket = await this.ticketsRepository.findOne({ where: { id } });
+    if (!ticket) throw new NotFoundException('Murojaat topilmadi.');
+
+    await this.ticketsRepository.remove(ticket);
   }
 
   async getDashboardStats(): Promise<DashboardStats> {

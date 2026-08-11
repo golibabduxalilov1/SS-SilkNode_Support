@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
+import { useAuth } from '../auth/AuthContext';
 import { AppShell } from '../components/AppShell';
-import { IconInbox, IconSearch } from '../components/icons';
+import { IconInbox, IconSearch, IconTrash } from '../components/icons';
 import { Avatar, EmptyState, TableSkeleton } from '../components/ui';
 
 interface Message {
@@ -21,13 +22,19 @@ interface Ticket {
   createdAt: string;
   organization?: { id: string; name: string } | null;
   createdBy?: { fullname: string | null; phoneNumber: string | null } | null;
-  assignedTo?: { fullname: string | null } | null;
+  assignedTo?: { id: string; fullname: string | null } | null;
   messages?: Message[];
 }
 
 interface Organization {
   id: string;
   name: string;
+}
+
+interface AdminUser {
+  id: string;
+  fullname: string | null;
+  role: string;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -50,20 +57,54 @@ function lastMessage(ticket: Ticket): string {
 /** Asosiy TZ bo'lim 6 dagi murojaatlar jadvali — endi Dashboard'dan ajratilgan alohida bo'lim. */
 export function TicketsPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isSuperadmin = user?.role === 'superadmin';
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [organizationFilter, setOrganizationFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    Promise.all([api.get('/admin/tickets'), api.get('/admin/organizations')])
-      .then(([ticketsRes, orgsRes]) => {
+  const load = () => {
+    setIsLoading(true);
+    Promise.all([api.get('/admin/tickets'), api.get('/admin/organizations'), api.get('/admin/users')])
+      .then(([ticketsRes, orgsRes, adminsRes]) => {
         setTickets(ticketsRes.data.data);
         setOrganizations(orgsRes.data.data);
+        setAdmins(adminsRes.data.data);
       })
       .finally(() => setIsLoading(false));
-  }, []);
+  };
+
+  useEffect(load, []);
+
+  const handleAssign = async (ticket: Ticket, assignedToId: string) => {
+    try {
+      const res = await api.patch(`/admin/tickets/${ticket.id}/assign`, { assignedToId });
+      const updated = res.data.data;
+      setTickets((prev) => prev.map((t) => (t.id === ticket.id ? { ...t, assignedTo: updated.assignedTo } : t)));
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
+          ?.message ?? "Ijrochini tayinlab bo'lmadi.";
+      setError(message);
+    }
+  };
+
+  const handleDelete = async (ticket: Ticket) => {
+    if (!window.confirm(`"${ticket.title}" murojaatini o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.`)) return;
+    try {
+      await api.delete(`/admin/tickets/${ticket.id}`);
+      setTickets((prev) => prev.filter((t) => t.id !== ticket.id));
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
+          ?.message ?? "Murojaatni o'chirib bo'lmadi.";
+      setError(message);
+    }
+  };
 
   const filteredTickets = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
@@ -102,6 +143,7 @@ export function TicketsPage() {
               ))}
             </select>
           </div>
+          {error && <p className="form-error">{error}</p>}
 
           {filteredTickets.length === 0 ? (
             <EmptyState
@@ -124,6 +166,7 @@ export function TicketsPage() {
                     <th>Mas'ul</th>
                     <th>Oxirgi xabar</th>
                     <th>Yaratildi</th>
+                    {isSuperadmin && <th></th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -156,9 +199,30 @@ export function TicketsPage() {
                           {STATUS_LABELS[t.status] ?? t.status}
                         </span>
                       </td>
-                      <td>{t.assignedTo?.fullname ?? '—'}</td>
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <select
+                          className="assign-select"
+                          value={t.assignedTo?.id ?? ''}
+                          onChange={(e) => handleAssign(t, e.target.value)}
+                        >
+                          <option value="">Tayinlanmagan</option>
+                          {admins.map((a) => (
+                            <option key={a.id} value={a.id}>
+                              {a.fullname ?? a.id}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
                       <td className="cell-muted">{lastMessage(t)}</td>
                       <td className="cell-muted">{new Date(t.createdAt).toLocaleString('uz-UZ')}</td>
+                      {isSuperadmin && (
+                        <td className="table-actions" onClick={(e) => e.stopPropagation()}>
+                          <button className="danger" onClick={() => handleDelete(t)}>
+                            <IconTrash width={13} height={13} />
+                            O'chirish
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
