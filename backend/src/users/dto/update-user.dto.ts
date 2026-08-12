@@ -8,6 +8,11 @@ export class UpdateUserDto {
   fullname?: string;
 
   @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  adminLogin?: string;
+
+  @IsOptional()
   @IsIn([UserRole.ADMIN, UserRole.SUPERADMIN], {
     message: "role faqat admin yoki superadmin bo'lishi mumkin.",
   })

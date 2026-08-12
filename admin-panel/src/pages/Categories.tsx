@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { AppShell } from '../components/AppShell';
-import { IconEdit, IconLayers, IconPlus, IconPower, IconTrash } from '../components/icons';
+import { IconClose, IconEdit, IconLayers, IconPlus, IconPower, IconTrash } from '../components/icons';
 import { EmptyState, TableSkeleton } from '../components/ui';
 
 interface Category {
@@ -10,15 +10,101 @@ interface Category {
   isActive: boolean;
 }
 
+type ModalMode = 'create' | 'edit';
+
+function CategoryModal({
+  isOpen,
+  mode,
+  initialName,
+  onClose,
+  onSubmit,
+  isSaving,
+  error,
+}: {
+  isOpen: boolean;
+  mode: ModalMode;
+  initialName: string;
+  onClose: () => void;
+  onSubmit: (name: string) => void;
+  isSaving: boolean;
+  error: string | null;
+}) {
+  const [name, setName] = useState(initialName);
+
+  useEffect(() => {
+    if (isOpen) setName(initialName);
+  }, [isOpen, initialName]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  const trimmed = name.trim();
+  const unchanged = mode === 'edit' && trimmed === initialName.trim();
+  const disabled = isSaving || !trimmed || unchanged;
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (disabled) return;
+    onSubmit(trimmed);
+  };
+
+  return (
+    <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal-card">
+        <div className="modal-header">
+          <span className="modal-header-icon">
+            <IconLayers width={18} height={18} />
+          </span>
+          <h3>{mode === 'create' ? 'Yangi kategoriya' : 'Kategoriyani tahrirlash'}</h3>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Yopish">
+            <IconClose width={18} height={18} />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            {error && <p className="form-error">{error}</p>}
+            <label className="modal-field">
+              <span>Nomi</span>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Kategoriya nomi"
+                required
+                autoFocus
+              />
+            </label>
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSaving}>
+              Bekor qilish
+            </button>
+            <button className="btn btn-primary" type="submit" disabled={disabled}>
+              {isSaving ? 'Saqlanmoqda...' : 'Saqlash'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [newName, setNewName] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editName, setEditName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<ModalMode>('create');
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [modalError, setModalError] = useState<string | null>(null);
 
   const load = () => {
     setIsLoading(true);
@@ -30,47 +116,40 @@ export function CategoriesPage() {
 
   useEffect(load, []);
 
-  const handleCreate = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!newName.trim()) return;
-
-    setIsCreating(true);
-    setError(null);
-    try {
-      await api.post('/admin/categories', { name: newName.trim() });
-      setNewName('');
-      load();
-    } catch {
-      setError('Kategoriya yaratib bo\'lmadi.');
-    } finally {
-      setIsCreating(false);
-    }
+  const openCreateModal = () => {
+    setModalMode('create');
+    setEditingCategory(null);
+    setModalError(null);
+    setModalOpen(true);
   };
 
-  const startEdit = (category: Category) => {
-    setEditingId(category.id);
-    setEditName(category.name);
-    setError(null);
+  const openEditModal = (category: Category) => {
+    setModalMode('edit');
+    setEditingCategory(category);
+    setModalError(null);
+    setModalOpen(true);
   };
 
-  const cancelEdit = () => {
-    setEditingId(null);
-    setEditName('');
+  const closeModal = () => {
+    if (isSaving) return;
+    setModalOpen(false);
   };
 
-  const handleRename = async (e: FormEvent, category: Category) => {
-    e.preventDefault();
-    const name = editName.trim();
-    if (!name || name === category.name) return;
-
+  const handleModalSubmit = async (name: string) => {
     setIsSaving(true);
-    setError(null);
+    setModalError(null);
     try {
-      await api.patch(`/admin/categories/${category.id}`, { name });
-      setEditingId(null);
+      if (modalMode === 'create') {
+        await api.post('/admin/categories', { name });
+      } else if (editingCategory) {
+        await api.patch(`/admin/categories/${editingCategory.id}`, { name });
+      }
+      setModalOpen(false);
       load();
     } catch {
-      setError('Kategoriya nomini o\'zgartirib bo\'lmadi.');
+      setModalError(
+        modalMode === 'create' ? "Kategoriya yaratib bo'lmadi." : "Kategoriya nomini o'zgartirib bo'lmadi.",
+      );
     } finally {
       setIsSaving(false);
     }
@@ -96,17 +175,12 @@ export function CategoriesPage() {
 
   return (
     <AppShell title="Kategoriyalar" breadcrumb="Dashboard / Kategoriyalar">
-      <form className="inline-form" onSubmit={handleCreate}>
-        <input
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          placeholder="Yangi kategoriya nomi"
-        />
-        <button className="btn btn-primary" type="submit" disabled={isCreating}>
+      <div className="toolbar">
+        <button className="btn btn-primary" type="button" onClick={openCreateModal}>
           <IconPlus width={15} height={15} />
-          {isCreating ? 'Qo\'shilmoqda...' : "Qo'shish"}
+          Qo'shish
         </button>
-      </form>
+      </div>
       {error && <p className="form-error">{error}</p>}
 
       {isLoading ? (
@@ -115,7 +189,7 @@ export function CategoriesPage() {
         <EmptyState
           icon={<IconLayers width={24} height={24} />}
           title="Hozircha kategoriyalar yo'q"
-          description="Yuqoridagi forma orqali birinchi kategoriyani qo'shing."
+          description="Yuqoridagi tugma orqali birinchi kategoriyani qo'shing."
         />
       ) : (
         <div className="table-wrap">
@@ -131,32 +205,12 @@ export function CategoriesPage() {
               {categories.map((c) => (
                 <tr key={c.id}>
                   <td>
-                    {editingId === c.id ? (
-                      <form className="inline-form" onSubmit={(e) => handleRename(e, c)}>
-                        <input
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          autoFocus
-                        />
-                        <button
-                          className="btn btn-primary"
-                          type="submit"
-                          disabled={isSaving || !editName.trim() || editName.trim() === c.name}
-                        >
-                          {isSaving ? 'Saqlanmoqda...' : 'Saqlash'}
-                        </button>
-                        <button type="button" onClick={cancelEdit} disabled={isSaving}>
-                          Bekor qilish
-                        </button>
-                      </form>
-                    ) : (
-                      <div className="cell-user">
-                        <span className="avatar avatar--sm">
-                          <IconLayers width={12} height={12} />
-                        </span>
-                        <span className="cell-primary">{c.name}</span>
-                      </div>
-                    )}
+                    <div className="cell-user">
+                      <span className="avatar avatar--sm">
+                        <IconLayers width={12} height={12} />
+                      </span>
+                      <span className="cell-primary">{c.name}</span>
+                    </div>
                   </td>
                   <td>
                     <span className={`status status--${c.isActive ? 'active' : 'inactive'}`}>
@@ -164,7 +218,7 @@ export function CategoriesPage() {
                     </span>
                   </td>
                   <td className="table-actions">
-                    <button onClick={() => startEdit(c)}>
+                    <button onClick={() => openEditModal(c)}>
                       <IconEdit width={13} height={13} />
                       Tahrirlash
                     </button>
@@ -183,6 +237,16 @@ export function CategoriesPage() {
           </table>
         </div>
       )}
+
+      <CategoryModal
+        isOpen={modalOpen}
+        mode={modalMode}
+        initialName={modalMode === 'edit' ? editingCategory?.name ?? '' : ''}
+        onClose={closeModal}
+        onSubmit={handleModalSubmit}
+        isSaving={isSaving}
+        error={modalError}
+      />
     </AppShell>
   );
 }

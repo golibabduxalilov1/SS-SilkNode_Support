@@ -142,6 +142,13 @@ export class UsersService {
     }
 
     if (dto.fullname !== undefined) user.fullname = dto.fullname;
+    if (dto.adminLogin !== undefined && dto.adminLogin !== user.adminLogin) {
+      const existing = await this.findByAdminLogin(dto.adminLogin);
+      if (existing && existing.id !== user.id) {
+        throw new ConflictException('Bu login band, boshqasini tanlang.');
+      }
+      user.adminLogin = dto.adminLogin;
+    }
     if (dto.role !== undefined) {
       if (dto.role === UserRole.SUPERADMIN) {
         await this.assertSuperadminSlotAvailable(user.id);
