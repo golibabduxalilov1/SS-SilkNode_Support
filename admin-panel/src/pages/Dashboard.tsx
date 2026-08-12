@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useState } from 'react';
 import {
   Bar,
   BarChart,
@@ -16,8 +16,16 @@ import {
 } from 'recharts';
 import { api } from '../api/client';
 import { AppShell } from '../components/AppShell';
-import { IconCheck, IconClock, IconLayers, IconSpinner, IconTicketNew, IconWait } from '../components/icons';
-import { Avatar, StatCardSkeleton, TableSkeleton } from '../components/ui';
+import {
+  IconAlert,
+  IconCheck,
+  IconClock,
+  IconLayers,
+  IconSpinner,
+  IconTicketNew,
+  IconWait,
+} from '../components/icons';
+import { Avatar, EmptyState, StatCardSkeleton, TableSkeleton } from '../components/ui';
 
 interface AssigneeStats {
   userId: string;
@@ -117,7 +125,7 @@ function TimeGauge({
   goodMax,
   warnMax,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   minutes: number | null;
   goodMax: number;

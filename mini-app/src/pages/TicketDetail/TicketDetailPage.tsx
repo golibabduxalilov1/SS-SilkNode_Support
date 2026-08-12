@@ -59,6 +59,8 @@ export function TicketDetailPage({ ticketId, onBack }: TicketDetailPageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const load = () => {
     setIsLoading(true);
@@ -80,22 +82,20 @@ export function TicketDetailPage({ ticketId, onBack }: TicketDetailPageProps) {
     setFile(e.target.files?.[0] ?? null);
   };
 
+  // Telegram Mini App WebView'da brauzer-download (blob/<a download>) ba'zi
+  // klientlarda ishlamaydi yoki tashqi saytga chiqib ketadi — shuning uchun
+  // fayl botning o'zi orqali foydalanuvchi Telegram chatiga yuboriladi.
   const handleDownload = async (attachment: Attachment) => {
+    setError(null);
+    setNotice(null);
+    setDownloadingId(attachment.id);
     try {
-      const res = await api.get(
-        `/tickets/${ticketId}/attachments/${attachment.id}/download`,
-        { responseType: 'blob' },
-      );
-      const blobUrl = URL.createObjectURL(res.data);
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = attachment.fileName;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(blobUrl);
-    } catch {
-      setError('Faylni yuklab bo\'lmadi.');
+      await api.post(`/tickets/${ticketId}/attachments/${attachment.id}/deliver`);
+      setNotice(`"${attachment.fileName}" Telegram chatingizga yuborildi.`);
+    } catch (err: any) {
+      setError(err?.response?.data?.error?.message ?? 'Faylni yuborib bo\'lmadi.');
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -151,6 +151,7 @@ export function TicketDetailPage({ ticketId, onBack }: TicketDetailPageProps) {
         </span>
       </div>
       <p className="ticket-detail-description">{ticket.description}</p>
+      {notice && <p className="form-notice">{notice}</p>}
 
       <div className="chat">
         {messages.map((m) => {
@@ -179,6 +180,7 @@ export function TicketDetailPage({ ticketId, onBack }: TicketDetailPageProps) {
                         key={a.id}
                         type="button"
                         className="chat-message-attachment"
+                        disabled={downloadingId === a.id}
                         onClick={() => handleDownload(a)}
                       >
                         {isImage ? (
@@ -191,7 +193,9 @@ export function TicketDetailPage({ ticketId, onBack }: TicketDetailPageProps) {
                         <span className="chat-message-attachment-info">
                           <span className="chat-message-attachment-name">{a.fileName}</span>
                           <span className="chat-message-attachment-meta">
-                            {[size, date].filter(Boolean).join(' · ')}
+                            {downloadingId === a.id
+                              ? 'Yuborilmoqda...'
+                              : [size, date].filter(Boolean).join(' · ')}
                           </span>
                         </span>
                       </button>

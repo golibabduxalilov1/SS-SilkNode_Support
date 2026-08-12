@@ -364,6 +364,18 @@ button {
   margin: 0;
 }
 
+.form-notice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--success);
+  background: var(--success-tint);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 13.5px;
+  margin: 0;
+}
+
 /* ==========================================================================
    Warning banner
    ========================================================================== */
@@ -648,6 +660,11 @@ button {
   text-decoration: none;
   cursor: pointer;
   transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.chat-message-attachment:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .chat-message-attachment:hover {

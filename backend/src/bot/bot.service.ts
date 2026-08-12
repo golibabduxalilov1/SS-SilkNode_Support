@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { Markup, Telegraf } from 'telegraf';
+import * as fs from 'fs';
 
 /**
  * Telegraf instansiyasini o'raydi. Handlerlarni ro'yxatdan o'tkazish va
@@ -29,6 +30,24 @@ export class BotService implements OnModuleDestroy {
       await this.bot.telegram.sendMessage(telegramId, text);
     } catch (err) {
       this.logger.error(`Xabar yuborib bo'lmadi (telegramId=${telegramId}): ${err.message}`);
+    }
+  }
+
+  /**
+   * Mini App WebView'ida fayl yuklab olish (blob/download) ishonchli ishlamaydi
+   * (ba'zi Telegram klientlarida bloklanadi) — shuning uchun fayl to'g'ridan-to'g'ri
+   * foydalanuvchi chatiga hujjat sifatida yuboriladi, hech qanday saytga chiqilmaydi.
+   */
+  async sendDocument(telegramId: string, filePath: string, filename: string): Promise<void> {
+    if (!process.env.BOT_TOKEN) return;
+    try {
+      await this.bot.telegram.sendDocument(telegramId, {
+        source: fs.createReadStream(filePath),
+        filename,
+      });
+    } catch (err) {
+      this.logger.error(`Fayl yuborib bo'lmadi (telegramId=${telegramId}): ${err.message}`);
+      throw err;
     }
   }
 

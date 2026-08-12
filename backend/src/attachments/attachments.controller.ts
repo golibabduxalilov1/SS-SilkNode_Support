@@ -18,6 +18,7 @@ import { AttachmentsService } from './attachments.service';
 import { TicketsService } from '../tickets/tickets.service';
 import { MessagesService } from '../messages/messages.service';
 import { NotifyUserService } from '../bot/notify-user.service';
+import { BotService } from '../bot/bot.service';
 import { TelegramAuthGuard } from '../auth/guards/telegram-auth.guard';
 import { UserEligibilityGuard } from '../auth/guards/user-eligibility.guard';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt.guard';
@@ -40,6 +41,7 @@ export class AttachmentsController {
     private readonly ticketsService: TicketsService,
     private readonly messagesService: MessagesService,
     private readonly notifyUserService: NotifyUserService,
+    private readonly botService: BotService,
   ) {}
 
   @Post('tickets/:ticketId/attachments')
@@ -144,6 +146,34 @@ export class AttachmentsController {
     const ticket = await this.ticketsService.findById(ticketId);
     if (!ticket) throw new BadRequestException('Murojaat topilmadi.');
     await this.streamAttachment(ticketId, attachmentId, res);
+  }
+
+  /**
+   * Mini App WebView'ida brauzer-download ishonchsiz (ba'zi Telegram klientlarida
+   * bloklanadi/hech narsa bo'lmaydi) — shuning uchun foydalanuvchi uchun fayl
+   * to'g'ridan-to'g'ri uning Telegram chatiga hujjat sifatida yuboriladi.
+   * Hech qanday tashqi saytga yo'naltirish yo'q.
+   */
+  @Post('tickets/:ticketId/attachments/:attachmentId/deliver')
+  @UseGuards(TelegramAuthGuard, UserEligibilityGuard)
+  async deliverMine(
+    @Param('ticketId') ticketId: string,
+    @Param('attachmentId') attachmentId: string,
+    @CurrentUser() user: User,
+  ) {
+    await this.ticketsService.findOneForUser(ticketId, user.id);
+    const attachment = await this.attachmentsService.findById(attachmentId);
+    if (!attachment || attachment.ticketId !== ticketId) {
+      throw new NotFoundException('Fayl topilmadi.');
+    }
+    if (!user.telegramId) {
+      throw new BadRequestException('Telegram foydalanuvchi aniqlanmadi.');
+    }
+
+    const uploadDir = process.env.UPLOAD_DIR || 'uploads';
+    const filePath = join(process.cwd(), uploadDir, basename(attachment.fileUrl));
+    await this.botService.sendDocument(user.telegramId, filePath, attachment.fileName);
+    return { success: true };
   }
 
   private async streamAttachment(ticketId: string, attachmentId: string, res: Response) {
