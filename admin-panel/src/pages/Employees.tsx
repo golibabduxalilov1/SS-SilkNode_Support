@@ -337,16 +337,13 @@ export function EmployeesPage() {
   }
 
   return (
-    <AppShell
-      title="Xodimlar"
-      breadcrumb="Dashboard / Xodimlar"
-      actions={
+    <AppShell title="Xodimlar" breadcrumb="Dashboard / Xodimlar">
+      <div className="toolbar">
         <button className="btn btn-primary" type="button" onClick={openCreateModal}>
           <IconPlus width={15} height={15} />
           Qo'shish
         </button>
-      }
-    >
+      </div>
       {error && <p className="form-error">{error}</p>}
 
       {isLoading ? (

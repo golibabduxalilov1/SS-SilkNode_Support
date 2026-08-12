@@ -54,8 +54,12 @@ export function LoginPage() {
       <aside className="login-showcase">
         <div className="login-showcase-glow" />
         <div className="login-showcase-content">
-          <span className="login-mark">S</span>
-          <h2>Silknode Support</h2>
+          <div className="login-showcase-brand">
+            <span className="login-mark">
+              <img src="/logo.jpg" alt="Silknode" />
+            </span>
+            <h2>Silknode Support</h2>
+          </div>
           <p>Mijozlar murojaatlarini tez, tartibli va nazorat ostida boshqaring.</p>
           <ul className="login-showcase-features">
             {FEATURES.map(({ icon: Icon, label }) => (
@@ -73,7 +77,9 @@ export function LoginPage() {
 
       <main className="login-panel">
         <form className="login-form" onSubmit={handleSubmit} noValidate>
-          <span className="login-mark login-mark-mobile">S</span>
+          <span className="login-mark login-mark-mobile">
+            <img src="/logo.jpg" alt="Silknode" />
+          </span>
           <div className="login-form-heading">
             <h1>Xush kelibsiz</h1>
             <p className="subtitle">Davom etish uchun tizimga kiring</p>
