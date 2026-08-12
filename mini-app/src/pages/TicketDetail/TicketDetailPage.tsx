@@ -80,6 +80,25 @@ export function TicketDetailPage({ ticketId, onBack }: TicketDetailPageProps) {
     setFile(e.target.files?.[0] ?? null);
   };
 
+  const handleDownload = async (attachment: Attachment) => {
+    try {
+      const res = await api.get(
+        `/tickets/${ticketId}/attachments/${attachment.id}/download`,
+        { responseType: 'blob' },
+      );
+      const blobUrl = URL.createObjectURL(res.data);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = attachment.fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      setError('Faylni yuklab bo\'lmadi.');
+    }
+  };
+
   const handleSend = async (e: FormEvent) => {
     e.preventDefault();
     if (!text.trim() && !file) return;
@@ -156,12 +175,11 @@ export function TicketDetailPage({ ticketId, onBack }: TicketDetailPageProps) {
                     const size = formatFileSize(a.sizeBytes);
                     const date = a.createdAt ? new Date(a.createdAt).toLocaleDateString('ru-RU') : '';
                     return (
-                      <a
+                      <button
                         key={a.id}
+                        type="button"
                         className="chat-message-attachment"
-                        href={`${API_ORIGIN}${a.fileUrl}`}
-                        target="_blank"
-                        rel="noreferrer"
+                        onClick={() => handleDownload(a)}
                       >
                         {isImage ? (
                           <img className="chat-message-attachment-thumb" src={`${API_ORIGIN}${a.fileUrl}`} alt={a.fileName} />
@@ -176,7 +194,7 @@ export function TicketDetailPage({ ticketId, onBack }: TicketDetailPageProps) {
                             {[size, date].filter(Boolean).join(' · ')}
                           </span>
                         </span>
-                      </a>
+                      </button>
                     );
                   })}
                 </div>

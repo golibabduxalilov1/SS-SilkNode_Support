@@ -21,6 +21,10 @@ export class AttachmentsService {
     });
   }
 
+  findById(id: string): Promise<Attachment | null> {
+    return this.attachmentsRepository.findOne({ where: { id } });
+  }
+
   create(data: Partial<Attachment>): Promise<Attachment> {
     return this.attachmentsRepository.save(this.attachmentsRepository.create(data));
   }

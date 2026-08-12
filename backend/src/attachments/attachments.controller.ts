@@ -2,15 +2,18 @@ import {
   BadRequestException,
   Controller,
   Get,
+  NotFoundException,
   Param,
   Post,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Response } from 'express';
 import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { basename, extname, join } from 'path';
 import { AttachmentsService } from './attachments.service';
 import { TicketsService } from '../tickets/tickets.service';
 import { MessagesService } from '../messages/messages.service';
@@ -115,5 +118,45 @@ export class AttachmentsController {
     if (!ticket) throw new BadRequestException('Murojaat topilmadi.');
     const attachments = await this.attachmentsService.findByTicket(ticketId);
     return { success: true, data: attachments };
+  }
+
+  /** Foydalanuvchi faylni to'g'ridan-to'g'ri yuklab oladi — hech qanday tashqi saytga yo'naltirilmaydi. */
+  @Get('tickets/:ticketId/attachments/:attachmentId/download')
+  @UseGuards(TelegramAuthGuard, UserEligibilityGuard)
+  async downloadMine(
+    @Param('ticketId') ticketId: string,
+    @Param('attachmentId') attachmentId: string,
+    @CurrentUser() user: User,
+    @Res() res: Response,
+  ) {
+    await this.ticketsService.findOneForUser(ticketId, user.id);
+    await this.streamAttachment(ticketId, attachmentId, res);
+  }
+
+  /** Admin faylni to'g'ridan-to'g'ri yuklab oladi — SPA marshrutlariga bog'liq emas. */
+  @Get('admin/tickets/:ticketId/attachments/:attachmentId/download')
+  @UseGuards(AdminJwtAuthGuard)
+  async downloadForAdmin(
+    @Param('ticketId') ticketId: string,
+    @Param('attachmentId') attachmentId: string,
+    @Res() res: Response,
+  ) {
+    const ticket = await this.ticketsService.findById(ticketId);
+    if (!ticket) throw new BadRequestException('Murojaat topilmadi.');
+    await this.streamAttachment(ticketId, attachmentId, res);
+  }
+
+  private async streamAttachment(ticketId: string, attachmentId: string, res: Response) {
+    const attachment = await this.attachmentsService.findById(attachmentId);
+    if (!attachment || attachment.ticketId !== ticketId) {
+      throw new NotFoundException('Fayl topilmadi.');
+    }
+    const uploadDir = process.env.UPLOAD_DIR || 'uploads';
+    const filePath = join(process.cwd(), uploadDir, basename(attachment.fileUrl));
+    res.download(filePath, attachment.fileName, (err) => {
+      if (err && !res.headersSent) {
+        res.status(404).json({ success: false, error: { message: 'Fayl topilmadi.' } });
+      }
+    });
   }
 }
