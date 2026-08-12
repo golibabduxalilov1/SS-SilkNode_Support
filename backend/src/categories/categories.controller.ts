@@ -55,4 +55,11 @@ export class PublicCategoriesController {
     const categories = await this.categoriesService.findAllActive();
     return { success: true, data: categories };
   }
+
+  @Post()
+  @UseGuards(TelegramAuthGuard, UserEligibilityGuard)
+  async create(@Body() dto: CreateCategoryDto) {
+    const category = await this.categoriesService.create(dto.name);
+    return { success: true, data: category };
+  }
 }

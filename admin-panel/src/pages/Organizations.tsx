@@ -16,6 +16,9 @@ export function OrganizationsPage() {
   const [newName, setNewName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   const load = () => {
     setIsLoading(true);
@@ -44,11 +47,33 @@ export function OrganizationsPage() {
     }
   };
 
-  const handleRename = async (org: Organization) => {
-    const name = window.prompt("Tashkilot nomi:", org.name);
+  const startEdit = (org: Organization) => {
+    setEditingId(org.id);
+    setEditName(org.name);
+    setError(null);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditName('');
+  };
+
+  const handleRename = async (e: FormEvent, org: Organization) => {
+    e.preventDefault();
+    const name = editName.trim();
     if (!name || name === org.name) return;
-    await api.patch(`/admin/organizations/${org.id}`, { name });
-    load();
+
+    setIsSaving(true);
+    setError(null);
+    try {
+      await api.patch(`/admin/organizations/${org.id}`, { name });
+      setEditingId(null);
+      load();
+    } catch {
+      setError('Tashkilot nomini o\'zgartirib bo\'lmadi.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleToggleActive = async (org: Organization) => {
@@ -106,12 +131,32 @@ export function OrganizationsPage() {
               {organizations.map((o) => (
                 <tr key={o.id}>
                   <td>
-                    <div className="cell-user">
-                      <span className="avatar avatar--sm">
-                        <IconBuilding width={12} height={12} />
-                      </span>
-                      <span className="cell-primary">{o.name}</span>
-                    </div>
+                    {editingId === o.id ? (
+                      <form className="inline-form" onSubmit={(e) => handleRename(e, o)}>
+                        <input
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          autoFocus
+                        />
+                        <button
+                          className="btn btn-primary"
+                          type="submit"
+                          disabled={isSaving || !editName.trim() || editName.trim() === o.name}
+                        >
+                          {isSaving ? 'Saqlanmoqda...' : 'Saqlash'}
+                        </button>
+                        <button type="button" onClick={cancelEdit} disabled={isSaving}>
+                          Bekor qilish
+                        </button>
+                      </form>
+                    ) : (
+                      <div className="cell-user">
+                        <span className="avatar avatar--sm">
+                          <IconBuilding width={12} height={12} />
+                        </span>
+                        <span className="cell-primary">{o.name}</span>
+                      </div>
+                    )}
                   </td>
                   <td>
                     <span className={`status status--${o.isActive ? 'active' : 'inactive'}`}>
@@ -119,7 +164,7 @@ export function OrganizationsPage() {
                     </span>
                   </td>
                   <td className="table-actions">
-                    <button onClick={() => handleRename(o)}>
+                    <button onClick={() => startEdit(o)}>
                       <IconEdit width={13} height={13} />
                       Tahrirlash
                     </button>

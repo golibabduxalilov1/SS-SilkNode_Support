@@ -16,6 +16,9 @@ export function CategoriesPage() {
   const [newName, setNewName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   const load = () => {
     setIsLoading(true);
@@ -44,11 +47,33 @@ export function CategoriesPage() {
     }
   };
 
-  const handleRename = async (category: Category) => {
-    const name = window.prompt('Kategoriya nomi:', category.name);
+  const startEdit = (category: Category) => {
+    setEditingId(category.id);
+    setEditName(category.name);
+    setError(null);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditName('');
+  };
+
+  const handleRename = async (e: FormEvent, category: Category) => {
+    e.preventDefault();
+    const name = editName.trim();
     if (!name || name === category.name) return;
-    await api.patch(`/admin/categories/${category.id}`, { name });
-    load();
+
+    setIsSaving(true);
+    setError(null);
+    try {
+      await api.patch(`/admin/categories/${category.id}`, { name });
+      setEditingId(null);
+      load();
+    } catch {
+      setError('Kategoriya nomini o\'zgartirib bo\'lmadi.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleToggleActive = async (category: Category) => {
@@ -106,12 +131,32 @@ export function CategoriesPage() {
               {categories.map((c) => (
                 <tr key={c.id}>
                   <td>
-                    <div className="cell-user">
-                      <span className="avatar avatar--sm">
-                        <IconLayers width={12} height={12} />
-                      </span>
-                      <span className="cell-primary">{c.name}</span>
-                    </div>
+                    {editingId === c.id ? (
+                      <form className="inline-form" onSubmit={(e) => handleRename(e, c)}>
+                        <input
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          autoFocus
+                        />
+                        <button
+                          className="btn btn-primary"
+                          type="submit"
+                          disabled={isSaving || !editName.trim() || editName.trim() === c.name}
+                        >
+                          {isSaving ? 'Saqlanmoqda...' : 'Saqlash'}
+                        </button>
+                        <button type="button" onClick={cancelEdit} disabled={isSaving}>
+                          Bekor qilish
+                        </button>
+                      </form>
+                    ) : (
+                      <div className="cell-user">
+                        <span className="avatar avatar--sm">
+                          <IconLayers width={12} height={12} />
+                        </span>
+                        <span className="cell-primary">{c.name}</span>
+                      </div>
+                    )}
                   </td>
                   <td>
                     <span className={`status status--${c.isActive ? 'active' : 'inactive'}`}>
@@ -119,7 +164,7 @@ export function CategoriesPage() {
                     </span>
                   </td>
                   <td className="table-actions">
-                    <button onClick={() => handleRename(c)}>
+                    <button onClick={() => startEdit(c)}>
                       <IconEdit width={13} height={13} />
                       Tahrirlash
                     </button>

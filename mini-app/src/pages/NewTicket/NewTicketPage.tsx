@@ -38,6 +38,7 @@ export function NewTicketPage({ status, onCreated }: NewTicketPageProps) {
   const [customOrgName, setCustomOrgName] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryId, setCategoryId] = useState('');
+  const [customCategoryName, setCustomCategoryName] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState('medium');
@@ -62,11 +63,13 @@ export function NewTicketPage({ status, onCreated }: NewTicketPageProps) {
   };
 
   const isOtherOrg = organizationId === '__other__';
+  const isOtherCategory = categoryId === '__other__';
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!canSubmit || !categoryId) return;
     if (isOtherOrg ? !customOrgName.trim() : !organizationId) return;
+    if (isOtherCategory && !customCategoryName.trim()) return;
 
     setIsSubmitting(true);
     setError(null);
@@ -83,10 +86,22 @@ export function NewTicketPage({ status, onCreated }: NewTicketPageProps) {
         }
       }
 
+      let resolvedCategoryId = categoryId;
+      if (isOtherCategory) {
+        try {
+          const categoryRes = await api.post('/categories', { name: customCategoryName.trim() });
+          resolvedCategoryId = categoryRes.data.data.id;
+        } catch {
+          setError('Kategoriya yaratib bo\'lmadi.');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       const res = await api.post('/tickets', {
         title,
         description,
-        categoryId,
+        categoryId: resolvedCategoryId,
         priority,
         organizationId: resolvedOrganizationId,
       });
@@ -102,6 +117,7 @@ export function NewTicketPage({ status, onCreated }: NewTicketPageProps) {
       setDescription('');
       setFiles([]);
       setCustomOrgName('');
+      setCustomCategoryName('');
       onCreated();
     } catch (err: any) {
       const message = err?.response?.data?.error?.message ?? 'Xatolik yuz berdi.';
@@ -167,7 +183,17 @@ export function NewTicketPage({ status, onCreated }: NewTicketPageProps) {
               {c.name}
             </option>
           ))}
+          <option value="__other__">Boshqa</option>
         </select>
+        {isOtherCategory && (
+          <input
+            type="text"
+            value={customCategoryName}
+            onChange={(e) => setCustomCategoryName(e.target.value)}
+            placeholder="Kategoriya nomini kiriting"
+            required
+          />
+        )}
       </label>
 
       <label>
@@ -206,7 +232,8 @@ export function NewTicketPage({ status, onCreated }: NewTicketPageProps) {
         disabled={
           isSubmitting ||
           !categoryId ||
-          (isOtherOrg ? !customOrgName.trim() : !organizationId)
+          (isOtherOrg ? !customOrgName.trim() : !organizationId) ||
+          (isOtherCategory && !customCategoryName.trim())
         }
       >
         <IconSend width={15} height={15} />
