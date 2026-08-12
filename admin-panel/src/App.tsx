@@ -3,6 +3,7 @@ import { AuthProvider } from './auth/AuthContext';
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import { LoginPage } from './pages/Login';
 import { DashboardPage } from './pages/Dashboard';
+import { AnalyticsPage } from './pages/Analytics';
 import { TicketsPage } from './pages/Tickets';
 import { TicketDetailPage } from './pages/TicketDetail';
 import { OrganizationsPage } from './pages/Organizations';
@@ -17,6 +18,7 @@ export function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/tickets" element={<TicketsPage />} />
             <Route path="/dashboard/tickets/:id" element={<TicketDetailPage />} />
             <Route path="/organizations" element={<OrganizationsPage />} />

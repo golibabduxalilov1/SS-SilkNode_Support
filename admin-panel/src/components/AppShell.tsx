@@ -3,6 +3,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import {
+  IconActivity,
   IconBell,
   IconBuilding,
   IconGrid,
@@ -17,6 +18,7 @@ const NAV_GROUPS = [
     label: 'Ish faoliyati',
     items: [
       { to: '/dashboard', label: 'Dashboard', icon: IconGrid },
+      { to: '/analytics', label: 'Analitika', icon: IconActivity },
       { to: '/tickets', label: 'Murojaatlar', icon: IconInbox },
     ],
   },

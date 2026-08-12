@@ -2,14 +2,17 @@ import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { AppShell } from '../components/AppShell';
-import { IconChevronLeft, IconInbox, IconPaperclip, IconSend } from '../components/icons';
+import { IconChevronLeft, IconFileText, IconInbox, IconPaperclip, IconSend } from '../components/icons';
 import { Avatar, EmptyState } from '../components/ui';
+import { formatFileSize } from '../utils/formatFileSize';
 
 interface Attachment {
   id: string;
   fileName: string;
   fileUrl: string;
   mimeType?: string;
+  sizeBytes?: string | number;
+  createdAt?: string;
   messageId?: string | null;
 }
 
@@ -279,19 +282,17 @@ export function TicketDetailPage() {
                 <div className="chat-message-text">{m.text}</div>
                 {m.attachments && m.attachments.length > 0 && (
                   <div className="chat-message-attachments">
-                    {m.attachments.map((a) =>
-                      a.mimeType?.startsWith('image/') ? (
-                        <a
-                          key={a.id}
-                          className="chat-message-attachment chat-message-attachment--image"
-                          href={`${API_ORIGIN}${a.fileUrl}`}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          <img src={`${API_ORIGIN}${a.fileUrl}`} alt={a.fileName} />
-                          <span>{a.fileName}</span>
-                        </a>
-                      ) : (
+                    <div className="chat-message-attachments-title">
+                      <span className="chat-message-attachments-icon">
+                        <IconPaperclip width={13} height={13} />
+                      </span>
+                      Файлы и документы
+                    </div>
+                    {m.attachments.map((a) => {
+                      const isImage = a.mimeType?.startsWith('image/');
+                      const size = formatFileSize(a.sizeBytes);
+                      const date = a.createdAt ? new Date(a.createdAt).toLocaleDateString('ru-RU') : '';
+                      return (
                         <a
                           key={a.id}
                           className="chat-message-attachment"
@@ -299,10 +300,22 @@ export function TicketDetailPage() {
                           target="_blank"
                           rel="noreferrer"
                         >
-                          <IconPaperclip width={12} height={12} /> {a.fileName}
+                          {isImage ? (
+                            <img className="chat-message-attachment-thumb" src={`${API_ORIGIN}${a.fileUrl}`} alt={a.fileName} />
+                          ) : (
+                            <span className="chat-message-attachment-icon">
+                              <IconFileText width={18} height={18} />
+                            </span>
+                          )}
+                          <span className="chat-message-attachment-info">
+                            <span className="chat-message-attachment-name">{a.fileName}</span>
+                            <span className="chat-message-attachment-meta">
+                              {[size, date].filter(Boolean).join(' · ')}
+                            </span>
+                          </span>
                         </a>
-                      ),
-                    )}
+                      );
+                    })}
                   </div>
                 )}
               </div>

@@ -17,6 +17,7 @@ import {
   Power,
   Plus,
   Paperclip,
+  FileText,
   Send,
   Lock,
   Menu,
@@ -28,6 +29,18 @@ import {
   EyeOff,
   AlertCircle,
   ShieldCheck,
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  Download,
+  Sun,
+  Moon,
+  Calendar,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown,
+  Percent,
+  Activity,
 } from 'lucide-react';
 
 type IconProps = SVGProps<SVGSVGElement>;
@@ -51,6 +64,7 @@ export const IconEdit = (props: IconProps) => <Pencil strokeWidth={STROKE} {...p
 export const IconPower = (props: IconProps) => <Power strokeWidth={STROKE} {...props} />;
 export const IconPlus = (props: IconProps) => <Plus strokeWidth={STROKE} {...props} />;
 export const IconPaperclip = (props: IconProps) => <Paperclip strokeWidth={STROKE} {...props} />;
+export const IconFileText = (props: IconProps) => <FileText strokeWidth={STROKE} {...props} />;
 export const IconSend = (props: IconProps) => <Send strokeWidth={STROKE} {...props} />;
 export const IconLock = (props: IconProps) => <Lock strokeWidth={STROKE} {...props} />;
 export const IconMenu = (props: IconProps) => <Menu strokeWidth={STROKE} {...props} />;
@@ -62,3 +76,15 @@ export const IconEye = (props: IconProps) => <Eye strokeWidth={STROKE} {...props
 export const IconEyeOff = (props: IconProps) => <EyeOff strokeWidth={STROKE} {...props} />;
 export const IconAlert = (props: IconProps) => <AlertCircle strokeWidth={STROKE} {...props} />;
 export const IconShield = (props: IconProps) => <ShieldCheck strokeWidth={STROKE} {...props} />;
+export const IconTrendUp = (props: IconProps) => <TrendingUp strokeWidth={STROKE} {...props} />;
+export const IconTrendDown = (props: IconProps) => <TrendingDown strokeWidth={STROKE} {...props} />;
+export const IconWallet = (props: IconProps) => <Wallet strokeWidth={STROKE} {...props} />;
+export const IconDownload = (props: IconProps) => <Download strokeWidth={STROKE} {...props} />;
+export const IconSun = (props: IconProps) => <Sun strokeWidth={STROKE} {...props} />;
+export const IconMoon = (props: IconProps) => <Moon strokeWidth={STROKE} {...props} />;
+export const IconCalendar = (props: IconProps) => <Calendar strokeWidth={STROKE} {...props} />;
+export const IconChevronUp = (props: IconProps) => <ChevronUp strokeWidth={STROKE} {...props} />;
+export const IconChevronDown = (props: IconProps) => <ChevronDown strokeWidth={STROKE} {...props} />;
+export const IconSort = (props: IconProps) => <ChevronsUpDown strokeWidth={STROKE} {...props} />;
+export const IconPercent = (props: IconProps) => <Percent strokeWidth={STROKE} {...props} />;
+export const IconActivity = (props: IconProps) => <Activity strokeWidth={STROKE} {...props} />;
