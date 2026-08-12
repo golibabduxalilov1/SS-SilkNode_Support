@@ -379,7 +379,7 @@ export function DashboardPage() {
                       <XAxis type="number" allowDecimals={false} stroke="var(--text-tertiary)" fontSize={12} />
                       <YAxis type="category" dataKey="name" width={120} stroke="var(--text-tertiary)" fontSize={12} />
                       <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--surface-alt)' }} />
-                      <Bar dataKey="value" name="Yopgan murojaatlar" fill="var(--primary)" radius={[0, 4, 4, 0]} barSize={16} />
+                      <Bar dataKey="value" name="Yopgan murojaatlar" fill="var(--primary)" radius={[0, 4, 4, 0]} barSize={27} />
                     </BarChart>
                   </ResponsiveContainer>
                   <div className="table-wrap">
@@ -423,7 +423,7 @@ export function DashboardPage() {
                       <XAxis type="number" allowDecimals={false} stroke="var(--text-tertiary)" fontSize={12} />
                       <YAxis type="category" dataKey="name" width={120} stroke="var(--text-tertiary)" fontSize={12} />
                       <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--surface-alt)' }} />
-                      <Bar dataKey="value" name="Murojaatlar soni" fill="var(--status-resolved)" radius={[0, 4, 4, 0]} barSize={16} />
+                      <Bar dataKey="value" name="Murojaatlar soni" fill="var(--status-resolved)" radius={[0, 4, 4, 0]} barSize={27} />
                     </BarChart>
                   </ResponsiveContainer>
                   <div className="table-wrap">
