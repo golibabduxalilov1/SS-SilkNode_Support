@@ -1992,6 +1992,19 @@ button {
   text-decoration: underline;
 }
 
+.chat-message-attachment--image {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.chat-message-attachment--image img {
+  max-width: 180px;
+  max-height: 180px;
+  border-radius: var(--radius-sm, 6px);
+  object-fit: cover;
+  margin-bottom: 2px;
+}
+
 .chat-form {
   display: flex;
   flex-direction: column;

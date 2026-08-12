@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Bar,
   BarChart,
@@ -18,7 +17,7 @@ import {
 import { api } from '../api/client';
 import { AppShell } from '../components/AppShell';
 import { IconCheck, IconClock, IconLayers, IconSpinner, IconTicketNew, IconWait } from '../components/icons';
-import { Avatar, EmptyState, StatCardSkeleton, TableSkeleton } from '../components/ui';
+import { Avatar, StatCardSkeleton, TableSkeleton } from '../components/ui';
 
 interface AssigneeStats {
   userId: string;
@@ -51,15 +50,6 @@ interface DashboardStats {
   avgResolutionMinutes: number | null;
   byAssignee: AssigneeStats[];
   byOrganization: OrganizationStats[];
-}
-
-interface RecentTicket {
-  id: string;
-  number: string;
-  title: string;
-  status: string;
-  createdAt: string;
-  organization?: { id: string; name: string } | null;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -166,22 +156,14 @@ function TimeGauge({
 
 /** Asosiy TZ bo'lim 6 dagi Dashboard funksiyasi — faqat Web Admin Panel'da (bo'lim 5.3). Endi faqat tahliliy/vizual qism. */
 export function DashboardPage() {
-  const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [recentTickets, setRecentTickets] = useState<RecentTicket[]>([]);
-  const [isLoadingRecent, setIsLoadingRecent] = useState(true);
 
   useEffect(() => {
     api
       .get('/admin/dashboard/stats')
       .then((res) => setStats(res.data.data))
       .finally(() => setIsLoading(false));
-
-    api
-      .get('/admin/tickets')
-      .then((res) => setRecentTickets(res.data.data))
-      .finally(() => setIsLoadingRecent(false));
   }, []);
 
   const pieData = useMemo(() => {
@@ -216,14 +198,6 @@ export function DashboardPage() {
       .map((o) => ({ name: o.organizationName, value: o.ticketsCount }))
       .reverse();
   }, [stats]);
-
-  const latestTickets = useMemo(
-    () =>
-      [...recentTickets]
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, 8),
-    [recentTickets],
-  );
 
   return (
     <AppShell title="Dashboard" breadcrumb="Umumiy ko'rinish">
@@ -445,32 +419,6 @@ export function DashboardPage() {
               </div>
             )}
 
-            <div className="section-card">
-              <h3>So'nggi murojaatlar</h3>
-              {isLoadingRecent ? (
-                <TableSkeleton rows={4} cols={3} />
-              ) : latestTickets.length === 0 ? (
-                <EmptyState icon={<IconLayers width={24} height={24} />} title="Hozircha murojaatlar yo'q" />
-              ) : (
-                <ul className="top-list">
-                  {latestTickets.map((t) => (
-                    <li
-                      key={t.id}
-                      className="top-list-item"
-                      onClick={() => navigate(`/dashboard/tickets/${t.id}`)}
-                    >
-                      <span className="top-list-number">{t.number}</span>
-                      <span className="top-list-title">{t.title}</span>
-                      <span className="top-list-org cell-muted">{t.organization?.name ?? '—'}</span>
-                      <span className={`status status--${t.status}`}>{STATUS_LABELS[t.status] ?? t.status}</span>
-                      <span className="top-list-date cell-muted">
-                        {new Date(t.createdAt).toLocaleDateString('uz-UZ')}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
           </>
         )
       )}

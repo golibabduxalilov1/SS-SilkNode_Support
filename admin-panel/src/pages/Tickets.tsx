@@ -20,6 +20,7 @@ interface Ticket {
   priority: string;
   status: string;
   createdAt: string;
+  closedAt?: string | null;
   organization?: { id: string; name: string } | null;
   createdBy?: { fullname: string | null; phoneNumber: string | null } | null;
   assignedTo?: { id: string; fullname: string | null } | null;
@@ -45,13 +46,19 @@ const STATUS_OPTIONS = [
   { value: 'closed', label: 'Yopilgan' },
 ];
 
-function lastMessage(ticket: Ticket): string {
-  if (!ticket.messages || ticket.messages.length === 0) return '—';
-  const sorted = [...ticket.messages].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+function closingDuration(ticket: Ticket): string {
+  if (!ticket.closedAt) return '-';
+  const minutes = Math.max(
+    0,
+    Math.round((new Date(ticket.closedAt).getTime() - new Date(ticket.createdAt).getTime()) / 60000),
   );
-  const text = sorted[0].text;
-  return text.length > 60 ? `${text.slice(0, 60)}…` : text;
+  if (minutes < 60) return `${minutes} daqiqa`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} soat`;
+  const days = Math.round(hours / 24);
+  if (days < 7) return `${days} kun`;
+  if (days < 30) return `${Math.round(days / 7)} hafta`;
+  return `${Math.round(days / 30)} oy`;
 }
 
 /** Asosiy TZ bo'lim 6 dagi murojaatlar jadvali — endi Dashboard'dan ajratilgan alohida bo'lim. */
@@ -179,7 +186,7 @@ export function TicketsPage() {
                     <th>Muhimlik</th>
                     <th>Holat</th>
                     <th>Mas'ul</th>
-                    <th>Oxirgi xabar</th>
+                    <th>Yopilish vaqti</th>
                     <th>Yaratildi</th>
                     {isSuperadmin && <th></th>}
                   </tr>
@@ -236,7 +243,7 @@ export function TicketsPage() {
                           ))}
                         </select>
                       </td>
-                      <td className="cell-muted">{lastMessage(t)}</td>
+                      <td className="cell-muted">{closingDuration(t)}</td>
                       <td className="cell-muted">{new Date(t.createdAt).toLocaleString('uz-UZ')}</td>
                       {isSuperadmin && (
                         <td className="table-actions" onClick={(e) => e.stopPropagation()}>

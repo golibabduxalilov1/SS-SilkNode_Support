@@ -9,6 +9,8 @@ interface Attachment {
   id: string;
   fileName: string;
   fileUrl: string;
+  mimeType?: string;
+  messageId?: string | null;
 }
 
 interface Message {
@@ -277,11 +279,30 @@ export function TicketDetailPage() {
                 <div className="chat-message-text">{m.text}</div>
                 {m.attachments && m.attachments.length > 0 && (
                   <div className="chat-message-attachments">
-                    {m.attachments.map((a) => (
-                      <a key={a.id} href={`${API_ORIGIN}${a.fileUrl}`} target="_blank" rel="noreferrer">
-                        <IconPaperclip width={12} height={12} /> {a.fileName}
-                      </a>
-                    ))}
+                    {m.attachments.map((a) =>
+                      a.mimeType?.startsWith('image/') ? (
+                        <a
+                          key={a.id}
+                          className="chat-message-attachment chat-message-attachment--image"
+                          href={`${API_ORIGIN}${a.fileUrl}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <img src={`${API_ORIGIN}${a.fileUrl}`} alt={a.fileName} />
+                          <span>{a.fileName}</span>
+                        </a>
+                      ) : (
+                        <a
+                          key={a.id}
+                          className="chat-message-attachment"
+                          href={`${API_ORIGIN}${a.fileUrl}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <IconPaperclip width={12} height={12} /> {a.fileName}
+                        </a>
+                      ),
+                    )}
                   </div>
                 )}
               </div>
