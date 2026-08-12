@@ -162,16 +162,29 @@ function TimeGauge({
   );
 }
 
-/** Asosiy TZ bo'lim 6 dagi Dashboard funksiyasi — faqat Web Admin Panel'da (bo'lim 5.3). Endi faqat tahliliy/vizual qism. */
 export function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    setHasError(false);
     api
       .get('/admin/dashboard/stats')
-      .then((res) => setStats(res.data.data))
-      .finally(() => setIsLoading(false));
+      .then((res) => {
+        if (!cancelled) setStats(res.data.data);
+      })
+      .catch(() => {
+        if (!cancelled) setHasError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const pieData = useMemo(() => {
@@ -218,63 +231,73 @@ export function DashboardPage() {
           </div>
           <TableSkeleton rows={6} cols={7} />
         </>
+      ) : hasError ? (
+        <EmptyState
+          icon={<IconAlert width={24} height={24} />}
+          title="Statistikani yuklab bo'lmadi"
+          description="Server bilan bog'lanishda xatolik yuz berdi. Sahifani qayta yuklab ko'ring."
+        />
       ) : (
         stats && (
           <>
             <div className="stat-cards">
-              <div className="stat-card">
-                <span
-                  className="stat-card-icon"
-                  style={{ ['--accent' as any]: 'var(--status-new)', ['--accent-soft' as any]: 'var(--status-new-soft)' }}
-                >
-                  <IconTicketNew width={17} height={17} />
-                </span>
-                <span className="stat-value">{stats.statusCounts.new}</span>
-                <span className="stat-label">Yangi</span>
-              </div>
-              <div className="stat-card">
-                <span
-                  className="stat-card-icon"
-                  style={{
-                    ['--accent' as any]: 'var(--status-in_progress)',
-                    ['--accent-soft' as any]: 'var(--status-in_progress-soft)',
-                  }}
-                >
-                  <IconSpinner width={17} height={17} />
-                </span>
-                <span className="stat-value">{stats.statusCounts.in_progress}</span>
-                <span className="stat-label">Ish jarayonida</span>
-              </div>
-              <div className="stat-card">
-                <span
-                  className="stat-card-icon"
-                  style={{
-                    ['--accent' as any]: 'var(--status-waiting_user)',
-                    ['--accent-soft' as any]: 'var(--status-waiting_user-soft)',
-                  }}
-                >
-                  <IconWait width={17} height={17} />
-                </span>
-                <span className="stat-value">{stats.statusCounts.waiting_user}</span>
-                <span className="stat-label">Foydalanuvchi javobi kutilmoqda</span>
-              </div>
-              <div className="stat-card">
-                <span
-                  className="stat-card-icon"
-                  style={{ ['--accent' as any]: 'var(--status-closed)', ['--accent-soft' as any]: 'var(--status-closed-soft)' }}
-                >
-                  <IconCheck width={17} height={17} />
-                </span>
-                <span className="stat-value">{stats.closedToday}</span>
-                <span className="stat-label">Bugun yopilgan</span>
-              </div>
-              <div className="stat-card">
-                <span className="stat-card-icon">
-                  <IconLayers width={17} height={17} />
-                </span>
-                <span className="stat-value">{stats.allOpen}</span>
-                <span className="stat-label">Barcha ochiq</span>
-              </div>
+              {[
+                {
+                  key: 'new',
+                  icon: <IconTicketNew width={17} height={17} />,
+                  value: stats.statusCounts.new,
+                  label: 'Yangi',
+                  accent: 'var(--status-new)',
+                  accentSoft: 'var(--status-new-soft)',
+                },
+                {
+                  key: 'in_progress',
+                  icon: <IconSpinner width={17} height={17} />,
+                  value: stats.statusCounts.in_progress,
+                  label: 'Ish jarayonida',
+                  accent: 'var(--status-in_progress)',
+                  accentSoft: 'var(--status-in_progress-soft)',
+                },
+                {
+                  key: 'waiting_user',
+                  icon: <IconWait width={17} height={17} />,
+                  value: stats.statusCounts.waiting_user,
+                  label: 'Foydalanuvchi javobi kutilmoqda',
+                  accent: 'var(--status-waiting_user)',
+                  accentSoft: 'var(--status-waiting_user-soft)',
+                },
+                {
+                  key: 'closedToday',
+                  icon: <IconCheck width={17} height={17} />,
+                  value: stats.closedToday,
+                  label: 'Bugun yopilgan',
+                  accent: 'var(--status-closed)',
+                  accentSoft: 'var(--status-closed-soft)',
+                },
+                {
+                  key: 'allOpen',
+                  icon: <IconLayers width={17} height={17} />,
+                  value: stats.allOpen,
+                  label: 'Barcha ochiq',
+                  accent: null,
+                  accentSoft: null,
+                },
+              ].map((card) => (
+                <div className="stat-card" key={card.key}>
+                  <span
+                    className="stat-card-icon"
+                    style={
+                      card.accent
+                        ? { ['--accent' as any]: card.accent, ['--accent-soft' as any]: card.accentSoft }
+                        : undefined
+                    }
+                  >
+                    {card.icon}
+                  </span>
+                  <span className="stat-value">{card.value}</span>
+                  <span className="stat-label">{card.label}</span>
+                </div>
+              ))}
             </div>
 
             <div className="dashboard-grid">
