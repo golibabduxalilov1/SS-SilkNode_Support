@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { AppShell } from '../components/AppShell';
+import { ConfirmModal } from '../components/ConfirmModal';
 import { IconInbox, IconSearch, IconTrash } from '../components/icons';
 import { Avatar, EmptyState, TableSkeleton } from '../components/ui';
 
@@ -73,6 +74,7 @@ export function TicketsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [ticketToDelete, setTicketToDelete] = useState<Ticket | null>(null);
 
   const load = () => {
     setIsLoading(true);
@@ -115,8 +117,10 @@ export function TicketsPage() {
     }
   };
 
-  const handleDelete = async (ticket: Ticket) => {
-    if (!window.confirm(`"${ticket.title}" murojaatini o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.`)) return;
+  const handleDelete = async () => {
+    if (!ticketToDelete) return;
+    const ticket = ticketToDelete;
+    setTicketToDelete(null);
     try {
       await api.delete(`/admin/tickets/${ticket.id}`);
       setTickets((prev) => prev.filter((t) => t.id !== ticket.id));
@@ -247,7 +251,7 @@ export function TicketsPage() {
                       <td className="cell-muted">{new Date(t.createdAt).toLocaleString('uz-UZ')}</td>
                       {isSuperadmin && (
                         <td className="table-actions" onClick={(e) => e.stopPropagation()}>
-                          <button className="danger" onClick={() => handleDelete(t)}>
+                          <button className="danger" onClick={() => setTicketToDelete(t)}>
                             <IconTrash width={13} height={13} />
                             O'chirish
                           </button>
@@ -261,6 +265,18 @@ export function TicketsPage() {
           )}
         </>
       )}
+
+      <ConfirmModal
+        isOpen={!!ticketToDelete}
+        title="Murojaatni o'chirish"
+        message={
+          ticketToDelete
+            ? `"${ticketToDelete.title}" murojaatini o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.`
+            : ''
+        }
+        onConfirm={handleDelete}
+        onCancel={() => setTicketToDelete(null)}
+      />
     </AppShell>
   );
 }

@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { AppShell } from '../components/AppShell';
+import { ConfirmModal } from '../components/ConfirmModal';
 import { IconClose, IconEdit, IconLayers, IconPlus, IconPower, IconTrash } from '../components/icons';
 import { EmptyState, TableSkeleton } from '../components/ui';
 
@@ -105,6 +106,7 @@ export function CategoriesPage() {
   const [modalMode, setModalMode] = useState<ModalMode>('create');
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [modalError, setModalError] = useState<string | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
 
   const load = () => {
     setIsLoading(true);
@@ -160,8 +162,10 @@ export function CategoriesPage() {
     load();
   };
 
-  const handleDelete = async (category: Category) => {
-    if (!window.confirm(`"${category.name}" kategoriyasini o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.`)) return;
+  const handleDelete = async () => {
+    if (!categoryToDelete) return;
+    const category = categoryToDelete;
+    setCategoryToDelete(null);
     try {
       await api.delete(`/admin/categories/${category.id}`);
       load();
@@ -226,7 +230,7 @@ export function CategoriesPage() {
                       <IconPower width={13} height={13} />
                       {c.isActive ? 'Nofaollashtirish' : 'Faollashtirish'}
                     </button>
-                    <button className="danger" onClick={() => handleDelete(c)}>
+                    <button className="danger" onClick={() => setCategoryToDelete(c)}>
                       <IconTrash width={13} height={13} />
                       O'chirish
                     </button>
@@ -246,6 +250,18 @@ export function CategoriesPage() {
         onSubmit={handleModalSubmit}
         isSaving={isSaving}
         error={modalError}
+      />
+
+      <ConfirmModal
+        isOpen={!!categoryToDelete}
+        title="Kategoriyani o'chirish"
+        message={
+          categoryToDelete
+            ? `"${categoryToDelete.name}" kategoriyasini o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.`
+            : ''
+        }
+        onConfirm={handleDelete}
+        onCancel={() => setCategoryToDelete(null)}
       />
     </AppShell>
   );

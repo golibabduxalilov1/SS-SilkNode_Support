@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { AppShell } from '../components/AppShell';
+import { ConfirmModal } from '../components/ConfirmModal';
 import { IconBuilding, IconClose, IconEdit, IconPlus, IconPower, IconTrash } from '../components/icons';
 import { EmptyState, TableSkeleton } from '../components/ui';
 
@@ -105,6 +106,7 @@ export function OrganizationsPage() {
   const [modalMode, setModalMode] = useState<ModalMode>('create');
   const [editingOrg, setEditingOrg] = useState<Organization | null>(null);
   const [modalError, setModalError] = useState<string | null>(null);
+  const [orgToDelete, setOrgToDelete] = useState<Organization | null>(null);
 
   const load = () => {
     setIsLoading(true);
@@ -160,8 +162,10 @@ export function OrganizationsPage() {
     load();
   };
 
-  const handleDelete = async (org: Organization) => {
-    if (!window.confirm(`"${org.name}" tashkilotini o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.`)) return;
+  const handleDelete = async () => {
+    if (!orgToDelete) return;
+    const org = orgToDelete;
+    setOrgToDelete(null);
     try {
       await api.delete(`/admin/organizations/${org.id}`);
       load();
@@ -226,7 +230,7 @@ export function OrganizationsPage() {
                       <IconPower width={13} height={13} />
                       {o.isActive ? 'Nofaollashtirish' : 'Faollashtirish'}
                     </button>
-                    <button className="danger" onClick={() => handleDelete(o)}>
+                    <button className="danger" onClick={() => setOrgToDelete(o)}>
                       <IconTrash width={13} height={13} />
                       O'chirish
                     </button>
@@ -246,6 +250,18 @@ export function OrganizationsPage() {
         onSubmit={handleModalSubmit}
         isSaving={isSaving}
         error={modalError}
+      />
+
+      <ConfirmModal
+        isOpen={!!orgToDelete}
+        title="Tashkilotni o'chirish"
+        message={
+          orgToDelete
+            ? `"${orgToDelete.name}" tashkilotini o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.`
+            : ''
+        }
+        onConfirm={handleDelete}
+        onCancel={() => setOrgToDelete(null)}
       />
     </AppShell>
   );

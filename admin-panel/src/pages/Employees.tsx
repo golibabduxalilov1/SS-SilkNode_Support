@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { AppShell } from '../components/AppShell';
+import { ConfirmModal } from '../components/ConfirmModal';
 import { IconClose, IconEdit, IconPlus, IconPower, IconTrash, IconUsers } from '../components/icons';
 import { EmptyState, TableSkeleton } from '../components/ui';
 
@@ -202,6 +203,7 @@ export function EmployeesPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
 
   const editingId = editingEmployee?.id ?? null;
   const existingSuperadmin = employees.find((emp) => emp.role === 'superadmin');
@@ -311,8 +313,10 @@ export function EmployeesPage() {
     load();
   };
 
-  const handleDelete = async (employee: Employee) => {
-    if (!window.confirm(`"${employee.fullname ?? employee.adminLogin}" xodimini o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.`)) return;
+  const handleDelete = async () => {
+    if (!employeeToDelete) return;
+    const employee = employeeToDelete;
+    setEmployeeToDelete(null);
     try {
       await api.delete(`/admin/users/${employee.id}`);
       load();
@@ -407,7 +411,7 @@ export function EmployeesPage() {
                       {emp.isActive ? 'Nofaollashtirish' : 'Faollashtirish'}
                     </button>
                     {emp.id !== user?.id && (
-                      <button className="danger" onClick={() => handleDelete(emp)}>
+                      <button className="danger" onClick={() => setEmployeeToDelete(emp)}>
                         <IconTrash width={13} height={13} />
                         O'chirish
                       </button>
@@ -430,6 +434,18 @@ export function EmployeesPage() {
         onSubmit={handleModalSubmit}
         isSaving={isSaving}
         error={modalError}
+      />
+
+      <ConfirmModal
+        isOpen={!!employeeToDelete}
+        title="Xodimni o'chirish"
+        message={
+          employeeToDelete
+            ? `"${employeeToDelete.fullname ?? employeeToDelete.adminLogin}" xodimini o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.`
+            : ''
+        }
+        onConfirm={handleDelete}
+        onCancel={() => setEmployeeToDelete(null)}
       />
     </AppShell>
   );
