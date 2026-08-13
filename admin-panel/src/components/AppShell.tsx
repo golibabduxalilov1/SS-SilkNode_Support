@@ -71,12 +71,12 @@ export function AppShell({ title, breadcrumb, actions, children }: AppShellProps
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <div className="sidebar-brand">
+        <NavLink to="/dashboard" className="sidebar-brand">
           <span className="sidebar-brand-mark">
             <img src="/logo.jpg" alt="Silknode" />
           </span>
           <span className="sidebar-brand-text">Silknode</span>
-        </div>
+        </NavLink>
 
         <nav className="sidebar-nav" aria-label="Asosiy navigatsiya">
           {NAV_GROUPS.map((group) => {

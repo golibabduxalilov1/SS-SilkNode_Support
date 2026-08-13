@@ -708,8 +708,11 @@ button {
 .sidebar-brand {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   padding: 4px 6px 22px 8px;
+  text-decoration: none;
+  cursor: pointer;
 }
 
 .sidebar-brand-mark {
@@ -735,13 +738,13 @@ button {
 }
 
 .sidebar-brand-text {
-  flex: 1;
   min-width: 0;
   color: var(--text);
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 15px;
   letter-spacing: -0.01em;
+  text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1078,6 +1081,10 @@ button {
   flex: 1;
   min-width: 200px;
   max-width: 320px;
+}
+
+.toolbar-search-full {
+  max-width: none;
 }
 
 .toolbar-search svg {

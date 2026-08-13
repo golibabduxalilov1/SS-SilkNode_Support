@@ -216,7 +216,7 @@ export function TicketsPage() {
       ) : (
         <>
           <div className="toolbar">
-            <div className="toolbar-search">
+            <div className="toolbar-search toolbar-search-full">
               <IconSearch width={15} height={15} />
               <input
                 value={searchTerm}
@@ -224,17 +224,20 @@ export function TicketsPage() {
                 placeholder="Murojaat, mijoz yoki raqam bo'yicha qidirish"
               />
             </div>
-            <select value={organizationFilter} onChange={(e) => setOrganizationFilter(e.target.value)}>
-              <option value="">Barcha tashkilotlar</option>
-              {organizations.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.name}
-                </option>
-              ))}
-            </select>
           </div>
 
           <div className="filters">
+            <label>
+              Tashkilot
+              <select value={organizationFilter} onChange={(e) => setOrganizationFilter(e.target.value)}>
+                <option value="">Barchasi</option>
+                {organizations.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.name}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label>
               Holat
               <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
