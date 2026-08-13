@@ -39,12 +39,24 @@ interface AdminUser {
   role: string;
 }
 
+interface Category {
+  id: string;
+  name: string;
+}
+
 const STATUS_OPTIONS = [
   { value: 'new', label: 'Yangi' },
   { value: 'in_progress', label: 'Jarayonda' },
   { value: 'waiting_user', label: 'Javob kutilmoqda' },
   { value: 'resolved', label: 'Yechilgan' },
   { value: 'closed', label: 'Yopilgan' },
+];
+
+const PRIORITY_OPTIONS = [
+  { value: 'low', label: 'Past' },
+  { value: 'medium', label: "O'rta" },
+  { value: 'high', label: 'Yuqori' },
+  { value: 'critical', label: 'Kritik' },
 ];
 
 function closingDuration(ticket: Ticket): string {
@@ -70,7 +82,14 @@ export function TicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [admins, setAdmins] = useState<AdminUser[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [organizationFilter, setOrganizationFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [priorityFilter, setPriorityFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [assignedToFilter, setAssignedToFilter] = useState('');
+  const [createdFrom, setCreatedFrom] = useState('');
+  const [createdTo, setCreatedTo] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -78,13 +97,30 @@ export function TicketsPage() {
 
   const load = () => {
     setIsLoading(true);
-    Promise.all([api.get('/admin/tickets'), api.get('/admin/organizations'), api.get('/admin/users')])
-      .then(([ticketsRes, orgsRes, adminsRes]) => {
+    Promise.all([
+      api.get('/admin/tickets'),
+      api.get('/admin/organizations'),
+      api.get('/admin/users'),
+      api.get('/admin/categories'),
+    ])
+      .then(([ticketsRes, orgsRes, adminsRes, categoriesRes]) => {
         setTickets(ticketsRes.data.data);
         setOrganizations(orgsRes.data.data);
         setAdmins(adminsRes.data.data);
+        setCategories(categoriesRes.data.data);
       })
       .finally(() => setIsLoading(false));
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setOrganizationFilter('');
+    setStatusFilter('');
+    setPriorityFilter('');
+    setCategoryFilter('');
+    setAssignedToFilter('');
+    setCreatedFrom('');
+    setCreatedTo('');
   };
 
   useEffect(load, []);
@@ -134,16 +170,44 @@ export function TicketsPage() {
 
   const filteredTickets = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
+    const from = createdFrom ? new Date(`${createdFrom}T00:00:00`) : null;
+    const to = createdTo ? new Date(`${createdTo}T23:59:59.999`) : null;
     return tickets.filter((t) => {
       const matchesOrg = !organizationFilter || t.organization?.id === organizationFilter;
+      const matchesStatus = !statusFilter || t.status === statusFilter;
+      const matchesPriority = !priorityFilter || t.priority === priorityFilter;
+      const matchesCategory = !categoryFilter || t.categoryEntity?.id === categoryFilter;
+      const matchesAssignedTo = !assignedToFilter || t.assignedTo?.id === assignedToFilter;
+      const createdDate = new Date(t.createdAt);
+      const matchesFrom = !from || createdDate >= from;
+      const matchesTo = !to || createdDate <= to;
       const matchesTerm =
         !term ||
         t.number.toLowerCase().includes(term) ||
         t.title.toLowerCase().includes(term) ||
         (t.createdBy?.fullname ?? '').toLowerCase().includes(term);
-      return matchesOrg && matchesTerm;
+      return (
+        matchesOrg &&
+        matchesStatus &&
+        matchesPriority &&
+        matchesCategory &&
+        matchesAssignedTo &&
+        matchesFrom &&
+        matchesTo &&
+        matchesTerm
+      );
     });
-  }, [tickets, organizationFilter, searchTerm]);
+  }, [
+    tickets,
+    organizationFilter,
+    statusFilter,
+    priorityFilter,
+    categoryFilter,
+    assignedToFilter,
+    createdFrom,
+    createdTo,
+    searchTerm,
+  ]);
 
   return (
     <AppShell title="Murojaatlar" breadcrumb="Barcha murojaatlar">
@@ -169,7 +233,70 @@ export function TicketsPage() {
               ))}
             </select>
           </div>
+
+          <div className="filters">
+            <label>
+              Holat
+              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                <option value="">Barchasi</option>
+                {STATUS_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Muhimlik
+              <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}>
+                <option value="">Barchasi</option>
+                {PRIORITY_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Kategoriya
+              <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+                <option value="">Barchasi</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Mas'ul
+              <select value={assignedToFilter} onChange={(e) => setAssignedToFilter(e.target.value)}>
+                <option value="">Barchasi</option>
+                {admins.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.fullname ?? a.id}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Yaratildi (dan)
+              <input type="date" value={createdFrom} onChange={(e) => setCreatedFrom(e.target.value)} />
+            </label>
+            <label>
+              Yaratildi (gacha)
+              <input type="date" value={createdTo} onChange={(e) => setCreatedTo(e.target.value)} />
+            </label>
+            <div className="filters-actions">
+              <button type="button" className="btn btn-secondary btn-sm" onClick={clearFilters}>
+                Filterlarni tozalash
+              </button>
+            </div>
+          </div>
+
           {error && <p className="form-error">{error}</p>}
+
+          <p className="filter-results">{filteredTickets.length} ta murojaat topildi</p>
 
           {filteredTickets.length === 0 ? (
             <EmptyState

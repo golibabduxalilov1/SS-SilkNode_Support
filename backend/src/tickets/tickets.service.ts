@@ -20,6 +20,12 @@ export interface OrganizationStats {
   avgResolutionMinutes: number | null;
 }
 
+export interface DailyTrendPoint {
+  date: string;
+  created: number;
+  closed: number;
+}
+
 export interface DashboardStats {
   statusCounts: {
     new: number;
@@ -36,7 +42,10 @@ export interface DashboardStats {
   avgResolutionMinutes: number | null;
   byAssignee: AssigneeStats[];
   byOrganization: OrganizationStats[];
+  dailyTrend: DailyTrendPoint[];
 }
+
+const TREND_DAYS = 14;
 
 function diffMinutes(from: Date, to: Date): number {
   return Math.round((to.getTime() - from.getTime()) / 60000);
@@ -65,6 +74,38 @@ function startOfMonth(date: Date): Date {
   const d = startOfDay(date);
   d.setDate(1);
   return d;
+}
+
+function dateKey(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function buildDailyTrend(tickets: Ticket[], now: Date, days: number): DailyTrendPoint[] {
+  const buckets = new Map<string, DailyTrendPoint>();
+  const rangeStart = startOfDay(now);
+  rangeStart.setDate(rangeStart.getDate() - (days - 1));
+
+  for (let i = 0; i < days; i++) {
+    const d = new Date(rangeStart);
+    d.setDate(d.getDate() + i);
+    const key = dateKey(d);
+    buckets.set(key, { date: key, created: 0, closed: 0 });
+  }
+
+  for (const t of tickets) {
+    const createdBucket = buckets.get(dateKey(t.createdAt));
+    if (createdBucket) createdBucket.created += 1;
+
+    if (t.status === TicketStatus.CLOSED && t.closedAt) {
+      const closedBucket = buckets.get(dateKey(t.closedAt));
+      if (closedBucket) closedBucket.closed += 1;
+    }
+  }
+
+  return Array.from(buckets.values());
 }
 
 @Injectable()
@@ -267,6 +308,7 @@ export class TicketsService {
       avgResolutionMinutes,
       byAssignee,
       byOrganization,
+      dailyTrend: buildDailyTrend(tickets, now, TREND_DAYS),
     };
   }
 }

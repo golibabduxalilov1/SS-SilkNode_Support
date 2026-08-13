@@ -29,6 +29,9 @@ import {
   EyeOff,
   AlertCircle,
   ShieldCheck,
+  TrendingUp,
+  TrendingDown,
+  Minus,
 } from 'lucide-react';
 
 type IconProps = SVGProps<SVGSVGElement>;
@@ -64,3 +67,6 @@ export const IconEye = (props: IconProps) => <Eye strokeWidth={STROKE} {...props
 export const IconEyeOff = (props: IconProps) => <EyeOff strokeWidth={STROKE} {...props} />;
 export const IconAlert = (props: IconProps) => <AlertCircle strokeWidth={STROKE} {...props} />;
 export const IconShield = (props: IconProps) => <ShieldCheck strokeWidth={STROKE} {...props} />;
+export const IconTrendUp = (props: IconProps) => <TrendingUp strokeWidth={STROKE} {...props} />;
+export const IconTrendDown = (props: IconProps) => <TrendingDown strokeWidth={STROKE} {...props} />;
+export const IconTrendFlat = (props: IconProps) => <Minus strokeWidth={STROKE} {...props} />;

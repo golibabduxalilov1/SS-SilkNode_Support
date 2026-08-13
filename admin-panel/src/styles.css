@@ -530,6 +530,7 @@ button {
 
 .login-form input,
 .filters select,
+.filters input,
 .ticket-detail-controls select,
 .chat-form textarea,
 .inline-form input,
@@ -568,6 +569,7 @@ button {
 
 .login-form input:focus,
 .filters select:focus,
+.filters input:focus,
 .ticket-detail-controls select:focus,
 .chat-form textarea:focus,
 .inline-form input:focus,
@@ -1098,7 +1100,15 @@ button {
 }
 
 .filters {
-  margin-bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
 }
 
 .filters label {
@@ -1114,7 +1124,46 @@ button {
 }
 
 .filters select {
-  min-width: 220px;
+  min-width: 180px;
+}
+
+.filters input[type='date'] {
+  min-width: 150px;
+}
+
+.filters-actions {
+  margin-left: auto;
+}
+
+.filter-results {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+@media (max-width: 900px) {
+  .filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filters label {
+    width: 100%;
+  }
+
+  .filters select,
+  .filters input[type='date'] {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .filters-actions {
+    margin-left: 0;
+  }
+
+  .filters-actions .btn {
+    width: 100%;
+  }
 }
 
 /* ==========================================================================
@@ -1144,15 +1193,54 @@ button {
   box-shadow: var(--shadow-md);
 }
 
+.stat-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .stat-card-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: var(--radius-full);
-  background: var(--accent-soft, var(--accent-tint));
-  color: var(--accent-color, var(--accent));
+  background: radial-gradient(
+    120% 120% at 28% 22%,
+    color-mix(in srgb, var(--accent, var(--primary)) 30%, transparent) 0%,
+    var(--accent-soft, var(--accent-tint)) 65%
+  );
+  color: var(--accent, var(--primary));
+}
+
+.stat-card-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 7px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.stat-card-trend--up {
+  background: var(--success-tint);
+  color: var(--success-text);
+}
+
+.stat-card-trend--down {
+  background: var(--error-tint);
+  color: var(--error-text);
+}
+
+.stat-card-trend--flat {
+  background: var(--veil);
+  color: var(--text-muted);
 }
 
 .stat-value {
@@ -1180,11 +1268,28 @@ button {
    Analytics grid / chart cards
    ========================================================================== */
 
-.dashboard-grid {
+.bento-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 16px;
   margin-bottom: 20px;
+  align-items: stretch;
+}
+
+.bento-grid .span-12 {
+  grid-column: span 12;
+}
+
+.bento-grid .span-5 {
+  grid-column: span 5;
+}
+
+.bento-grid .span-4 {
+  grid-column: span 4;
+}
+
+.bento-grid .span-3 {
+  grid-column: span 3;
 }
 
 .chart-card {
@@ -1193,11 +1298,57 @@ button {
   background: var(--panel);
   border: 1px solid var(--border-strong);
   box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--duration-fast) var(--ease);
+}
+
+.chart-card:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .chart-card h3 {
   margin: 0 0 16px;
   font-size: 15px;
+  font-weight: 700;
+}
+
+.chart-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.chart-card-head h3 {
+  margin: 0 0 4px;
+}
+
+.chart-card-subtitle {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.chart-empty-note {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.chart-empty-note--inline {
+  flex: 1 1 160px;
+  min-width: 160px;
+  text-align: left;
+  margin: 0;
+}
+
+.bar-value-label {
+  fill: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -1208,9 +1359,42 @@ button {
   flex-wrap: wrap;
 }
 
-.donut-layout > div:first-child {
+.donut-layout > .donut-chart-wrap {
   flex: 1 1 220px;
   min-width: 200px;
+}
+
+.donut-chart-wrap {
+  position: relative;
+}
+
+.donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.donut-center-value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  color: var(--text);
+}
+
+.donut-center-label {
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
 }
 
 .chart-legend {
@@ -1222,6 +1406,18 @@ button {
   gap: 10px;
   flex: 1 1 160px;
   min-width: 160px;
+}
+
+.chart-legend--inline {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 16px;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.chart-legend--inline .chart-legend-name {
+  white-space: nowrap;
 }
 
 .chart-legend-item {
@@ -1300,6 +1496,11 @@ button {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
+}
+
+.closed-stats-grid--stack {
+  grid-template-columns: 1fr;
+  gap: 10px;
 }
 
 .closed-stat {
@@ -1669,7 +1870,8 @@ button {
 }
 
 .priority--high,
-.priority--urgent {
+.priority--urgent,
+.priority--critical {
   background: var(--error-tint);
   color: var(--error-text);
   border-color: color-mix(in srgb, var(--error-text) 22%, transparent);
@@ -2369,6 +2571,18 @@ button {
   }
 }
 
+@media (max-width: 1100px) {
+  .bento-grid .span-5,
+  .bento-grid .span-4,
+  .bento-grid .span-3 {
+    grid-column: span 12;
+  }
+
+  .closed-stats-grid--stack {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 @media (max-width: 900px) {
   .app-content {
     padding: 20px 20px 32px;
@@ -2392,7 +2606,8 @@ button {
     grid-template-columns: 1fr;
   }
 
-  .closed-stats-grid {
+  .closed-stats-grid,
+  .closed-stats-grid--stack {
     grid-template-columns: 1fr;
   }
 
@@ -2403,5 +2618,9 @@ button {
 
   .top-list-date {
     text-align: left;
+  }
+
+  .chart-card-head {
+    flex-direction: column;
   }
 }
