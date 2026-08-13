@@ -181,7 +181,11 @@ export class TicketsService {
       ticket.resolutionMinutes = diffMinutes(ticket.createdAt, now);
     }
 
-    return this.ticketsRepository.save(ticket);
+    await this.ticketsRepository.save(ticket);
+
+    const updated = await this.findById(id);
+    if (!updated) throw new NotFoundException('Murojaat topilmadi.');
+    return updated;
   }
 
   async assign(id: string, assignedToId: string | null): Promise<Ticket> {
@@ -191,7 +195,7 @@ export class TicketsService {
     ticket.assignedToId = assignedToId;
     await this.ticketsRepository.save(ticket);
 
-    const updated = await this.ticketsRepository.findOne({ where: { id }, relations: ['assignedTo'] });
+    const updated = await this.findById(id);
     if (!updated) throw new NotFoundException('Murojaat topilmadi.');
     return updated;
   }
