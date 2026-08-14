@@ -12,6 +12,15 @@ export interface ClosedByPriority {
   critical: number;
 }
 
+/** Ijrochining joriy davrdagi tayinlangan tiketlari holat bo'yicha uch guruhga yig'ilgan — stacked bar uchun. */
+export interface AssigneeStatusBreakdown {
+  /** Yangi + javob kutilmoqda — hali faol ishlanmayotgan, lekin biriktirilgan. */
+  pending: number;
+  inProgress: number;
+  /** Yechilgan + yopilgan. */
+  resolved: number;
+}
+
 export interface AssigneeStats {
   userId: string;
   fullname: string | null;
@@ -19,6 +28,7 @@ export interface AssigneeStats {
   ticketsOpenNow: number;
   ticketsClosed: number;
   closedByPriority: ClosedByPriority;
+  statusBreakdown: AssigneeStatusBreakdown;
   avgResolutionMinutes: number | null;
   slaResolutionBreachCount: number;
   slaComplianceRate: number;
@@ -26,6 +36,10 @@ export interface AssigneeStats {
   productivityScore: number;
   /** Tayinlangan tiketlardan necha foizi yopilgan — productivityScore bilan bir xil formula. */
   closeRate: number;
+  /** Shu davrda ushbu ijrochiga tayinlangan tiketlardan nechtasi qayta ochilgan. */
+  reopenedCount: number;
+  /** reopenedCount / ticketsAssignedTotal, foizda. */
+  reopenedRate: number;
   trendVsPreviousPeriod: {
     ticketsClosedDelta: number;
   };
@@ -38,6 +52,14 @@ export interface OrganizationStats {
   closedCount: number;
   openCount: number;
   avgResolutionMinutes: number | null;
+}
+
+export interface CategoryStats {
+  categoryId: string;
+  categoryName: string;
+  ticketsCount: number;
+  closedCount: number;
+  openCount: number;
 }
 
 export interface DailyTrendPoint {
@@ -65,6 +87,17 @@ export interface ResolutionFlowPoint {
   resolved: number;
 }
 
+export interface WorkloadHeatmapEntry {
+  userId: string;
+  fullname: string | null;
+  count: number;
+}
+
+export interface WorkloadHeatmapPoint {
+  date: string;
+  byAssignee: WorkloadHeatmapEntry[];
+}
+
 export interface DashboardStats {
   statusCounts: {
     new: number;
@@ -82,10 +115,13 @@ export interface DashboardStats {
   avgProductivityScore: number | null;
   byAssignee: AssigneeStats[];
   byOrganization: OrganizationStats[];
+  byCategory: CategoryStats[];
   dailyTrend: DailyTrendPoint[];
   assigneeResolutionTrend: AssigneeResolutionTrendPoint[];
   /** "Murojaatlarni ochilishi va hal qilinishi" grafigi — fiksirlangan TREND_DAYS kunlik oyna. */
   resolutionFlow: ResolutionFlowPoint[];
+  /** Yuklama xaritasi — kun bo'yicha, har ijrochiga shu kuni tayinlanib yaratilgan tiketlar soni. */
+  workloadHeatmap: WorkloadHeatmapPoint[];
   slaThresholds: {
     resolution: number;
   };
@@ -296,6 +332,43 @@ function buildAssigneeResolutionTrend(
   });
 }
 
+function buildWorkloadHeatmap(
+  tickets: Ticket[],
+  assigneeGroups: Map<string, { fullname: string | null; tickets: Ticket[] }>,
+  start: Date,
+  days: number,
+): WorkloadHeatmapPoint[] {
+  const rangeStart = startOfDay(start);
+  const buckets = new Map<string, Map<string, number>>();
+  const bucketOrder: string[] = [];
+
+  for (let i = 0; i < days; i++) {
+    const d = new Date(rangeStart);
+    d.setDate(d.getDate() + i);
+    const key = dateKey(d);
+    buckets.set(key, new Map());
+    bucketOrder.push(key);
+  }
+
+  // "Ish miqdori" — shu kuni yaratilib, joriy holatda ushbu ijrochiga tayinlangan tiketlar soni.
+  for (const t of tickets) {
+    if (!t.assignedToId) continue;
+    const bucket = buckets.get(dateKey(t.createdAt));
+    if (!bucket) continue;
+    bucket.set(t.assignedToId, (bucket.get(t.assignedToId) ?? 0) + 1);
+  }
+
+  return bucketOrder.map((date) => {
+    const bucket = buckets.get(date)!;
+    const byAssignee: WorkloadHeatmapEntry[] = Array.from(bucket.entries()).map(([userId, count]) => ({
+      userId,
+      fullname: assigneeGroups.get(userId)?.fullname ?? null,
+      count,
+    }));
+    return { date, byAssignee };
+  });
+}
+
 @Injectable()
 export class TicketsService {
   constructor(
@@ -359,6 +432,12 @@ export class TicketsService {
     const ticket = await this.ticketsRepository.findOne({ where: { id } });
     if (!ticket) throw new NotFoundException('Murojaat topilmadi.');
 
+    const wasSettled = ticket.status === TicketStatus.CLOSED || ticket.status === TicketStatus.RESOLVED;
+    const reopening = wasSettled && (status === TicketStatus.NEW || status === TicketStatus.IN_PROGRESS || status === TicketStatus.WAITING_USER);
+    if (reopening) {
+      ticket.reopenedCount += 1;
+    }
+
     ticket.status = status;
 
     // Har safar 'closed'ga o'tganda yangilanadi — murojaat qayta ochilib
@@ -397,7 +476,7 @@ export class TicketsService {
 
   async getDashboardStats(filter: DashboardStatsFilter = {}): Promise<DashboardStats> {
     const tickets = await this.ticketsRepository.find({
-      relations: ['assignedTo', 'organization'],
+      relations: ['assignedTo', 'organization', 'categoryEntity'],
     });
     const now = new Date();
     const todayStart = startOfDay(now);
@@ -502,6 +581,17 @@ export class TicketsService {
             ? Math.round(((closed.length - slaResolutionBreachCount) / closed.length) * 100)
             : 100;
 
+        const statusBreakdown: AssigneeStatusBreakdown = {
+          pending: group.tickets.filter(
+            (t) => t.status === TicketStatus.NEW || t.status === TicketStatus.WAITING_USER,
+          ).length,
+          inProgress: group.tickets.filter((t) => t.status === TicketStatus.IN_PROGRESS).length,
+          resolved: group.tickets.filter(
+            (t) => t.status === TicketStatus.RESOLVED || t.status === TicketStatus.CLOSED,
+          ).length,
+        };
+        const reopenedCount = group.tickets.reduce((sum, t) => sum + t.reopenedCount, 0);
+
         return {
           userId,
           fullname: group.fullname,
@@ -509,6 +599,7 @@ export class TicketsService {
           ticketsOpenNow: openNowByAssignee.get(userId) ?? 0,
           ticketsClosed: closed.length,
           closedByPriority,
+          statusBreakdown,
           avgResolutionMinutes: average(
             closed.filter((t) => t.resolutionMinutes != null).map((t) => t.resolutionMinutes!),
           ),
@@ -517,6 +608,8 @@ export class TicketsService {
           productivityScore: calculateProductivityScore(closed.length, group.tickets.length),
           closeRate:
             group.tickets.length > 0 ? Math.round((closed.length / group.tickets.length) * 100) : 0,
+          reopenedCount,
+          reopenedRate: group.tickets.length > 0 ? Math.round((reopenedCount / group.tickets.length) * 100) : 0,
           trendVsPreviousPeriod: {
             ticketsClosedDelta: percentChange(
               closedCurrentByAssignee.get(userId) ?? 0,
@@ -555,6 +648,31 @@ export class TicketsService {
       })
       .sort((a, b) => b.ticketsCount - a.ticketsCount);
 
+    // Kategoriya bo'yicha guruhlash — byOrganization bilan bir xil naqsh.
+    const categoryGroups = new Map<string, { name: string; tickets: Ticket[] }>();
+    for (const t of generalTickets) {
+      if (!t.categoryId) continue;
+      if (!categoryGroups.has(t.categoryId)) {
+        categoryGroups.set(t.categoryId, {
+          name: t.categoryEntity?.name ?? '—',
+          tickets: [],
+        });
+      }
+      categoryGroups.get(t.categoryId)!.tickets.push(t);
+    }
+    const byCategory: CategoryStats[] = Array.from(categoryGroups.entries())
+      .map(([categoryId, group]) => {
+        const closed = group.tickets.filter((t) => t.status === TicketStatus.CLOSED);
+        return {
+          categoryId,
+          categoryName: group.name,
+          ticketsCount: group.tickets.length,
+          closedCount: closed.length,
+          openCount: group.tickets.length - closed.length,
+        };
+      })
+      .sort((a, b) => b.ticketsCount - a.ticketsCount);
+
     const avgProductivityScore = average(byAssignee.map((a) => a.productivityScore));
 
     const trendDays = daysBetweenInclusive(period.start, period.end);
@@ -581,9 +699,11 @@ export class TicketsService {
       avgProductivityScore,
       byAssignee,
       byOrganization,
+      byCategory,
       dailyTrend: buildDailyTrend(generalTickets, period.start, trendDays),
       assigneeResolutionTrend: buildAssigneeResolutionTrend(periodTickets, assigneeGroups, period.start, trendDays),
       resolutionFlow: buildResolutionFlow(generalTickets, resolutionFlowStart, TREND_DAYS),
+      workloadHeatmap: buildWorkloadHeatmap(periodTickets, assigneeGroups, period.start, trendDays),
       slaThresholds: {
         resolution: SLA_RESOLUTION_MINUTES,
       },

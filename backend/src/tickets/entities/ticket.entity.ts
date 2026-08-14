@@ -85,6 +85,10 @@ export class Ticket {
   @Column({ name: 'resolution_minutes', type: 'int', nullable: true })
   resolutionMinutes: number | null;
 
+  /** closed/resolved holatidan orqaga (masalan in_progress) qaytgan sonini hisoblaydi — dashboard "reopened %" uchun. */
+  @Column({ name: 'reopened_count', type: 'int', default: 0 })
+  reopenedCount: number;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

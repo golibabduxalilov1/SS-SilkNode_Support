@@ -5,6 +5,7 @@ import {
   CartesianGrid,
   Cell,
   LabelList,
+  Legend,
   Pie,
   PieChart,
   ReferenceLine,
@@ -22,6 +23,7 @@ import {
   IconClose,
   IconInbox,
   IconLayers,
+  IconLock,
   IconSearch,
   IconSpinner,
   IconTicketNew,
@@ -36,12 +38,19 @@ import { AssigneeTrendChart, type AssigneeResolutionTrendPoint } from '../compon
 import { ProductivityBadge } from '../components/dashboard/ProductivityBadge';
 import { TrendChart, type DailyTrendPoint } from '../components/dashboard/TrendChart';
 import { ResolutionFlowChart, type ResolutionFlowPoint } from '../components/dashboard/ResolutionFlowChart';
+import { WorkloadHeatmap } from '../components/dashboard/WorkloadHeatmap';
 
 interface ClosedByPriority {
   low: number;
   medium: number;
   high: number;
   critical: number;
+}
+
+interface AssigneeStatusBreakdown {
+  pending: number;
+  inProgress: number;
+  resolved: number;
 }
 
 interface AssigneeStats {
@@ -51,11 +60,14 @@ interface AssigneeStats {
   ticketsOpenNow: number;
   ticketsClosed: number;
   closedByPriority: ClosedByPriority;
+  statusBreakdown: AssigneeStatusBreakdown;
   avgResolutionMinutes: number | null;
   slaResolutionBreachCount: number;
   slaComplianceRate: number;
   productivityScore: number;
   closeRate: number;
+  reopenedCount: number;
+  reopenedRate: number;
   trendVsPreviousPeriod: {
     ticketsClosedDelta: number;
   };
@@ -68,6 +80,25 @@ interface OrganizationStats {
   closedCount: number;
   openCount: number;
   avgResolutionMinutes: number | null;
+}
+
+interface CategoryStats {
+  categoryId: string;
+  categoryName: string;
+  ticketsCount: number;
+  closedCount: number;
+  openCount: number;
+}
+
+interface WorkloadHeatmapEntry {
+  userId: string;
+  fullname: string | null;
+  count: number;
+}
+
+interface WorkloadHeatmapPoint {
+  date: string;
+  byAssignee: WorkloadHeatmapEntry[];
 }
 
 interface DashboardStats {
@@ -86,9 +117,11 @@ interface DashboardStats {
   avgProductivityScore: number | null;
   byAssignee: AssigneeStats[];
   byOrganization: OrganizationStats[];
+  byCategory: CategoryStats[];
   dailyTrend: DailyTrendPoint[];
   assigneeResolutionTrend: AssigneeResolutionTrendPoint[];
   resolutionFlow: ResolutionFlowPoint[];
+  workloadHeatmap: WorkloadHeatmapPoint[];
   slaThresholds: {
     resolution: number;
   };
@@ -144,6 +177,9 @@ const SLA_WARN_MIN = 70;
 // closeRate/productivityScore bir xil formuladan kelgani uchun bir xil chegaralarni ishlatadi.
 const CLOSE_RATE_GOOD_MIN = 80;
 const CLOSE_RATE_WARN_MIN = 50;
+// reopenedRate uchun — bu yerda kichikroq qiymat yaxshiroq, shuning uchun "max" chegaralar.
+const REOPENED_GOOD_MAX = 5;
+const REOPENED_WARN_MAX = 15;
 
 function getWorkloadTier(openCount: number): 'good' | 'warn' | 'bad' {
   if (openCount <= WORKLOAD_LOW_MAX) return 'good';
@@ -160,6 +196,12 @@ function getSlaTier(complianceRate: number): 'good' | 'warn' | 'bad' {
 function getCloseRateTier(closeRate: number): 'good' | 'warn' | 'bad' {
   if (closeRate >= CLOSE_RATE_GOOD_MIN) return 'good';
   if (closeRate >= CLOSE_RATE_WARN_MIN) return 'warn';
+  return 'bad';
+}
+
+function getReopenedTier(reopenedRate: number): 'good' | 'warn' | 'bad' {
+  if (reopenedRate <= REOPENED_GOOD_MAX) return 'good';
+  if (reopenedRate <= REOPENED_WARN_MAX) return 'warn';
   return 'bad';
 }
 
@@ -234,6 +276,11 @@ function WorkloadBadge({ openCount }: { openCount: number }) {
 function SlaBadge({ complianceRate }: { complianceRate: number }) {
   const tier = getSlaTier(complianceRate);
   return <span className={`sla-badge sla-badge--${tier}`}>{complianceRate}%</span>;
+}
+
+function ReopenedBadge({ reopenedRate }: { reopenedRate: number }) {
+  const tier = getReopenedTier(reopenedRate);
+  return <span className={`sla-badge sla-badge--${tier}`}>{reopenedRate}%</span>;
 }
 
 function PriorityStackedBar({ data }: { data: ClosedByPriority }) {
@@ -350,6 +397,45 @@ interface FilterChipData {
   key: string;
   label: string;
   onClear: () => void;
+}
+
+type AssigneeSortKey =
+  | 'name'
+  | 'ticketsOpenNow'
+  | 'ticketsClosed'
+  | 'ticketsAssignedTotal'
+  | 'slaComplianceRate'
+  | 'productivityScore'
+  | 'closeRate'
+  | 'reopenedRate';
+
+interface AssigneeSortState {
+  key: AssigneeSortKey;
+  dir: 'asc' | 'desc';
+}
+
+function SortableTh({
+  label,
+  sortKey,
+  current,
+  onSort,
+}: {
+  label: string;
+  sortKey: AssigneeSortKey;
+  current: AssigneeSortState;
+  onSort: (key: AssigneeSortKey) => void;
+}) {
+  const active = current.key === sortKey;
+  return (
+    <th
+      className={`sortable-th${active ? ' is-active' : ''}`}
+      onClick={() => onSort(sortKey)}
+      aria-sort={active ? (current.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+    >
+      <span>{label}</span>
+      <span className="sort-indicator">{active ? (current.dir === 'asc' ? '▲' : '▼') : '↕'}</span>
+    </th>
+  );
 }
 
 function FilterChip({ label, onClear }: { label: string; onClear: () => void }) {
@@ -480,6 +566,7 @@ export function DashboardPage() {
   const [hasError, setHasError] = useState(false);
   const [activeSlice, setActiveSlice] = useState<number | undefined>(undefined);
   const [selectedAssigneeId, setSelectedAssigneeId] = useState<string | null>(null);
+  const [assigneeSort, setAssigneeSort] = useState<AssigneeSortState>({ key: 'name', dir: 'asc' });
 
   const [assignees, setAssignees] = useState<Assignee[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -638,6 +725,20 @@ export function DashboardPage() {
     };
   }, [stats]);
 
+  const sortedByAssignee = useMemo(() => {
+    if (!stats) return [];
+    const { key, dir } = assigneeSort;
+    const factor = dir === 'asc' ? 1 : -1;
+    return [...stats.byAssignee].sort((a, b) => {
+      if (key === 'name') return factor * (a.fullname ?? a.userId).localeCompare(b.fullname ?? b.userId);
+      return factor * (a[key] - b[key]);
+    });
+  }, [stats, assigneeSort]);
+
+  function handleAssigneeSort(key: AssigneeSortKey) {
+    setAssigneeSort((curr) => (curr.key === key ? { key, dir: curr.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: key === 'name' ? 'asc' : 'desc' }));
+  }
+
   const assigneeSlaChartData = useMemo(() => {
     if (!stats) return [];
     return [...stats.byAssignee]
@@ -651,6 +752,19 @@ export function DashboardPage() {
     return [...stats.byAssignee]
       .sort((a, b) => b.ticketsOpenNow - a.ticketsOpenNow)
       .map((a) => ({ userId: a.userId, name: a.fullname ?? a.userId, value: a.ticketsOpenNow }));
+  }, [stats]);
+
+  const assigneeStatusStackedData = useMemo(() => {
+    if (!stats) return [];
+    return [...stats.byAssignee]
+      .sort((a, b) => a.ticketsAssignedTotal - b.ticketsAssignedTotal)
+      .map((a) => ({
+        userId: a.userId,
+        name: a.fullname ?? a.userId,
+        pending: a.statusBreakdown.pending,
+        inProgress: a.statusBreakdown.inProgress,
+        resolved: a.statusBreakdown.resolved,
+      }));
   }, [stats]);
 
   const assigneeCloseRateChartData = useMemo(() => {
@@ -713,6 +827,15 @@ export function DashboardPage() {
       .reverse();
   }, [stats]);
 
+  const categoryChartData = useMemo(() => {
+    if (!stats) return [];
+    return [...stats.byCategory]
+      .sort((a, b) => b.ticketsCount - a.ticketsCount)
+      .slice(0, 8)
+      .map((c) => ({ key: c.categoryId, name: c.categoryName, value: c.ticketsCount }))
+      .reverse();
+  }, [stats]);
+
   const trendDelta = useMemo(() => {
     if (!stats || stats.dailyTrend.length < 2) return null;
     const today = stats.dailyTrend[stats.dailyTrend.length - 1];
@@ -729,6 +852,42 @@ export function DashboardPage() {
   const kpiCards: KpiCardData[] = stats
     ? [
         {
+          key: 'total',
+          icon: <IconInbox width={17} height={17} />,
+          value: statusTotal,
+          label: 'Jami murojaatlar',
+          accent: 'var(--primary)',
+          accentSoft: 'var(--primary-soft)',
+          trend: null,
+        },
+        {
+          key: 'resolved',
+          icon: <IconCheck width={17} height={17} />,
+          value: stats.statusCounts.resolved,
+          label: 'Yechilgan',
+          accent: 'var(--status-resolved)',
+          accentSoft: 'var(--status-resolved-soft)',
+          trend: null,
+        },
+        {
+          key: 'in_progress',
+          icon: <IconSpinner width={17} height={17} />,
+          value: stats.statusCounts.in_progress,
+          label: 'Jarayonda',
+          accent: 'var(--status-in_progress)',
+          accentSoft: 'var(--status-in_progress-soft)',
+          trend: null,
+        },
+        {
+          key: 'closed',
+          icon: <IconLock width={17} height={17} />,
+          value: stats.statusCounts.closed,
+          label: 'Rad etilgan / yopilgan',
+          accent: 'var(--status-closed)',
+          accentSoft: 'var(--status-closed-soft)',
+          trend: null,
+        },
+        {
           key: 'new',
           icon: <IconTicketNew width={17} height={17} />,
           value: stats.statusCounts.new,
@@ -741,21 +900,21 @@ export function DashboardPage() {
               : null,
         },
         {
-          key: 'in_progress',
-          icon: <IconSpinner width={17} height={17} />,
-          value: stats.statusCounts.in_progress,
-          label: 'Ish jarayonida',
-          accent: 'var(--status-in_progress)',
-          accentSoft: 'var(--status-in_progress-soft)',
-          trend: null,
-        },
-        {
           key: 'waiting_user',
           icon: <IconWait width={17} height={17} />,
           value: stats.statusCounts.waiting_user,
           label: 'Foydalanuvchi javobi kutilmoqda',
           accent: 'var(--status-waiting_user)',
           accentSoft: 'var(--status-waiting_user-soft)',
+          trend: null,
+        },
+        {
+          key: 'allOpen',
+          icon: <IconLayers width={17} height={17} />,
+          value: stats.allOpen,
+          label: 'Barcha ochiq',
+          accent: null,
+          accentSoft: null,
           trend: null,
         },
         {
@@ -769,24 +928,6 @@ export function DashboardPage() {
             trendDelta && trendDelta.hasClosedData
               ? { delta: trendDelta.closed, title: 'Bugun yopilgan murojaatlar, kechaga nisbatan' }
               : null,
-        },
-        {
-          key: 'allOpen',
-          icon: <IconLayers width={17} height={17} />,
-          value: stats.allOpen,
-          label: 'Barcha ochiq',
-          accent: null,
-          accentSoft: null,
-          trend: null,
-        },
-        {
-          key: 'total',
-          icon: <IconInbox width={17} height={17} />,
-          value: statusTotal,
-          label: 'Jami murojaatlar',
-          accent: 'var(--primary)',
-          accentSoft: 'var(--primary-soft)',
-          trend: null,
         },
       ]
     : [];
@@ -826,7 +967,7 @@ export function DashboardPage() {
       {isLoading ? (
         <>
           <div className="stat-cards">
-            {Array.from({ length: 6 }).map((_, i) => (
+            {Array.from({ length: 8 }).map((_, i) => (
               <StatCardSkeleton key={i} />
             ))}
           </div>
@@ -982,6 +1123,29 @@ export function DashboardPage() {
                   ]}
                 />
               </div>
+
+              <div className="chart-card span-12">
+                <SectionHeader
+                  title="Kategoriya bo'yicha taqsimot"
+                  subtitle="Murojaatlar eng ko'p tushgan top kategoriyalar"
+                  filterContext={scopeLabel}
+                />
+                {categoryChartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={Math.max(160, categoryChartData.length * 38)}>
+                    <BarChart data={categoryChartData} layout="vertical" margin={{ left: 8, right: 40 }}>
+                      <CartesianGrid horizontal={false} stroke="var(--border)" strokeDasharray="3 5" />
+                      <XAxis type="number" allowDecimals={false} stroke="var(--text-tertiary)" fontSize={11} />
+                      <YAxis type="category" dataKey="name" width={140} stroke="var(--text-tertiary)" fontSize={11} />
+                      <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--surface-alt)' }} />
+                      <Bar dataKey="value" name="Murojaatlar soni" fill="var(--indigo-600)" radius={[0, 6, 6, 0]} barSize={20}>
+                        <LabelList dataKey="value" position="right" className="bar-value-label" />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p className="chart-empty-note">Hozircha kategoriya bo'yicha ma'lumot yo'q.</p>
+                )}
+              </div>
             </div>
 
             <div className="section-card assignee-analytics" ref={assigneeSectionRef}>
@@ -1022,19 +1186,40 @@ export function DashboardPage() {
                     <table className="tickets-table">
                       <thead>
                         <tr>
-                          <th>Xodim</th>
-                          <th>Joriy yuklama</th>
-                          <th>Yopilgan</th>
+                          <SortableTh label="Xodim" sortKey="name" current={assigneeSort} onSort={handleAssigneeSort} />
+                          <SortableTh label="Joriy yuklama" sortKey="ticketsOpenNow" current={assigneeSort} onSort={handleAssigneeSort} />
+                          <SortableTh label="Yopilgan" sortKey="ticketsClosed" current={assigneeSort} onSort={handleAssigneeSort} />
                           <th>Muhimlik taqsimoti</th>
-                          <th>Jami tayinlangan</th>
-                          <th>Muddat muvofiqligi</th>
-                          <th>Samaradorlik</th>
-                          <th>Foydali ish %</th>
+                          <SortableTh
+                            label="Jami tayinlangan"
+                            sortKey="ticketsAssignedTotal"
+                            current={assigneeSort}
+                            onSort={handleAssigneeSort}
+                          />
+                          <SortableTh
+                            label="Muddat muvofiqligi"
+                            sortKey="slaComplianceRate"
+                            current={assigneeSort}
+                            onSort={handleAssigneeSort}
+                          />
+                          <SortableTh
+                            label="Samaradorlik"
+                            sortKey="productivityScore"
+                            current={assigneeSort}
+                            onSort={handleAssigneeSort}
+                          />
+                          <SortableTh label="Foydali ish %" sortKey="closeRate" current={assigneeSort} onSort={handleAssigneeSort} />
+                          <SortableTh
+                            label="Qayta ochilgan %"
+                            sortKey="reopenedRate"
+                            current={assigneeSort}
+                            onSort={handleAssigneeSort}
+                          />
                           <th />
                         </tr>
                       </thead>
                       <tbody>
-                        {stats.byAssignee.map((a) => {
+                        {sortedByAssignee.map((a) => {
                           const hasClosedTrendSignal = !(a.ticketsClosed === 0 && a.trendVsPreviousPeriod.ticketsClosedDelta === 0);
                           return (
                             <tr
@@ -1074,6 +1259,9 @@ export function DashboardPage() {
                               </td>
                               <td>
                                 <ProductivityBadge score={a.closeRate} />
+                              </td>
+                              <td>
+                                <ReopenedBadge reopenedRate={a.reopenedRate} />
                               </td>
                               <td>
                                 <button
@@ -1169,6 +1357,38 @@ export function DashboardPage() {
 
                     <div className="chart-card span-12">
                       <SectionHeader
+                        title="Ijrochi bo'yicha umumiy yuklama"
+                        subtitle="Tayinlangan tiketlar joriy holati bo'yicha: biriktirilgan, jarayonda, yechilgan"
+                      />
+                      <ResponsiveContainer width="100%" height={Math.max(180, assigneeStatusStackedData.length * 38)}>
+                        <BarChart data={assigneeStatusStackedData} layout="vertical" margin={{ left: 8, right: 16 }}>
+                          <CartesianGrid horizontal={false} stroke="var(--border)" strokeDasharray="3 5" />
+                          <XAxis type="number" allowDecimals={false} stroke="var(--text-tertiary)" fontSize={11} />
+                          <YAxis type="category" dataKey="name" width={120} stroke="var(--text-tertiary)" fontSize={11} />
+                          <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--surface-alt)' }} />
+                          <Legend wrapperStyle={{ fontSize: 12 }} />
+                          <Bar dataKey="pending" name="Biriktirilgan" stackId="status" fill="var(--status-new)" barSize={20} />
+                          <Bar
+                            dataKey="inProgress"
+                            name="Jarayonda"
+                            stackId="status"
+                            fill="var(--status-in_progress)"
+                            barSize={20}
+                          />
+                          <Bar
+                            dataKey="resolved"
+                            name="Yechilgan"
+                            stackId="status"
+                            fill="var(--status-resolved)"
+                            radius={[0, 6, 6, 0]}
+                            barSize={20}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    <div className="chart-card span-12">
+                      <SectionHeader
                         title="Ijrochilar bo'yicha hal qilish"
                         subtitle={
                           selectedAssigneeId
@@ -1195,6 +1415,18 @@ export function DashboardPage() {
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
+                    </div>
+
+                    <div className="chart-card span-12">
+                      <SectionHeader
+                        title="Yuklama xaritasi"
+                        subtitle="Kun bo'yicha, har ijrochiga o'sha kuni tayinlangan yangi tiketlar soni"
+                        filterContext={scopeLabel}
+                      />
+                      <WorkloadHeatmap
+                        data={stats.workloadHeatmap}
+                        assignees={stats.byAssignee.map((a) => ({ userId: a.userId, fullname: a.fullname }))}
+                      />
                     </div>
                   </div>
                 </>
