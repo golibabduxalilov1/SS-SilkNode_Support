@@ -24,6 +24,8 @@ export interface AssigneeStats {
   slaComplianceRate: number;
   /** Foydali ish koeffitsienti (%) — calculateProductivityScore() natijasi. */
   productivityScore: number;
+  /** Tayinlangan tiketlardan necha foizi yopilgan — productivityScore bilan bir xil formula. */
+  closeRate: number;
   trendVsPreviousPeriod: {
     ticketsClosedDelta: number;
   };
@@ -57,6 +59,12 @@ export interface AssigneeResolutionTrendPoint {
   byAssignee: AssigneeResolutionTrendEntry[];
 }
 
+export interface ResolutionFlowPoint {
+  date: string;
+  opened: number;
+  resolved: number;
+}
+
 export interface DashboardStats {
   statusCounts: {
     new: number;
@@ -76,6 +84,8 @@ export interface DashboardStats {
   byOrganization: OrganizationStats[];
   dailyTrend: DailyTrendPoint[];
   assigneeResolutionTrend: AssigneeResolutionTrendPoint[];
+  /** "Murojaatlarni ochilishi va hal qilinishi" grafigi — fiksirlangan TREND_DAYS kunlik oyna. */
+  resolutionFlow: ResolutionFlowPoint[];
   slaThresholds: {
     resolution: number;
   };
@@ -99,6 +109,11 @@ const DEFAULT_TREND_PERIOD_DAYS = 30;
 // Trend grafiklari filtrga mos davrni ishlatadi (resolvePeriod), lekin admin juda uzoq
 // dateFrom tanlasa kunlik bucket soni cheksiz o'smasligi uchun yuqori chegara.
 const MAX_TREND_DAYS = 180;
+
+// "Murojaatlarni ochilishi va hal qilinishi" grafigi uchun fiksirlangan oyna uzunligi —
+// dailyTrend'dan farqli, dateFrom/dateTo oralig'i qanchalik keng bo'lishidan qat'iy nazar
+// har doim so'nggi TREND_DAYS kun (yoki dateTo berilsa, o'sha sanagacha).
+const TREND_DAYS = 14;
 
 function diffMinutes(from: Date, to: Date): number {
   return Math.round((to.getTime() - from.getTime()) / 60000);
@@ -209,6 +224,35 @@ function buildDailyTrend(tickets: Ticket[], start: Date, days: number): DailyTre
   for (const bucket of buckets.values()) {
     running += bucket.created - bucket.closed;
     bucket.open = running;
+  }
+
+  return Array.from(buckets.values());
+}
+
+function buildResolutionFlow(tickets: Ticket[], start: Date, days: number): ResolutionFlowPoint[] {
+  const buckets = new Map<string, ResolutionFlowPoint>();
+  const rangeStart = startOfDay(start);
+
+  for (let i = 0; i < days; i++) {
+    const d = new Date(rangeStart);
+    d.setDate(d.getDate() + i);
+    const key = dateKey(d);
+    buckets.set(key, { date: key, opened: 0, resolved: 0 });
+  }
+
+  for (const t of tickets) {
+    const openedBucket = buckets.get(dateKey(t.createdAt));
+    if (openedBucket) openedBucket.opened += 1;
+
+    if (t.status === TicketStatus.CLOSED && t.closedAt) {
+      const resolvedBucket = buckets.get(dateKey(t.closedAt));
+      if (resolvedBucket) resolvedBucket.resolved += 1;
+    } else if (t.status === TicketStatus.RESOLVED) {
+      // RESOLVED holatiga o'tish vaqti alohida ustunda saqlanmaydi — shu holatdagi
+      // tiketlar uchun updatedAt (oxirgi o'zgarish vaqti) yaqinlashtirish sifatida ishlatiladi.
+      const resolvedBucket = buckets.get(dateKey(t.updatedAt));
+      if (resolvedBucket) resolvedBucket.resolved += 1;
+    }
   }
 
   return Array.from(buckets.values());
@@ -365,7 +409,8 @@ export class TicketsService {
     //   ticketsOpenNow kabi "real vaqtdagi" ko'rsatkichlar shundan hisoblanadi.
     // - periodTickets: yuqoridagi + sana oralig'i (dateFrom/dateTo) — "hisobot davri".
     // - generalTickets: periodTickets + assignedToId (berilgan bo'lsa) — statusCounts va h.k. uchun.
-    // byAssignee esa har doim periodTickets'dan (assignedToId'ga qaramay) quriladi (TZ talabi).
+    // byAssignee periodTickets'dan quriladi, lekin assignedToId berilsa faqat o'sha bitta
+    // ijrochiga qisqartiriladi (pastdagi assigneeGroups guruhlash bosqichida).
     const orgCategoryTickets = tickets.filter((t) => matchesOrgCategory(t, filter));
     const periodTickets = orgCategoryTickets.filter((t) =>
       matchesDateRange(t, filter.dateFrom, filter.dateTo),
@@ -424,11 +469,14 @@ export class TicketsService {
       closedPreviousByAssignee.set(t.assignedToId, (closedPreviousByAssignee.get(t.assignedToId) ?? 0) + 1);
     }
 
-    // "Kim qancha ishladi" — ijrochi bo'yicha guruhlash (GROUP BY assigned_to_id), assignedToId
-    // filtridan mustaqil — TZ: byAssignee har doim barcha xodimlarni qaytaradi.
+    // "Kim qancha ishladi" — ijrochi bo'yicha guruhlash (GROUP BY assigned_to_id).
+    // assignedToId filtri berilmagan bo'lsa — barcha xodimlarni solishtirib qaytaradi (hozirgidek).
+    // Berilgan bo'lsa — bu endi "solishtirish" emas, faqat o'sha bitta ijrochining profilini
+    // qaytaradi (bitta qator).
     const assigneeGroups = new Map<string, { fullname: string | null; tickets: Ticket[] }>();
     for (const t of periodTickets) {
       if (!t.assignedToId) continue;
+      if (filter.assignedToId && t.assignedToId !== filter.assignedToId) continue;
       if (!assigneeGroups.has(t.assignedToId)) {
         assigneeGroups.set(t.assignedToId, {
           fullname: t.assignedTo?.fullname ?? null,
@@ -467,6 +515,8 @@ export class TicketsService {
           slaResolutionBreachCount,
           slaComplianceRate,
           productivityScore: calculateProductivityScore(closed.length, group.tickets.length),
+          closeRate:
+            group.tickets.length > 0 ? Math.round((closed.length / group.tickets.length) * 100) : 0,
           trendVsPreviousPeriod: {
             ticketsClosedDelta: percentChange(
               closedCurrentByAssignee.get(userId) ?? 0,
@@ -509,6 +559,12 @@ export class TicketsService {
 
     const trendDays = daysBetweenInclusive(period.start, period.end);
 
+    // resolutionFlow — barcha faol filtrlar (ijrochi, tashkilot, kategoriya, sana) qo'llanilgan
+    // generalTickets to'plamidan, lekin doim fiksirlangan TREND_DAYS kunlik oynada.
+    const resolutionFlowEnd = filter.dateTo ?? now;
+    const resolutionFlowStart = new Date(resolutionFlowEnd);
+    resolutionFlowStart.setDate(resolutionFlowStart.getDate() - (TREND_DAYS - 1));
+
     return {
       statusCounts: {
         new: statusCount(TicketStatus.NEW),
@@ -527,6 +583,7 @@ export class TicketsService {
       byOrganization,
       dailyTrend: buildDailyTrend(generalTickets, period.start, trendDays),
       assigneeResolutionTrend: buildAssigneeResolutionTrend(periodTickets, assigneeGroups, period.start, trendDays),
+      resolutionFlow: buildResolutionFlow(generalTickets, resolutionFlowStart, TREND_DAYS),
       slaThresholds: {
         resolution: SLA_RESOLUTION_MINUTES,
       },

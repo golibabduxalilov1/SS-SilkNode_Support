@@ -1579,6 +1579,31 @@ button {
   margin: 0;
 }
 
+.chart-summary-note {
+  margin: 12px 0 0;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border-strong);
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.chart-summary-note strong {
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-card-filter-context {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--primary-soft-text);
+}
+
+.row--highlighted {
+  background: var(--primary-soft) !important;
+}
+
 .bar-value-label {
   fill: var(--text-secondary);
   font-family: var(--font-mono);
@@ -2216,6 +2241,27 @@ button {
   background: var(--sunken);
 }
 
+.scope-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: var(--radius-full);
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.scope-banner--neutral {
+  background: var(--veil);
+  color: var(--text-secondary);
+}
+
+.scope-banner--active {
+  background: var(--primary-soft);
+  color: var(--primary-soft-text);
+}
+
 .assignee-summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -2377,6 +2423,11 @@ button {
   width: 32px;
   height: 32px;
   border-radius: var(--radius-full);
+}
+
+.skeleton-chart {
+  width: 100%;
+  border-radius: var(--radius-md);
 }
 
 .table-skeleton {
