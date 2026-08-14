@@ -81,12 +81,7 @@ export class AttachmentsController {
     if (!ticket) throw new BadRequestException('Murojaat topilmadi.');
     if (!file) throw new BadRequestException('Fayl biriktirilmagan.');
 
-    const message = await this.messagesService.create(
-      ticketId,
-      admin.id,
-      `📎 ${file.originalname}`,
-      true,
-    );
+    const message = await this.messagesService.create(ticketId, admin.id, `📎 ${file.originalname}`);
 
     const attachment = await this.attachmentsService.create({
       ticketId,

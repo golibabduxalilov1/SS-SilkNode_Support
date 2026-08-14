@@ -79,15 +79,8 @@ export class Ticket {
   @OneToMany(() => Message, (message) => message.ticket)
   messages: Message[];
 
-  /** Time Tracking (TZ bo'lim 8): birinchi admin javobi vaqti va shu javobgacha ketgan daqiqalar. */
-  @Column({ name: 'first_response_at', type: 'timestamptz', nullable: true })
-  firstResponseAt: Date | null;
-
   @Column({ name: 'closed_at', type: 'timestamptz', nullable: true })
   closedAt: Date | null;
-
-  @Column({ name: 'first_response_minutes', type: 'int', nullable: true })
-  firstResponseMinutes: number | null;
 
   @Column({ name: 'resolution_minutes', type: 'int', nullable: true })
   resolutionMinutes: number | null;

@@ -52,9 +52,7 @@ interface AssigneeStats {
   ticketsOpenNow: number;
   ticketsClosed: number;
   closedByPriority: ClosedByPriority;
-  avgFirstResponseMinutes: number | null;
   avgResolutionMinutes: number | null;
-  slaFirstResponseBreachCount: number;
   slaResolutionBreachCount: number;
   slaComplianceRate: number;
   trendVsPreviousPeriod: {
@@ -87,13 +85,11 @@ interface DashboardStats {
   closedToday: number;
   closedThisWeek: number;
   closedThisMonth: number;
-  avgFirstResponseMinutes: number | null;
   avgResolutionMinutes: number | null;
   byAssignee: AssigneeStats[];
   byOrganization: OrganizationStats[];
   dailyTrend: DailyTrendPoint[];
   slaThresholds: {
-    firstResponse: number;
     resolution: number;
   };
 }
@@ -635,13 +631,6 @@ export function DashboardPage() {
                 <div className="radial-gauges">
                   <TimeGauge
                     icon={<IconClock width={13} height={13} />}
-                    label="O'rtacha birinchi javob vaqti"
-                    minutes={stats.avgFirstResponseMinutes}
-                    goodMax={stats.slaThresholds.firstResponse}
-                    warnMax={120}
-                  />
-                  <TimeGauge
-                    icon={<IconClock width={13} height={13} />}
                     label="O'rtacha yopish vaqti"
                     minutes={stats.avgResolutionMinutes}
                     goodMax={240}
@@ -768,7 +757,6 @@ export function DashboardPage() {
                           <th>Joriy yuklama</th>
                           <th>Yopilgan</th>
                           <th>Muhimlik taqsimoti</th>
-                          <th>O'rtacha javob</th>
                           <th>O'rtacha yopish</th>
                           <th>SLA muvofiqligi</th>
                           <th />
@@ -802,7 +790,6 @@ export function DashboardPage() {
                             <td>
                               <PriorityStackedBar data={a.closedByPriority} />
                             </td>
-                            <td>{formatMinutes(a.avgFirstResponseMinutes)}</td>
                             <td>{formatMinutes(a.avgResolutionMinutes)}</td>
                             <td>
                               <SlaBadge complianceRate={a.slaComplianceRate} />

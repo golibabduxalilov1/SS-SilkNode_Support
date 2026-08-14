@@ -57,7 +57,7 @@ export class MessagesController {
     @Body() dto: CreateMessageDto,
     @CurrentUser() admin: User,
   ) {
-    const message = await this.messagesService.create(ticketId, admin.id, dto.text, true);
+    const message = await this.messagesService.create(ticketId, admin.id, dto.text);
 
     const ticket = await this.messagesService.findTicketForNotification(ticketId);
     if (ticket) {

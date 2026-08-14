@@ -537,7 +537,7 @@ button {
 .login-form input,
 .filters select,
 .filters input,
-.ticket-detail-controls select,
+.ticket-summary-controls select,
 .chat-form textarea,
 .inline-form input,
 .toolbar input,
@@ -576,7 +576,7 @@ button {
 .login-form input:focus,
 .filters select:focus,
 .filters input:focus,
-.ticket-detail-controls select:focus,
+.ticket-summary-controls select:focus,
 .chat-form textarea:focus,
 .inline-form input:focus,
 .toolbar input:focus,
@@ -2272,20 +2272,12 @@ button {
   white-space: pre-wrap;
 }
 
-.ticket-detail-page .ticket-detail-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 24px;
+.ticket-summary-controls {
+  gap: 16px;
   align-items: flex-end;
-  margin-bottom: 20px;
-  padding: 16px 22px;
-  border-radius: var(--radius-md);
-  background: var(--panel);
-  border: 1px solid var(--border-strong);
-  box-shadow: var(--shadow-sm);
 }
 
-.ticket-detail-controls label {
+.ticket-summary-controls label {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -2297,8 +2289,8 @@ button {
   color: var(--text-secondary);
 }
 
-.ticket-detail-controls select {
-  min-width: 220px;
+.ticket-summary-controls select {
+  min-width: 180px;
 }
 
 .chat {

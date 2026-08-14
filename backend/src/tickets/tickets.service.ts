@@ -19,9 +19,7 @@ export interface AssigneeStats {
   ticketsOpenNow: number;
   ticketsClosed: number;
   closedByPriority: ClosedByPriority;
-  avgFirstResponseMinutes: number | null;
   avgResolutionMinutes: number | null;
-  slaFirstResponseBreachCount: number;
   slaResolutionBreachCount: number;
   slaComplianceRate: number;
   trendVsPreviousPeriod: {
@@ -54,13 +52,11 @@ export interface DashboardStats {
   closedToday: number;
   closedThisWeek: number;
   closedThisMonth: number;
-  avgFirstResponseMinutes: number | null;
   avgResolutionMinutes: number | null;
   byAssignee: AssigneeStats[];
   byOrganization: OrganizationStats[];
   dailyTrend: DailyTrendPoint[];
   slaThresholds: {
-    firstResponse: number;
     resolution: number;
   };
 }
@@ -76,8 +72,7 @@ export interface DashboardStatsFilter {
 const TREND_DAYS = 14;
 
 // TimeGauge komponentida (admin-panel) ishlatiladigan goodMax/warnMax'ga mos —
-// backend va frontend bir xil SLA chegaralarini ishlatadi.
-const SLA_FIRST_RESPONSE_MINUTES = 30;
+// backend va frontend bir xil SLA chegarasini ishlatadi.
 const SLA_RESOLUTION_MINUTES = 1440; // 24 soat
 
 // Tendentsiya solishtiruvi uchun standart davr uzunligi (dateFrom/dateTo berilmasa).
@@ -305,9 +300,6 @@ export class TicketsService {
     const closedThisWeek = closedTickets.filter((t) => t.closedAt! >= weekStart).length;
     const closedThisMonth = closedTickets.filter((t) => t.closedAt! >= monthStart).length;
 
-    const avgFirstResponseMinutes = average(
-      generalTickets.filter((t) => t.firstResponseMinutes != null).map((t) => t.firstResponseMinutes!),
-    );
     const avgResolutionMinutes = average(
       closedTickets.filter((t) => t.resolutionMinutes != null).map((t) => t.resolutionMinutes!),
     );
@@ -372,9 +364,6 @@ export class TicketsService {
           high: closed.filter((t) => t.priority === TicketPriority.HIGH).length,
           critical: closed.filter((t) => t.priority === TicketPriority.CRITICAL).length,
         };
-        const slaFirstResponseBreachCount = group.tickets.filter(
-          (t) => t.firstResponseMinutes != null && t.firstResponseMinutes > SLA_FIRST_RESPONSE_MINUTES,
-        ).length;
         const slaResolutionBreachCount = closed.filter(
           (t) => t.resolutionMinutes != null && t.resolutionMinutes > SLA_RESOLUTION_MINUTES,
         ).length;
@@ -390,15 +379,9 @@ export class TicketsService {
           ticketsOpenNow: openNowByAssignee.get(userId) ?? 0,
           ticketsClosed: closed.length,
           closedByPriority,
-          avgFirstResponseMinutes: average(
-            group.tickets
-              .filter((t) => t.firstResponseMinutes != null)
-              .map((t) => t.firstResponseMinutes!),
-          ),
           avgResolutionMinutes: average(
             closed.filter((t) => t.resolutionMinutes != null).map((t) => t.resolutionMinutes!),
           ),
-          slaFirstResponseBreachCount,
           slaResolutionBreachCount,
           slaComplianceRate,
           trendVsPreviousPeriod: {
@@ -449,13 +432,11 @@ export class TicketsService {
       closedToday,
       closedThisWeek,
       closedThisMonth,
-      avgFirstResponseMinutes,
       avgResolutionMinutes,
       byAssignee,
       byOrganization,
       dailyTrend: buildDailyTrend(generalTickets, now, TREND_DAYS),
       slaThresholds: {
-        firstResponse: SLA_FIRST_RESPONSE_MINUTES,
         resolution: SLA_RESOLUTION_MINUTES,
       },
     };

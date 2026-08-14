@@ -39,7 +39,6 @@ interface Ticket {
   priority: string;
   status: string;
   createdAt: string;
-  firstResponseMinutes: number | null;
   resolutionMinutes: number | null;
   organization?: { name: string } | null;
   createdBy?: { fullname: string | null; phoneNumber: string | null } | null;
@@ -53,10 +52,6 @@ const STATUS_OPTIONS = [
   { value: 'resolved', label: 'Yechilgan' },
   { value: 'closed', label: 'Yopilgan' },
 ];
-
-const STATUS_LABELS: Record<string, string> = Object.fromEntries(
-  STATUS_OPTIONS.map((o) => [o.value, o.label]),
-);
 
 const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1').replace(
   /\/api\/v1\/?$/,
@@ -198,11 +193,32 @@ export function TicketDetailPage() {
             <span className="ticket-summary-number">#{ticket.number}</span>
             <h2 className="ticket-summary-title">{ticket.title}</h2>
           </div>
-          <div className="ticket-summary-badges">
-            <span className={`priority priority--${ticket.priority}`}>{ticket.priority}</span>
-            <span className={`status status--${ticket.status}`}>
-              {STATUS_LABELS[ticket.status] ?? ticket.status}
-            </span>
+          <div className="ticket-summary-badges ticket-summary-controls">
+            <label>
+              Holat
+              <select value={ticket.status} onChange={(e) => handleStatusChange(e.target.value)}>
+                {STATUS_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              Ijrochi
+              <select
+                value={ticket.assignedTo?.id ?? ''}
+                onChange={(e) => handleAssign(e.target.value)}
+              >
+                <option value="">Tayinlanmagan</option>
+                {admins.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.fullname ?? a.id} ({a.role})
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
         </div>
 
@@ -231,12 +247,6 @@ export function TicketDetailPage() {
             </span>
           </div>
           <div className="ticket-summary-meta-item">
-            <span className="ticket-summary-meta-label">Birinchi javob</span>
-            <span className="ticket-summary-meta-value">
-              {ticket.firstResponseMinutes != null ? `${ticket.firstResponseMinutes} daq.` : '—'}
-            </span>
-          </div>
-          <div className="ticket-summary-meta-item">
             <span className="ticket-summary-meta-label">Yopilish vaqti</span>
             <span className="ticket-summary-meta-value">
               {ticket.resolutionMinutes != null ? `${ticket.resolutionMinutes} daq.` : '—'}
@@ -248,34 +258,6 @@ export function TicketDetailPage() {
           <span className="ticket-summary-meta-label">Tavsif</span>
           <p>{ticket.description}</p>
         </div>
-      </div>
-
-      <div className="ticket-detail-controls">
-        <label>
-          Holat
-          <select value={ticket.status} onChange={(e) => handleStatusChange(e.target.value)}>
-            {STATUS_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label>
-          Ijrochi
-          <select
-            value={ticket.assignedTo?.id ?? ''}
-            onChange={(e) => handleAssign(e.target.value)}
-          >
-            <option value="">Tayinlanmagan</option>
-            {admins.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.fullname ?? a.id} ({a.role})
-              </option>
-            ))}
-          </select>
-        </label>
       </div>
 
       {messages.length === 0 ? (

@@ -4,10 +4,6 @@ import { Repository } from 'typeorm';
 import { Message } from './entities/message.entity';
 import { Ticket } from '../tickets/entities/ticket.entity';
 
-function diffMinutes(from: Date, to: Date): number {
-  return Math.round((to.getTime() - from.getTime()) / 60000);
-}
-
 @Injectable()
 export class MessagesService {
   constructor(
@@ -17,27 +13,12 @@ export class MessagesService {
     private readonly ticketsRepository: Repository<Ticket>,
   ) {}
 
-  async create(
-    ticketId: string,
-    senderId: string,
-    text: string,
-    isAdminSender = false,
-  ): Promise<Message> {
+  async create(ticketId: string, senderId: string, text: string): Promise<Message> {
     const ticket = await this.ticketsRepository.findOne({ where: { id: ticketId } });
     if (!ticket) throw new NotFoundException('Murojaat topilmadi.');
 
     const message = this.messagesRepository.create({ ticketId, senderId, text });
-    const saved = await this.messagesRepository.save(message);
-
-    // Time Tracking (TZ bo'lim 8): birinchi marta admin javob yozganda belgilanadi.
-    if (isAdminSender && !ticket.firstResponseAt) {
-      const now = new Date();
-      ticket.firstResponseAt = now;
-      ticket.firstResponseMinutes = diffMinutes(ticket.createdAt, now);
-      await this.ticketsRepository.save(ticket);
-    }
-
-    return saved;
+    return this.messagesRepository.save(message);
   }
 
   findByTicket(ticketId: string): Promise<Message[]> {
