@@ -26,7 +26,6 @@ import {
   IconClose,
   IconLayers,
   IconSearch,
-  IconShield,
   IconSpinner,
   IconTicketNew,
   IconTrendDown,
@@ -1090,66 +1089,6 @@ export function DashboardPage() {
                 />
               ) : (
                 <>
-                  {assigneeSummary && (
-                    <div className="assignee-summary">
-                      <div className="stat-card stat-card--mini">
-                        <span
-                          className="stat-card-icon"
-                          style={{ '--accent': 'var(--primary)', '--accent-soft': 'var(--primary-soft)' } as AccentStyle}
-                        >
-                          <IconUsers width={15} height={15} />
-                        </span>
-                        <span className="stat-value">{assigneeSummary.activeCount}</span>
-                        <span className="stat-label">Faol xodimlar</span>
-                      </div>
-                      <div className="stat-card stat-card--mini">
-                        <span
-                          className="stat-card-icon"
-                          style={
-                            {
-                              '--accent': 'var(--status-in_progress)',
-                              '--accent-soft': 'var(--status-in_progress-soft)',
-                            } as AccentStyle
-                          }
-                        >
-                          <IconLayers width={15} height={15} />
-                        </span>
-                        <span className="stat-value">{assigneeSummary.avgWorkload}</span>
-                        <span className="stat-label">O'rtacha yuklama (kishi boshiga)</span>
-                      </div>
-                      <div className="stat-card stat-card--mini">
-                        <span
-                          className="stat-card-icon"
-                          style={{ '--accent': 'var(--success)', '--accent-soft': 'var(--success-tint)' } as AccentStyle}
-                        >
-                          <IconShield width={15} height={15} />
-                        </span>
-                        <span className="stat-value">
-                          {assigneeSummary.bestSla ? `${assigneeSummary.bestSla.slaComplianceRate}%` : '—'}
-                        </span>
-                        <span className="stat-label">
-                          Eng yuqori SLA
-                          {assigneeSummary.bestSla && ` — ${assigneeSummary.bestSla.fullname ?? assigneeSummary.bestSla.userId}`}
-                        </span>
-                      </div>
-                      <div className="stat-card stat-card--mini stat-card--danger">
-                        <span
-                          className="stat-card-icon"
-                          style={{ '--accent': 'var(--danger)', '--accent-soft': 'var(--error-tint)' } as AccentStyle}
-                        >
-                          <IconAlert width={15} height={15} />
-                        </span>
-                        <span className="stat-value">
-                          {assigneeSummary.worstSla ? `${assigneeSummary.worstSla.slaComplianceRate}%` : '—'}
-                        </span>
-                        <span className="stat-label">
-                          Eng past SLA
-                          {assigneeSummary.worstSla && ` — ${assigneeSummary.worstSla.fullname ?? assigneeSummary.worstSla.userId}`}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
                   <div className="table-wrap assignee-table-wrap">
                     <table className="tickets-table">
                       <thead>

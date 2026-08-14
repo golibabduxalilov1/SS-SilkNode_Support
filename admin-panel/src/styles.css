@@ -1791,7 +1791,7 @@ button {
 
 .split-panel {
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) minmax(280px, 1.3fr);
+  grid-template-columns: 1fr;
   gap: 28px;
   align-items: start;
 }
