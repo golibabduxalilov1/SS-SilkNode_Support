@@ -22,7 +22,6 @@ import {
   IconCheck,
   IconClose,
   IconInbox,
-  IconLayers,
   IconLock,
   IconSearch,
   IconSpinner,
@@ -38,7 +37,6 @@ import { AssigneeTrendChart, type AssigneeResolutionTrendPoint } from '../compon
 import { ProductivityBadge } from '../components/dashboard/ProductivityBadge';
 import { TrendChart, type DailyTrendPoint } from '../components/dashboard/TrendChart';
 import { ResolutionFlowChart, type ResolutionFlowPoint } from '../components/dashboard/ResolutionFlowChart';
-import { WorkloadHeatmap } from '../components/dashboard/WorkloadHeatmap';
 
 interface ClosedByPriority {
   low: number;
@@ -376,19 +374,6 @@ function KpiCard({ icon, value, suffix, label, accent, accentSoft, trend }: Omit
         {suffix}
       </span>
       <span className="stat-label">{label}</span>
-    </div>
-  );
-}
-
-function MiniStatRow({ items }: { items: Array<{ label: string; value: number }> }) {
-  return (
-    <div className="mini-stat-row">
-      {items.map((item) => (
-        <div className="mini-stat" key={item.label}>
-          <span className="mini-stat-value">{item.value}</span>
-          <span className="stat-label">{item.label}</span>
-        </div>
-      ))}
     </div>
   );
 }
@@ -775,17 +760,6 @@ export function DashboardPage() {
       .reverse();
   }, [stats]);
 
-  const assigneeTotals = useMemo(() => {
-    if (!stats) return { assigned: 0, slaBreaches: 0 };
-    return stats.byAssignee.reduce(
-      (acc, a) => ({
-        assigned: acc.assigned + a.ticketsAssignedTotal,
-        slaBreaches: acc.slaBreaches + a.slaResolutionBreachCount,
-      }),
-      { assigned: 0, slaBreaches: 0 },
-    );
-  }, [stats]);
-
   // "Filtr yo'q = umumiy, filtr bor = kesim": faol filtrlarni o'qiladigan matnga aylantiradi.
   // null bo'lsa — hech qanday filtr faol emas, sahifa "Umumiy ko'rinish" holatida.
   const scopeLabel = useMemo(() => {
@@ -909,15 +883,6 @@ export function DashboardPage() {
           trend: null,
         },
         {
-          key: 'allOpen',
-          icon: <IconLayers width={17} height={17} />,
-          value: stats.allOpen,
-          label: 'Barcha ochiq',
-          accent: null,
-          accentSoft: null,
-          trend: null,
-        },
-        {
           key: 'closedToday',
           icon: <IconCheck width={17} height={17} />,
           value: stats.closedToday,
@@ -967,7 +932,7 @@ export function DashboardPage() {
       {isLoading ? (
         <>
           <div className="stat-cards">
-            {Array.from({ length: 8 }).map((_, i) => (
+            {Array.from({ length: 7 }).map((_, i) => (
               <StatCardSkeleton key={i} />
             ))}
           </div>
@@ -1108,20 +1073,6 @@ export function DashboardPage() {
                   <strong>{statusTotal}</strong> ta murojaat asosida hisoblangan
                   {scopeLabel && " — joriy kesim bo'yicha"}
                 </p>
-              </div>
-
-              <div className="chart-card span-4">
-                <SectionHeader
-                  title="Umumiy ko'rsatkichlar"
-                  subtitle="Ijrochilar bo'yicha jami hisoblar"
-                  filterContext={scopeLabel}
-                />
-                <MiniStatRow
-                  items={[
-                    { label: 'Jami tayinlangan', value: assigneeTotals.assigned },
-                    { label: 'Jami muddat buzilishi', value: assigneeTotals.slaBreaches },
-                  ]}
-                />
               </div>
 
               <div className="chart-card span-12">
@@ -1415,18 +1366,6 @@ export function DashboardPage() {
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
-                    </div>
-
-                    <div className="chart-card span-12">
-                      <SectionHeader
-                        title="Yuklama xaritasi"
-                        subtitle="Kun bo'yicha, har ijrochiga o'sha kuni tayinlangan yangi tiketlar soni"
-                        filterContext={scopeLabel}
-                      />
-                      <WorkloadHeatmap
-                        data={stats.workloadHeatmap}
-                        assignees={stats.byAssignee.map((a) => ({ userId: a.userId, fullname: a.fullname }))}
-                      />
                     </div>
                   </div>
                 </>
