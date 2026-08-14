@@ -33,6 +33,72 @@ export function StatCardSkeleton() {
   );
 }
 
+export function ChartSkeleton({ height = 240 }: { height?: number }) {
+  return (
+    <div className="skeleton skeleton-chart" style={{ height }} />
+  );
+}
+
+export function Pagination({
+  page,
+  totalPages,
+  onChange,
+}: {
+  page: number;
+  totalPages: number;
+  onChange: (page: number) => void;
+}) {
+  if (totalPages <= 1) return null;
+
+  const pages: (number | '…')[] = [];
+  for (let p = 1; p <= totalPages; p += 1) {
+    if (p === 1 || p === totalPages || Math.abs(p - page) <= 1) {
+      pages.push(p);
+    } else if (pages[pages.length - 1] !== '…') {
+      pages.push('…');
+    }
+  }
+
+  return (
+    <div className="pagination">
+      <button
+        type="button"
+        className="btn btn-secondary btn-sm"
+        disabled={page <= 1}
+        onClick={() => onChange(page - 1)}
+      >
+        Oldingi
+      </button>
+      <div className="pagination-pages">
+        {pages.map((p, i) =>
+          p === '…' ? (
+            <span key={`ellipsis-${i}`} className="pagination-ellipsis">
+              …
+            </span>
+          ) : (
+            <button
+              key={p}
+              type="button"
+              className={`pagination-page${p === page ? ' pagination-page--active' : ''}`}
+              onClick={() => onChange(p)}
+            >
+              {p}
+            </button>
+          ),
+        )}
+      </div>
+      <button
+        type="button"
+        className="btn btn-secondary btn-sm"
+        disabled={page >= totalPages}
+        onClick={() => onChange(page + 1)}
+      >
+        Keyingi
+      </button>
+    </div>
+  );
+}
+
 export function TableSkeleton({ rows = 5, cols = 6 }: { rows?: number; cols?: number }) {
   return (
     <div className="table-skeleton">

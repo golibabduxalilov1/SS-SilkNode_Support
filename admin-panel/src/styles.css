@@ -1154,6 +1154,49 @@ button {
   color: var(--text-muted);
 }
 
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pagination-page {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.pagination-page:hover {
+  background: var(--veil);
+  color: var(--text);
+}
+
+.pagination-page--active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #ffffff;
+}
+
+.pagination-ellipsis {
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 0 4px;
+}
+
 @media (max-width: 900px) {
   .filters {
     flex-direction: column;
@@ -1534,6 +1577,31 @@ button {
   min-width: 160px;
   text-align: left;
   margin: 0;
+}
+
+.chart-summary-note {
+  margin: 12px 0 0;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border-strong);
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.chart-summary-note strong {
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-card-filter-context {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--primary-soft-text);
+}
+
+.row--highlighted {
+  background: var(--primary-soft) !important;
 }
 
 .bar-value-label {
@@ -2173,6 +2241,27 @@ button {
   background: var(--sunken);
 }
 
+.scope-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: var(--radius-full);
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.scope-banner--neutral {
+  background: var(--veil);
+  color: var(--text-secondary);
+}
+
+.scope-banner--active {
+  background: var(--primary-soft);
+  color: var(--primary-soft-text);
+}
+
 .assignee-summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -2334,6 +2423,11 @@ button {
   width: 32px;
   height: 32px;
   border-radius: var(--radius-full);
+}
+
+.skeleton-chart {
+  width: 100%;
+  border-radius: var(--radius-md);
 }
 
 .table-skeleton {

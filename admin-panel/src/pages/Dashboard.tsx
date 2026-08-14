@@ -1,7 +1,5 @@
 import { CSSProperties, ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Area,
-  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
@@ -37,7 +35,10 @@ import {
   IconUsers,
   IconWait,
 } from '../components/icons';
-import { Avatar, EmptyState, StatCardSkeleton, TableSkeleton } from '../components/ui';
+import { Avatar, ChartSkeleton, EmptyState, StatCardSkeleton, TableSkeleton } from '../components/ui';
+import { AssigneeTrendChart, type AssigneeResolutionTrendPoint } from '../components/dashboard/AssigneeTrendChart';
+import { ProductivityBadge } from '../components/dashboard/ProductivityBadge';
+import { TrendChart, type DailyTrendPoint } from '../components/dashboard/TrendChart';
 
 interface ClosedByPriority {
   low: number;
@@ -56,6 +57,7 @@ interface AssigneeStats {
   avgResolutionMinutes: number | null;
   slaResolutionBreachCount: number;
   slaComplianceRate: number;
+  productivityScore: number;
   trendVsPreviousPeriod: {
     ticketsClosedDelta: number;
   };
@@ -65,13 +67,9 @@ interface OrganizationStats {
   organizationId: string;
   organizationName: string;
   ticketsCount: number;
+  closedCount: number;
+  openCount: number;
   avgResolutionMinutes: number | null;
-}
-
-interface DailyTrendPoint {
-  date: string;
-  created: number;
-  closed: number;
 }
 
 interface DashboardStats {
@@ -87,9 +85,11 @@ interface DashboardStats {
   closedThisWeek: number;
   closedThisMonth: number;
   avgResolutionMinutes: number | null;
+  avgProductivityScore: number | null;
   byAssignee: AssigneeStats[];
   byOrganization: OrganizationStats[];
   dailyTrend: DailyTrendPoint[];
+  assigneeResolutionTrend: AssigneeResolutionTrendPoint[];
   slaThresholds: {
     resolution: number;
   };
@@ -170,7 +170,7 @@ function getSlaTier(complianceRate: number): 'good' | 'warn' | 'bad' {
   return 'bad';
 }
 
-function formatDayLabel(dateStr: string): string {
+export function formatDayLabel(dateStr: string): string {
   const parts = dateStr.split('-');
   if (parts.length !== 3) return dateStr;
   return `${parts[2]}.${parts[1]}`;
@@ -181,7 +181,7 @@ function percentDelta(curr: number, prev: number): number {
   return Math.round(((curr - prev) / prev) * 100);
 }
 
-function ChartTooltip({ active, payload, label, labelFormatter }: any) {
+export function ChartTooltip({ active, payload, label, labelFormatter }: any) {
   if (!active || !payload || payload.length === 0) return null;
   const displayLabel = labelFormatter ? labelFormatter(label) : label;
   return (
@@ -306,13 +306,49 @@ function PriorityStackedBar({ data }: { data: ClosedByPriority }) {
   );
 }
 
-/** Bo'lim sarlavhasi: barcha kartalar/jadvallar uchun bir xil naqsh — sarlavha + subtitle + ixtiyoriy o'ng harakat. */
-function SectionHeader({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
+function OrganizationRatioBar({ closedCount, openCount }: { closedCount: number; openCount: number }) {
+  const total = closedCount + openCount;
+  if (total === 0) {
+    return <span className="priority-stack priority-stack--empty" title="Murojaatlar yo'q" />;
+  }
+  const title = `Yopilgan: ${closedCount} · Ochiq: ${openCount}`;
+  return (
+    <span className="priority-stack" title={title}>
+      {closedCount > 0 && (
+        <span className="priority-stack-segment" style={{ width: `${(closedCount / total) * 100}%`, background: 'var(--success)' }} />
+      )}
+      {openCount > 0 && (
+        <span
+          className="priority-stack-segment"
+          style={{ width: `${(openCount / total) * 100}%`, background: 'var(--status-in_progress)' }}
+        />
+      )}
+    </span>
+  );
+}
+
+/**
+ * Bo'lim sarlavhasi: barcha kartalar/jadvallar uchun bir xil naqsh — sarlavha + subtitle +
+ * ixtiyoriy o'ng harakat. filterContext — "filtr bor = kesim" holatida qaysi filtr qo'llanganini
+ * ko'rsatuvchi kichik matn (masalan "G'olibjon Abduhalil uchun"); filtr yo'qligida berilmaydi.
+ */
+function SectionHeader({
+  title,
+  subtitle,
+  filterContext,
+  action,
+}: {
+  title: string;
+  subtitle?: string;
+  filterContext?: string | null;
+  action?: ReactNode;
+}) {
   return (
     <div className="chart-card-head">
       <div>
         <h3>{title}</h3>
         {subtitle && <p className="chart-card-subtitle">{subtitle}</p>}
+        {filterContext && <p className="chart-card-filter-context">{filterContext}</p>}
       </div>
       {action && <div className="chart-card-head-action">{action}</div>}
     </div>
@@ -323,13 +359,14 @@ interface KpiCardData {
   key: string;
   icon: ReactNode;
   value: number;
+  suffix?: string;
   label: string;
   accent?: string | null;
   accentSoft?: string | null;
   trend?: { delta: number; title: string } | null;
 }
 
-function KpiCard({ icon, value, label, accent, accentSoft, trend }: Omit<KpiCardData, 'key'>) {
+function KpiCard({ icon, value, suffix, label, accent, accentSoft, trend }: Omit<KpiCardData, 'key'>) {
   return (
     <div className="stat-card">
       <div className="stat-card-top">
@@ -338,7 +375,10 @@ function KpiCard({ icon, value, label, accent, accentSoft, trend }: Omit<KpiCard
         </span>
         {trend && <TrendBadge delta={trend.delta} title={trend.title} />}
       </div>
-      <span className="stat-value">{value}</span>
+      <span className="stat-value">
+        {value}
+        {suffix}
+      </span>
       <span className="stat-label">{label}</span>
     </div>
   );
@@ -629,6 +669,29 @@ export function DashboardPage() {
     return stats.byAssignee.find((a) => a.userId === selectedAssigneeId)?.fullname ?? selectedAssigneeId;
   }, [selectedAssigneeId, stats]);
 
+  // "Filtr yo'q = umumiy, filtr bor = kesim": faol filtrlarni o'qiladigan matnga aylantiradi.
+  // null bo'lsa — hech qanday filtr faol emas, sahifa "Umumiy ko'rinish" holatida.
+  const scopeLabel = useMemo(() => {
+    const parts: string[] = [];
+    if (organizationFilter) {
+      const org = organizations.find((o) => o.id === organizationFilter);
+      parts.push(org?.name ?? organizationFilter);
+    }
+    if (categoryFilter) {
+      const category = categories.find((c) => c.id === categoryFilter);
+      parts.push(category?.name ?? categoryFilter);
+    }
+    if (dateFrom || dateTo) {
+      parts.push(dateFrom && dateTo ? `${dateFrom}–${dateTo}` : dateFrom ? `${dateFrom} dan` : `${dateTo} gacha`);
+    }
+    if (selectedAssigneeId) {
+      parts.push(`${selectedAssigneeName} uchun`);
+    }
+    return parts.length > 0 ? parts.join(', ') : null;
+  }, [organizationFilter, categoryFilter, dateFrom, dateTo, selectedAssigneeId, selectedAssigneeName, organizations, categories]);
+
+  const periodLabel = dateFrom || dateTo ? 'Tanlangan davrda' : 'Oxirgi 30 kunda';
+
   const assigneeSectionRef = useRef<HTMLDivElement | null>(null);
 
   function handleSelectAssignee(userId: string) {
@@ -646,11 +709,6 @@ export function DashboardPage() {
       .map((o) => ({ name: o.organizationName, value: o.ticketsCount }))
       .reverse();
   }, [stats]);
-
-  const trendTotal = useMemo(
-    () => (stats ? stats.dailyTrend.reduce((sum, p) => sum + p.created + p.closed, 0) : 0),
-    [stats],
-  );
 
   const trendDelta = useMemo(() => {
     if (!stats || stats.dailyTrend.length < 2) return null;
@@ -718,11 +776,21 @@ export function DashboardPage() {
           accentSoft: null,
           trend: null,
         },
+        {
+          key: 'productivity',
+          icon: <IconTrendUp width={17} height={17} />,
+          value: stats.avgProductivityScore ?? 0,
+          suffix: '%',
+          label: "O'rtacha samaradorlik (foydali ish)",
+          accent: 'var(--success)',
+          accentSoft: 'var(--success-tint)',
+          trend: null,
+        },
       ]
     : [];
 
   return (
-    <AppShell title="Dashboard" breadcrumb="Umumiy ko'rinish">
+    <AppShell title="Dashboard" breadcrumb={scopeLabel ? `Kesim: ${scopeLabel}` : "Umumiy ko'rinish — oxirgi 30 kun"}>
       <FilterBar
         organizations={organizations}
         categories={categories}
@@ -740,14 +808,35 @@ export function DashboardPage() {
         isRefreshing={isRefreshing}
       />
 
+      <div className={`scope-banner ${scopeLabel ? 'scope-banner--active' : 'scope-banner--neutral'}`}>
+        {scopeLabel ? (
+          <>
+            Kesim: <strong>{scopeLabel}</strong>
+          </>
+        ) : (
+          "Umumiy ko'rinish — barcha tashkilot, kategoriya va ijrochilar, oxirgi 30 kun"
+        )}
+      </div>
+
       {isLoading ? (
         <>
           <div className="stat-cards">
-            {Array.from({ length: 5 }).map((_, i) => (
+            {Array.from({ length: 6 }).map((_, i) => (
               <StatCardSkeleton key={i} />
             ))}
           </div>
-          <TableSkeleton rows={6} cols={7} />
+          <div className="bento-grid">
+            <div className="chart-card span-12">
+              <ChartSkeleton height={300} />
+            </div>
+            <div className="chart-card span-6">
+              <ChartSkeleton height={220} />
+            </div>
+            <div className="chart-card span-6">
+              <ChartSkeleton height={220} />
+            </div>
+          </div>
+          <TableSkeleton rows={6} cols={8} />
         </>
       ) : hasError ? (
         <EmptyState
@@ -771,6 +860,7 @@ export function DashboardPage() {
                   key={card.key}
                   icon={card.icon}
                   value={card.value}
+                  suffix={card.suffix}
                   label={card.label}
                   accent={card.accent}
                   accentSoft={card.accentSoft}
@@ -782,74 +872,36 @@ export function DashboardPage() {
             <div className="bento-grid">
               <div className="chart-card span-12 trend-chart-card">
                 <SectionHeader
-                  title="Kunlik dinamika"
-                  subtitle="Oxirgi 14 kun: yaratilgan va yopilgan murojaatlar"
-                  action={
-                    <ul className="chart-legend chart-legend--inline">
-                      <li className="chart-legend-item">
-                        <span className="chart-legend-swatch" style={{ background: 'var(--primary)' }} />
-                        <span className="chart-legend-name">Yaratilgan</span>
-                      </li>
-                      <li className="chart-legend-item">
-                        <span className="chart-legend-swatch" style={{ background: 'var(--success)' }} />
-                        <span className="chart-legend-name">Yopilgan</span>
-                      </li>
-                    </ul>
-                  }
+                  title="Murojaatlarni yaratish va hal qilish dinamikasi"
+                  subtitle="Yaratilgan, yopilgan va ochiq qolganlar (kumulyativ) — davr filtrga mos"
+                  filterContext={scopeLabel}
                 />
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={stats.dailyTrend} margin={{ top: 10, right: 16, left: -16, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="trendCreatedFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.32} />
-                        <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
-                      </linearGradient>
-                      <linearGradient id="trendClosedFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="var(--success)" stopOpacity={0.32} />
-                        <stop offset="95%" stopColor="var(--success)" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 5" />
-                    <XAxis
-                      dataKey="date"
-                      tickFormatter={formatDayLabel}
-                      stroke="var(--text-tertiary)"
-                      fontSize={11}
-                      tickLine={false}
-                      axisLine={false}
-                      minTickGap={24}
-                    />
-                    <YAxis allowDecimals={false} stroke="var(--text-tertiary)" fontSize={11} tickLine={false} axisLine={false} width={32} />
-                    <Tooltip content={<ChartTooltip labelFormatter={formatDayLabel} />} cursor={{ stroke: 'var(--border-strong)', strokeWidth: 1 }} />
-                    <Area
-                      type="monotone"
-                      dataKey="created"
-                      name="Yaratilgan"
-                      stroke="var(--primary)"
-                      strokeWidth={2.5}
-                      fill="url(#trendCreatedFill)"
-                      dot={false}
-                      activeDot={{ r: 4 }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="closed"
-                      name="Yopilgan"
-                      stroke="var(--success)"
-                      strokeWidth={2.5}
-                      fill="url(#trendClosedFill)"
-                      dot={false}
-                      activeDot={{ r: 4 }}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-                {trendTotal === 0 && (
-                  <p className="chart-empty-note">Hozircha maʼlumot yoʻq — murojaatlar kelib tushishi bilan grafik to'ladi.</p>
-                )}
+                <TrendChart data={stats.dailyTrend} periodLabel={periodLabel} />
+              </div>
+
+              <div className="chart-card span-12">
+                <SectionHeader
+                  title="Ijrochilar bo'yicha hal qilish dinamikasi"
+                  subtitle={
+                    selectedAssigneeId
+                      ? 'Tanlangan ijrochi vs boshqalar (jami), vaqt bo\'yicha yopilgan tiketlar'
+                      : "Eng faol 5 ijrochi, qolganlari 'Boshqalar' sifatida yig'ilgan"
+                  }
+                  filterContext={scopeLabel}
+                />
+                <AssigneeTrendChart
+                  data={stats.assigneeResolutionTrend}
+                  selectedAssigneeId={selectedAssigneeId}
+                  selectedAssigneeName={selectedAssigneeName}
+                />
               </div>
 
               <div className="chart-card span-5">
-                <SectionHeader title="Holat bo'yicha taqsimot" subtitle="Barcha murojaatlar joriy holat kesimida" />
+                <SectionHeader
+                  title="Holat bo'yicha taqsimot"
+                  subtitle="Barcha murojaatlar joriy holat kesimida"
+                  filterContext={scopeLabel}
+                />
                 <div className="donut-layout">
                   <div className="donut-chart-wrap">
                     <ResponsiveContainer width="100%" height={220}>
@@ -897,10 +949,18 @@ export function DashboardPage() {
                     <p className="chart-empty-note chart-empty-note--inline">Hozircha murojaatlar yo'q.</p>
                   )}
                 </div>
+                <p className="chart-summary-note">
+                  <strong>{statusTotal}</strong> ta murojaat asosida hisoblangan
+                  {scopeLabel && " — joriy kesim bo'yicha"}
+                </p>
               </div>
 
               <div className="chart-card span-4 time-tracking">
-                <SectionHeader title="Time Tracking" subtitle="SLA maqsadlariga nisbatan o'rtacha ko'rsatkichlar" />
+                <SectionHeader
+                  title="Time Tracking"
+                  subtitle="SLA maqsadlariga nisbatan o'rtacha ko'rsatkichlar"
+                  filterContext={scopeLabel}
+                />
                 <div className="radial-gauges">
                   <TimeGauge
                     icon={<IconClock width={13} height={13} />}
@@ -913,7 +973,7 @@ export function DashboardPage() {
               </div>
 
               <div className="chart-card span-3">
-                <SectionHeader title="Yopilgan murojaatlar dinamikasi" />
+                <SectionHeader title="Yopilgan murojaatlar dinamikasi" filterContext={scopeLabel} />
                 <MiniStatRow
                   items={[
                     { label: 'Bugun', value: stats.closedToday },
@@ -928,6 +988,7 @@ export function DashboardPage() {
               <SectionHeader
                 title="Ijrochilar bo'yicha"
                 subtitle="Har bir xodimning ish sifati va yuklamasi bo'yicha chuqur tahlil"
+                filterContext={hasPanelFilters ? scopeLabel : null}
                 action={
                   selectedAssigneeId ? (
                     <span className="dashboard-filter-banner">
@@ -1023,6 +1084,7 @@ export function DashboardPage() {
                           <th>Muhimlik taqsimoti</th>
                           <th>O'rtacha yopish</th>
                           <th>SLA muvofiqligi</th>
+                          <th>Samaradorlik</th>
                           <th />
                         </tr>
                       </thead>
@@ -1061,6 +1123,9 @@ export function DashboardPage() {
                               <td>{formatMinutes(a.avgResolutionMinutes)}</td>
                               <td>
                                 <SlaBadge complianceRate={a.slaComplianceRate} />
+                              </td>
+                              <td>
+                                <ProductivityBadge score={a.productivityScore} />
                               </td>
                               <td>
                                 <button
@@ -1160,7 +1225,11 @@ export function DashboardPage() {
 
             {stats.byOrganization.length > 0 && (
               <div className="section-card">
-                <SectionHeader title="Tashkilotlar bo'yicha" subtitle="Eng ko'p murojaat tushirgan top 5 tashkilot" />
+                <SectionHeader
+                  title="Tashkilotlar bo'yicha"
+                  subtitle="Eng ko'p murojaat tushirgan top 5 tashkilot"
+                  filterContext={scopeLabel}
+                />
                 <div className="split-panel">
                   <ResponsiveContainer width="100%" height={Math.max(160, topOrganizations.length * 42)}>
                     <BarChart data={topOrganizations} layout="vertical" margin={{ left: 8, right: 40 }}>
@@ -1195,14 +1264,21 @@ export function DashboardPage() {
                         <tr>
                           <th>Tashkilot</th>
                           <th>Murojaatlar soni</th>
+                          <th>Yopilgan / Ochiq</th>
                           <th>O'rtacha yopish vaqti</th>
                         </tr>
                       </thead>
                       <tbody>
                         {stats.byOrganization.map((o) => (
-                          <tr key={o.organizationId}>
+                          <tr
+                            key={o.organizationId}
+                            className={o.organizationId === organizationFilter ? 'row--highlighted' : undefined}
+                          >
                             <td className="cell-primary">{o.organizationName}</td>
                             <td>{o.ticketsCount}</td>
+                            <td>
+                              <OrganizationRatioBar closedCount={o.closedCount} openCount={o.openCount} />
+                            </td>
                             <td>{formatMinutes(o.avgResolutionMinutes)}</td>
                           </tr>
                         ))}

@@ -5,7 +5,7 @@ import { useAuth } from '../auth/AuthContext';
 import { AppShell } from '../components/AppShell';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { IconInbox, IconSearch, IconTrash } from '../components/icons';
-import { Avatar, EmptyState, TableSkeleton } from '../components/ui';
+import { Avatar, EmptyState, Pagination, TableSkeleton } from '../components/ui';
 
 interface Message {
   id: string;
@@ -59,6 +59,8 @@ const PRIORITY_OPTIONS = [
   { value: 'critical', label: 'Kritik' },
 ];
 
+const PAGE_SIZE = 15;
+
 function closingDuration(ticket: Ticket): string {
   if (!ticket.closedAt) return '-';
   const minutes = Math.max(
@@ -94,6 +96,7 @@ export function TicketsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [ticketToDelete, setTicketToDelete] = useState<Ticket | null>(null);
+  const [page, setPage] = useState(1);
 
   const load = () => {
     setIsLoading(true);
@@ -195,6 +198,26 @@ export function TicketsPage() {
     createdTo,
     searchTerm,
   ]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [
+    organizationFilter,
+    statusFilter,
+    priorityFilter,
+    categoryFilter,
+    assignedToFilter,
+    createdFrom,
+    createdTo,
+    searchTerm,
+  ]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredTickets.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedTickets = filteredTickets.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
 
   return (
     <AppShell title="Murojaatlar" breadcrumb="Barcha murojaatlar">
@@ -313,7 +336,7 @@ export function TicketsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredTickets.map((t) => (
+                  {paginatedTickets.map((t) => (
                     <tr
                       key={t.id}
                       className="clickable-row"
@@ -372,6 +395,8 @@ export function TicketsPage() {
               </table>
             </div>
           )}
+
+          <Pagination page={currentPage} totalPages={totalPages} onChange={setPage} />
         </>
       )}
 

@@ -22,6 +22,8 @@ export interface AssigneeStats {
   avgResolutionMinutes: number | null;
   slaResolutionBreachCount: number;
   slaComplianceRate: number;
+  /** Foydali ish koeffitsienti (%) — calculateProductivityScore() natijasi. */
+  productivityScore: number;
   trendVsPreviousPeriod: {
     ticketsClosedDelta: number;
   };
@@ -31,6 +33,8 @@ export interface OrganizationStats {
   organizationId: string;
   organizationName: string;
   ticketsCount: number;
+  closedCount: number;
+  openCount: number;
   avgResolutionMinutes: number | null;
 }
 
@@ -38,6 +42,19 @@ export interface DailyTrendPoint {
   date: string;
   created: number;
   closed: number;
+  /** Kumulyativ farq (created - closed), oyna ichidagi birinchi kundan boshlab — backlog dinamikasi. */
+  open: number;
+}
+
+export interface AssigneeResolutionTrendEntry {
+  userId: string;
+  fullname: string | null;
+  closedCount: number;
+}
+
+export interface AssigneeResolutionTrendPoint {
+  date: string;
+  byAssignee: AssigneeResolutionTrendEntry[];
 }
 
 export interface DashboardStats {
@@ -53,9 +70,12 @@ export interface DashboardStats {
   closedThisWeek: number;
   closedThisMonth: number;
   avgResolutionMinutes: number | null;
+  /** byAssignee[].productivityScore'lar o'rtachasi — barcha ijrochilar bo'yicha umumiy KPI. */
+  avgProductivityScore: number | null;
   byAssignee: AssigneeStats[];
   byOrganization: OrganizationStats[];
   dailyTrend: DailyTrendPoint[];
+  assigneeResolutionTrend: AssigneeResolutionTrendPoint[];
   slaThresholds: {
     resolution: number;
   };
@@ -69,14 +89,16 @@ export interface DashboardStatsFilter {
   dateTo?: Date;
 }
 
-const TREND_DAYS = 14;
-
 // TimeGauge komponentida (admin-panel) ishlatiladigan goodMax/warnMax'ga mos —
 // backend va frontend bir xil SLA chegarasini ishlatadi.
 const SLA_RESOLUTION_MINUTES = 1440; // 24 soat
 
 // Tendentsiya solishtiruvi uchun standart davr uzunligi (dateFrom/dateTo berilmasa).
 const DEFAULT_TREND_PERIOD_DAYS = 30;
+
+// Trend grafiklari filtrga mos davrni ishlatadi (resolvePeriod), lekin admin juda uzoq
+// dateFrom tanlasa kunlik bucket soni cheksiz o'smasligi uchun yuqori chegara.
+const MAX_TREND_DAYS = 180;
 
 function diffMinutes(from: Date, to: Date): number {
   return Math.round((to.getTime() - from.getTime()) / 60000);
@@ -119,6 +141,16 @@ function percentChange(curr: number, prev: number): number {
   return Math.round(((curr - prev) / prev) * 100);
 }
 
+/**
+ * Foydali ish koeffitsienti — shu davrda ijrochiga tayinlangan tiketlardan nechta foizi
+ * yopilgan. Formula keyinchalik ishbilarmonlik talabiga qarab o'zgarishi mumkin
+ * (masalan SLA muvofiqligi bilan birlashtirilgan ko'rsatkichga almashtirilishi).
+ */
+function calculateProductivityScore(closedCount: number, assignedTotal: number): number {
+  if (assignedTotal === 0) return 0;
+  return Math.round((closedCount / assignedTotal) * 100);
+}
+
 function matchesOrgCategory(ticket: Ticket, filter: DashboardStatsFilter): boolean {
   if (filter.organizationId && ticket.organizationId !== filter.organizationId) return false;
   if (filter.categoryId && ticket.categoryId !== filter.categoryId) return false;
@@ -145,16 +177,20 @@ function resolvePeriod(dateFrom: Date | undefined, dateTo: Date | undefined, now
   return { start, end };
 }
 
-function buildDailyTrend(tickets: Ticket[], now: Date, days: number): DailyTrendPoint[] {
+function daysBetweenInclusive(start: Date, end: Date): number {
+  const days = Math.floor((startOfDay(end).getTime() - startOfDay(start).getTime()) / 86400000) + 1;
+  return Math.min(MAX_TREND_DAYS, Math.max(1, days));
+}
+
+function buildDailyTrend(tickets: Ticket[], start: Date, days: number): DailyTrendPoint[] {
   const buckets = new Map<string, DailyTrendPoint>();
-  const rangeStart = startOfDay(now);
-  rangeStart.setDate(rangeStart.getDate() - (days - 1));
+  const rangeStart = startOfDay(start);
 
   for (let i = 0; i < days; i++) {
     const d = new Date(rangeStart);
     d.setDate(d.getDate() + i);
     const key = dateKey(d);
-    buckets.set(key, { date: key, created: 0, closed: 0 });
+    buckets.set(key, { date: key, created: 0, closed: 0, open: 0 });
   }
 
   for (const t of tickets) {
@@ -167,7 +203,53 @@ function buildDailyTrend(tickets: Ticket[], now: Date, days: number): DailyTrend
     }
   }
 
+  // "open" — oyna ichidagi birinchi kundan boshlab kumulyativ (created - closed) farq,
+  // ya'ni shu davrda backlog qanday o'sgani/kamaygani (mutlaq ochiq son emas).
+  let running = 0;
+  for (const bucket of buckets.values()) {
+    running += bucket.created - bucket.closed;
+    bucket.open = running;
+  }
+
   return Array.from(buckets.values());
+}
+
+function buildAssigneeResolutionTrend(
+  tickets: Ticket[],
+  assigneeGroups: Map<string, { fullname: string | null; tickets: Ticket[] }>,
+  start: Date,
+  days: number,
+): AssigneeResolutionTrendPoint[] {
+  const rangeStart = startOfDay(start);
+  const buckets = new Map<string, Map<string, number>>();
+  const bucketOrder: string[] = [];
+
+  for (let i = 0; i < days; i++) {
+    const d = new Date(rangeStart);
+    d.setDate(d.getDate() + i);
+    const key = dateKey(d);
+    buckets.set(key, new Map());
+    bucketOrder.push(key);
+  }
+
+  for (const t of tickets) {
+    if (!t.assignedToId || t.status !== TicketStatus.CLOSED || !t.closedAt) continue;
+    const bucket = buckets.get(dateKey(t.closedAt));
+    if (!bucket) continue;
+    bucket.set(t.assignedToId, (bucket.get(t.assignedToId) ?? 0) + 1);
+  }
+
+  return bucketOrder.map((date) => {
+    const bucket = buckets.get(date)!;
+    const byAssignee: AssigneeResolutionTrendEntry[] = Array.from(bucket.entries()).map(
+      ([userId, closedCount]) => ({
+        userId,
+        fullname: assigneeGroups.get(userId)?.fullname ?? null,
+        closedCount,
+      }),
+    );
+    return { date, byAssignee };
+  });
 }
 
 @Injectable()
@@ -384,6 +466,7 @@ export class TicketsService {
           ),
           slaResolutionBreachCount,
           slaComplianceRate,
+          productivityScore: calculateProductivityScore(closed.length, group.tickets.length),
           trendVsPreviousPeriod: {
             ticketsClosedDelta: percentChange(
               closedCurrentByAssignee.get(userId) ?? 0,
@@ -413,12 +496,18 @@ export class TicketsService {
           organizationId,
           organizationName: group.name,
           ticketsCount: group.tickets.length,
+          closedCount: closed.length,
+          openCount: group.tickets.length - closed.length,
           avgResolutionMinutes: average(
             closed.filter((t) => t.resolutionMinutes != null).map((t) => t.resolutionMinutes!),
           ),
         };
       })
       .sort((a, b) => b.ticketsCount - a.ticketsCount);
+
+    const avgProductivityScore = average(byAssignee.map((a) => a.productivityScore));
+
+    const trendDays = daysBetweenInclusive(period.start, period.end);
 
     return {
       statusCounts: {
@@ -433,9 +522,11 @@ export class TicketsService {
       closedThisWeek,
       closedThisMonth,
       avgResolutionMinutes,
+      avgProductivityScore,
       byAssignee,
       byOrganization,
-      dailyTrend: buildDailyTrend(generalTickets, now, TREND_DAYS),
+      dailyTrend: buildDailyTrend(generalTickets, period.start, trendDays),
+      assigneeResolutionTrend: buildAssigneeResolutionTrend(periodTickets, assigneeGroups, period.start, trendDays),
       slaThresholds: {
         resolution: SLA_RESOLUTION_MINUTES,
       },
