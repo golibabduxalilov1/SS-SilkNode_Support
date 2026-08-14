@@ -5,12 +5,28 @@ import { Ticket, TicketPriority, TicketStatus } from './entities/ticket.entity';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { User } from '../users/entities/user.entity';
 
+export interface ClosedByPriority {
+  low: number;
+  medium: number;
+  high: number;
+  critical: number;
+}
+
 export interface AssigneeStats {
   userId: string;
   fullname: string | null;
+  ticketsAssignedTotal: number;
+  ticketsOpenNow: number;
   ticketsClosed: number;
+  closedByPriority: ClosedByPriority;
   avgFirstResponseMinutes: number | null;
   avgResolutionMinutes: number | null;
+  slaFirstResponseBreachCount: number;
+  slaResolutionBreachCount: number;
+  slaComplianceRate: number;
+  trendVsPreviousPeriod: {
+    ticketsClosedDelta: number;
+  };
 }
 
 export interface OrganizationStats {
@@ -43,9 +59,29 @@ export interface DashboardStats {
   byAssignee: AssigneeStats[];
   byOrganization: OrganizationStats[];
   dailyTrend: DailyTrendPoint[];
+  slaThresholds: {
+    firstResponse: number;
+    resolution: number;
+  };
+}
+
+export interface DashboardStatsFilter {
+  organizationId?: string;
+  assignedToId?: string;
+  categoryId?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
 }
 
 const TREND_DAYS = 14;
+
+// TimeGauge komponentida (admin-panel) ishlatiladigan goodMax/warnMax'ga mos —
+// backend va frontend bir xil SLA chegaralarini ishlatadi.
+const SLA_FIRST_RESPONSE_MINUTES = 30;
+const SLA_RESOLUTION_MINUTES = 1440; // 24 soat
+
+// Tendentsiya solishtiruvi uchun standart davr uzunligi (dateFrom/dateTo berilmasa).
+const DEFAULT_TREND_PERIOD_DAYS = 30;
 
 function diffMinutes(from: Date, to: Date): number {
   return Math.round((to.getTime() - from.getTime()) / 60000);
@@ -81,6 +117,37 @@ function dateKey(date: Date): string {
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
+}
+
+function percentChange(curr: number, prev: number): number {
+  if (prev === 0) return curr === 0 ? 0 : 100;
+  return Math.round(((curr - prev) / prev) * 100);
+}
+
+function matchesOrgCategory(ticket: Ticket, filter: DashboardStatsFilter): boolean {
+  if (filter.organizationId && ticket.organizationId !== filter.organizationId) return false;
+  if (filter.categoryId && ticket.categoryId !== filter.categoryId) return false;
+  return true;
+}
+
+function matchesDateRange(ticket: Ticket, dateFrom?: Date, dateTo?: Date): boolean {
+  if (dateFrom && ticket.createdAt < dateFrom) return false;
+  if (dateTo && ticket.createdAt > dateTo) return false;
+  return true;
+}
+
+function resolvePeriod(dateFrom: Date | undefined, dateTo: Date | undefined, now: Date): { start: Date; end: Date } {
+  if (dateFrom && dateTo) return { start: dateFrom, end: dateTo };
+  if (dateFrom && !dateTo) return { start: dateFrom, end: now };
+  if (!dateFrom && dateTo) {
+    const start = new Date(dateTo);
+    start.setDate(start.getDate() - DEFAULT_TREND_PERIOD_DAYS);
+    return { start, end: dateTo };
+  }
+  const end = now;
+  const start = new Date(now);
+  start.setDate(start.getDate() - DEFAULT_TREND_PERIOD_DAYS);
+  return { start, end };
 }
 
 function buildDailyTrend(tickets: Ticket[], now: Date, days: number): DailyTrendPoint[] {
@@ -207,7 +274,7 @@ export class TicketsService {
     await this.ticketsRepository.remove(ticket);
   }
 
-  async getDashboardStats(): Promise<DashboardStats> {
+  async getDashboardStats(filter: DashboardStatsFilter = {}): Promise<DashboardStats> {
     const tickets = await this.ticketsRepository.find({
       relations: ['assignedTo', 'organization'],
     });
@@ -216,16 +283,30 @@ export class TicketsService {
     const weekStart = startOfWeek(now);
     const monthStart = startOfMonth(now);
 
-    const statusCount = (status: TicketStatus) =>
-      tickets.filter((t) => t.status === status).length;
+    // Filtr qatlamlari:
+    // - orgCategoryTickets: faqat organizationId/categoryId bo'yicha (sana va ijrochidan mustaqil) —
+    //   ticketsOpenNow kabi "real vaqtdagi" ko'rsatkichlar shundan hisoblanadi.
+    // - periodTickets: yuqoridagi + sana oralig'i (dateFrom/dateTo) — "hisobot davri".
+    // - generalTickets: periodTickets + assignedToId (berilgan bo'lsa) — statusCounts va h.k. uchun.
+    // byAssignee esa har doim periodTickets'dan (assignedToId'ga qaramay) quriladi (TZ talabi).
+    const orgCategoryTickets = tickets.filter((t) => matchesOrgCategory(t, filter));
+    const periodTickets = orgCategoryTickets.filter((t) =>
+      matchesDateRange(t, filter.dateFrom, filter.dateTo),
+    );
+    const generalTickets = filter.assignedToId
+      ? periodTickets.filter((t) => t.assignedToId === filter.assignedToId)
+      : periodTickets;
 
-    const closedTickets = tickets.filter((t) => t.status === TicketStatus.CLOSED && t.closedAt);
+    const statusCount = (status: TicketStatus) =>
+      generalTickets.filter((t) => t.status === status).length;
+
+    const closedTickets = generalTickets.filter((t) => t.status === TicketStatus.CLOSED && t.closedAt);
     const closedToday = closedTickets.filter((t) => t.closedAt! >= todayStart).length;
     const closedThisWeek = closedTickets.filter((t) => t.closedAt! >= weekStart).length;
     const closedThisMonth = closedTickets.filter((t) => t.closedAt! >= monthStart).length;
 
     const avgFirstResponseMinutes = average(
-      tickets.filter((t) => t.firstResponseMinutes != null).map((t) => t.firstResponseMinutes!),
+      generalTickets.filter((t) => t.firstResponseMinutes != null).map((t) => t.firstResponseMinutes!),
     );
     const avgResolutionMinutes = average(
       closedTickets.filter((t) => t.resolutionMinutes != null).map((t) => t.resolutionMinutes!),
@@ -237,11 +318,42 @@ export class TicketsService {
       TicketStatus.WAITING_USER,
       TicketStatus.RESOLVED,
     ];
-    const allOpen = tickets.filter((t) => openStatuses.includes(t.status)).length;
+    const allOpen = generalTickets.filter((t) => openStatuses.includes(t.status)).length;
 
-    // "Kim qancha ishladi" — ijrochi bo'yicha guruhlash (GROUP BY assigned_to_id).
+    // Har bir ijrochining hozirgi ochiq yuklamasi — sana filtridan mustaqil, chunki bu
+    // "hozirgi lahzadagi" real yuklama, hisobot davri bilan cheklanmaydi.
+    const openNowByAssignee = new Map<string, number>();
+    for (const t of orgCategoryTickets) {
+      if (!t.assignedToId || !openStatuses.includes(t.status)) continue;
+      openNowByAssignee.set(t.assignedToId, (openNowByAssignee.get(t.assignedToId) ?? 0) + 1);
+    }
+
+    // Trend solishtiruvi uchun joriy va undan oldingi teng uzunlikdagi davr.
+    const period = resolvePeriod(filter.dateFrom, filter.dateTo, now);
+    const periodLengthMs = period.end.getTime() - period.start.getTime();
+    const previousPeriod = {
+      start: new Date(period.start.getTime() - periodLengthMs),
+      end: period.start,
+    };
+    const closedClosedInWindow = (start: Date, end: Date) =>
+      orgCategoryTickets.filter(
+        (t) => t.status === TicketStatus.CLOSED && t.closedAt && t.closedAt >= start && t.closedAt < end,
+      );
+    const closedCurrentByAssignee = new Map<string, number>();
+    for (const t of closedClosedInWindow(period.start, period.end)) {
+      if (!t.assignedToId) continue;
+      closedCurrentByAssignee.set(t.assignedToId, (closedCurrentByAssignee.get(t.assignedToId) ?? 0) + 1);
+    }
+    const closedPreviousByAssignee = new Map<string, number>();
+    for (const t of closedClosedInWindow(previousPeriod.start, previousPeriod.end)) {
+      if (!t.assignedToId) continue;
+      closedPreviousByAssignee.set(t.assignedToId, (closedPreviousByAssignee.get(t.assignedToId) ?? 0) + 1);
+    }
+
+    // "Kim qancha ishladi" — ijrochi bo'yicha guruhlash (GROUP BY assigned_to_id), assignedToId
+    // filtridan mustaqil — TZ: byAssignee har doim barcha xodimlarni qaytaradi.
     const assigneeGroups = new Map<string, { fullname: string | null; tickets: Ticket[] }>();
-    for (const t of tickets) {
+    for (const t of periodTickets) {
       if (!t.assignedToId) continue;
       if (!assigneeGroups.has(t.assignedToId)) {
         assigneeGroups.set(t.assignedToId, {
@@ -254,10 +366,30 @@ export class TicketsService {
     const byAssignee: AssigneeStats[] = Array.from(assigneeGroups.entries())
       .map(([userId, group]) => {
         const closed = group.tickets.filter((t) => t.status === TicketStatus.CLOSED);
+        const closedByPriority: ClosedByPriority = {
+          low: closed.filter((t) => t.priority === TicketPriority.LOW).length,
+          medium: closed.filter((t) => t.priority === TicketPriority.MEDIUM).length,
+          high: closed.filter((t) => t.priority === TicketPriority.HIGH).length,
+          critical: closed.filter((t) => t.priority === TicketPriority.CRITICAL).length,
+        };
+        const slaFirstResponseBreachCount = group.tickets.filter(
+          (t) => t.firstResponseMinutes != null && t.firstResponseMinutes > SLA_FIRST_RESPONSE_MINUTES,
+        ).length;
+        const slaResolutionBreachCount = closed.filter(
+          (t) => t.resolutionMinutes != null && t.resolutionMinutes > SLA_RESOLUTION_MINUTES,
+        ).length;
+        const slaComplianceRate =
+          closed.length > 0
+            ? Math.round(((closed.length - slaResolutionBreachCount) / closed.length) * 100)
+            : 100;
+
         return {
           userId,
           fullname: group.fullname,
+          ticketsAssignedTotal: group.tickets.length,
+          ticketsOpenNow: openNowByAssignee.get(userId) ?? 0,
           ticketsClosed: closed.length,
+          closedByPriority,
           avgFirstResponseMinutes: average(
             group.tickets
               .filter((t) => t.firstResponseMinutes != null)
@@ -266,13 +398,22 @@ export class TicketsService {
           avgResolutionMinutes: average(
             closed.filter((t) => t.resolutionMinutes != null).map((t) => t.resolutionMinutes!),
           ),
+          slaFirstResponseBreachCount,
+          slaResolutionBreachCount,
+          slaComplianceRate,
+          trendVsPreviousPeriod: {
+            ticketsClosedDelta: percentChange(
+              closedCurrentByAssignee.get(userId) ?? 0,
+              closedPreviousByAssignee.get(userId) ?? 0,
+            ),
+          },
         };
       })
-      .sort((a, b) => b.ticketsClosed - a.ticketsClosed);
+      .sort((a, b) => (a.fullname ?? '').localeCompare(b.fullname ?? ''));
 
     // Tashkilot bo'yicha guruhlash (ixtiyoriy bo'lim).
     const organizationGroups = new Map<string, { name: string; tickets: Ticket[] }>();
-    for (const t of tickets) {
+    for (const t of generalTickets) {
       if (!t.organizationId) continue;
       if (!organizationGroups.has(t.organizationId)) {
         organizationGroups.set(t.organizationId, {
@@ -312,7 +453,11 @@ export class TicketsService {
       avgResolutionMinutes,
       byAssignee,
       byOrganization,
-      dailyTrend: buildDailyTrend(tickets, now, TREND_DAYS),
+      dailyTrend: buildDailyTrend(generalTickets, now, TREND_DAYS),
+      slaThresholds: {
+        firstResponse: SLA_FIRST_RESPONSE_MINUTES,
+        resolution: SLA_RESOLUTION_MINUTES,
+      },
     };
   }
 }

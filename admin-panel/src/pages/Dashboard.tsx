@@ -1,4 +1,4 @@
-import { ReactNode, useMemo, useState, useEffect } from 'react';
+import { CSSProperties, ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Area,
   AreaChart,
@@ -12,6 +12,7 @@ import {
   PolarAngleAxis,
   RadialBar,
   RadialBarChart,
+  ReferenceLine,
   ResponsiveContainer,
   Sector,
   Tooltip,
@@ -24,22 +25,41 @@ import {
   IconAlert,
   IconCheck,
   IconClock,
+  IconClose,
   IconLayers,
+  IconShield,
   IconSpinner,
   IconTicketNew,
   IconTrendDown,
   IconTrendFlat,
   IconTrendUp,
+  IconUsers,
   IconWait,
 } from '../components/icons';
 import { Avatar, EmptyState, StatCardSkeleton, TableSkeleton } from '../components/ui';
 
+interface ClosedByPriority {
+  low: number;
+  medium: number;
+  high: number;
+  critical: number;
+}
+
 interface AssigneeStats {
   userId: string;
   fullname: string | null;
+  ticketsAssignedTotal: number;
+  ticketsOpenNow: number;
   ticketsClosed: number;
+  closedByPriority: ClosedByPriority;
   avgFirstResponseMinutes: number | null;
   avgResolutionMinutes: number | null;
+  slaFirstResponseBreachCount: number;
+  slaResolutionBreachCount: number;
+  slaComplianceRate: number;
+  trendVsPreviousPeriod: {
+    ticketsClosedDelta: number;
+  };
 }
 
 interface OrganizationStats {
@@ -72,6 +92,10 @@ interface DashboardStats {
   byAssignee: AssigneeStats[];
   byOrganization: OrganizationStats[];
   dailyTrend: DailyTrendPoint[];
+  slaThresholds: {
+    firstResponse: number;
+    resolution: number;
+  };
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -115,6 +139,29 @@ const TIER_COLOR: Record<'good' | 'warn' | 'bad', string> = {
   warn: 'var(--status-in_progress)',
   bad: 'var(--danger)',
 };
+
+interface AccentStyle extends CSSProperties {
+  '--accent'?: string;
+  '--accent-soft'?: string;
+}
+
+// "Ijrochilar bo'yicha" chuqur tahlil bloki uchun chegaralar.
+const WORKLOAD_LOW_MAX = 3;
+const WORKLOAD_MEDIUM_MAX = 7;
+const SLA_GOOD_MIN = 90;
+const SLA_WARN_MIN = 70;
+
+function getWorkloadTier(openCount: number): 'good' | 'warn' | 'bad' {
+  if (openCount <= WORKLOAD_LOW_MAX) return 'good';
+  if (openCount <= WORKLOAD_MEDIUM_MAX) return 'warn';
+  return 'bad';
+}
+
+function getSlaTier(complianceRate: number): 'good' | 'warn' | 'bad' {
+  if (complianceRate >= SLA_GOOD_MIN) return 'good';
+  if (complianceRate >= SLA_WARN_MIN) return 'warn';
+  return 'bad';
+}
 
 function formatDayLabel(dateStr: string): string {
   const parts = dateStr.split('-');
@@ -216,18 +263,57 @@ function TimeGauge({
   );
 }
 
+const PRIORITY_SEGMENTS: Array<{ key: keyof ClosedByPriority; label: string; color: string }> = [
+  { key: 'critical', label: 'Critical', color: 'var(--priority-critical)' },
+  { key: 'high', label: 'High', color: 'var(--priority-high)' },
+  { key: 'medium', label: 'Medium', color: 'var(--priority-medium)' },
+  { key: 'low', label: 'Low', color: 'var(--priority-low)' },
+];
+
+function WorkloadBadge({ openCount }: { openCount: number }) {
+  const tier = getWorkloadTier(openCount);
+  return <span className={`workload-badge workload-badge--${tier}`}>{openCount}</span>;
+}
+
+function SlaBadge({ complianceRate }: { complianceRate: number }) {
+  const tier = getSlaTier(complianceRate);
+  return <span className={`sla-badge sla-badge--${tier}`}>{complianceRate}%</span>;
+}
+
+function PriorityStackedBar({ data }: { data: ClosedByPriority }) {
+  const total = data.low + data.medium + data.high + data.critical;
+  if (total === 0) {
+    return <span className="priority-stack priority-stack--empty" title="Yopilgan murojaatlar yo'q" />;
+  }
+  const title = PRIORITY_SEGMENTS.map((s) => `${s.label}: ${data[s.key]}`).join(' · ');
+  return (
+    <span className="priority-stack" title={title}>
+      {PRIORITY_SEGMENTS.filter((s) => data[s.key] > 0).map((s) => (
+        <span
+          key={s.key}
+          className="priority-stack-segment"
+          style={{ width: `${(data[s.key] / total) * 100}%`, background: s.color }}
+        />
+      ))}
+    </span>
+  );
+}
+
 export function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [activeSlice, setActiveSlice] = useState<number | undefined>(undefined);
+  const [selectedAssigneeId, setSelectedAssigneeId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setIsLoading(true);
     setHasError(false);
     api
-      .get('/admin/dashboard/stats')
+      .get('/admin/dashboard/stats', {
+        params: selectedAssigneeId ? { assignedToId: selectedAssigneeId } : undefined,
+      })
       .then((res) => {
         if (!cancelled) setStats(res.data.data);
       })
@@ -240,7 +326,7 @@ export function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [selectedAssigneeId]);
 
   const pieData = useMemo(() => {
     if (!stats) return [];
@@ -259,14 +345,53 @@ export function DashboardPage() {
 
   const donutData = pieData.length > 0 ? pieData : [{ key: 'empty', name: 'Maʼlumot yoʻq', value: 1, fill: 'var(--border-strong)' }];
 
-  const topAssignees = useMemo(() => {
+  const assigneeSummary = useMemo(() => {
+    if (!stats || stats.byAssignee.length === 0) return null;
+    const activeCount = stats.byAssignee.length;
+    const totalOpen = stats.byAssignee.reduce((sum, a) => sum + a.ticketsOpenNow, 0);
+    const withClosed = stats.byAssignee.filter((a) => a.ticketsClosed > 0);
+    const bestSla = withClosed.length
+      ? withClosed.reduce((best, a) => (a.slaComplianceRate > best.slaComplianceRate ? a : best))
+      : null;
+    const worstSla = withClosed.length
+      ? withClosed.reduce((worst, a) => (a.slaComplianceRate < worst.slaComplianceRate ? a : worst))
+      : null;
+    return {
+      activeCount,
+      avgWorkload: activeCount > 0 ? Math.round(totalOpen / activeCount) : 0,
+      bestSla,
+      worstSla,
+    };
+  }, [stats]);
+
+  const assigneeSlaChartData = useMemo(() => {
     if (!stats) return [];
     return [...stats.byAssignee]
-      .sort((a, b) => b.ticketsClosed - a.ticketsClosed)
-      .slice(0, 5)
-      .map((a) => ({ name: a.fullname ?? a.userId, value: a.ticketsClosed }))
+      .sort((a, b) => b.slaComplianceRate - a.slaComplianceRate)
+      .map((a) => ({ userId: a.userId, name: a.fullname ?? a.userId, value: a.slaComplianceRate }))
       .reverse();
   }, [stats]);
+
+  const assigneeWorkloadChartData = useMemo(() => {
+    if (!stats) return [];
+    return [...stats.byAssignee]
+      .sort((a, b) => b.ticketsOpenNow - a.ticketsOpenNow)
+      .map((a) => ({ userId: a.userId, name: a.fullname ?? a.userId, value: a.ticketsOpenNow }));
+  }, [stats]);
+
+  const selectedAssigneeName = useMemo(() => {
+    if (!selectedAssigneeId || !stats) return null;
+    return stats.byAssignee.find((a) => a.userId === selectedAssigneeId)?.fullname ?? selectedAssigneeId;
+  }, [selectedAssigneeId, stats]);
+
+  const assigneeSectionRef = useRef<HTMLDivElement | null>(null);
+
+  function handleSelectAssignee(userId: string) {
+    setSelectedAssigneeId((curr) => (curr === userId ? null : userId));
+    requestAnimationFrame(() => {
+      assigneeSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
 
   const topOrganizations = useMemo(() => {
     if (!stats) return [];
@@ -512,7 +637,7 @@ export function DashboardPage() {
                     icon={<IconClock width={13} height={13} />}
                     label="O'rtacha birinchi javob vaqti"
                     minutes={stats.avgFirstResponseMinutes}
-                    goodMax={30}
+                    goodMax={stats.slaThresholds.firstResponse}
                     warnMax={120}
                   />
                   <TimeGauge
@@ -520,7 +645,7 @@ export function DashboardPage() {
                     label="O'rtacha yopish vaqti"
                     minutes={stats.avgResolutionMinutes}
                     goodMax={240}
-                    warnMax={1440}
+                    warnMax={stats.slaThresholds.resolution}
                   />
                 </div>
               </div>
@@ -544,67 +669,239 @@ export function DashboardPage() {
               </div>
             </div>
 
-            {stats.byAssignee.length > 0 && (
-              <div className="section-card">
-                <h3>Ijrochilar bo'yicha</h3>
-                <div className="split-panel">
-                  <ResponsiveContainer width="100%" height={Math.max(160, topAssignees.length * 42)}>
-                    <BarChart data={topAssignees} layout="vertical" margin={{ left: 8, right: 40 }}>
-                      <defs>
-                        <linearGradient id="assigneeBarGradient" x1="0" y1="0" x2="1" y2="0">
-                          <stop offset="0%" stopColor="var(--indigo-500)" />
-                          <stop offset="100%" stopColor="var(--indigo-700)" />
-                        </linearGradient>
-                        <filter id="barSoftShadow" x="-20%" y="-40%" width="140%" height="180%">
-                          <feDropShadow dx="0" dy="2" stdDeviation="2.5" floodColor="rgba(15, 23, 42, 0.22)" />
-                        </filter>
-                      </defs>
-                      <CartesianGrid horizontal={false} stroke="var(--border)" />
-                      <XAxis type="number" allowDecimals={false} stroke="var(--text-tertiary)" fontSize={12} />
-                      <YAxis type="category" dataKey="name" width={120} stroke="var(--text-tertiary)" fontSize={12} />
-                      <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--surface-alt)' }} />
-                      <Bar
-                        dataKey="value"
-                        name="Yopgan murojaatlar"
-                        fill="url(#assigneeBarGradient)"
-                        filter="url(#barSoftShadow)"
-                        radius={[0, 6, 6, 0]}
-                        barSize={26}
-                      >
-                        <LabelList dataKey="value" position="right" className="bar-value-label" />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                  <div className="table-wrap">
+            <div className="section-card assignee-analytics" ref={assigneeSectionRef}>
+              <div className="chart-card-head">
+                <div>
+                  <h3>Ijrochilar bo'yicha</h3>
+                  <p className="chart-card-subtitle">
+                    Har bir xodimning ish sifati va yuklamasi bo'yicha chuqur tahlil
+                  </p>
+                </div>
+                {selectedAssigneeId && (
+                  <span className="dashboard-filter-banner">
+                    Filtr: <strong>{selectedAssigneeName}</strong>
+                    <button
+                      type="button"
+                      className="dashboard-filter-banner-clear"
+                      onClick={() => setSelectedAssigneeId(null)}
+                    >
+                      <IconClose width={12} height={12} />
+                      Tozalash
+                    </button>
+                  </span>
+                )}
+              </div>
+
+              {stats.byAssignee.length === 0 ? (
+                <EmptyState
+                  icon={<IconUsers width={24} height={24} />}
+                  title="Hali hech kimga murojaat tayinlanmagan"
+                  description="Xodimlar bo'yicha tahlil murojaatlar tayinlangach shu yerda paydo bo'ladi."
+                />
+              ) : (
+                <>
+                  {assigneeSummary && (
+                    <div className="assignee-summary">
+                      <div className="stat-card stat-card--mini">
+                        <span
+                          className="stat-card-icon"
+                          style={{ '--accent': 'var(--primary)', '--accent-soft': 'var(--primary-soft)' } as AccentStyle}
+                        >
+                          <IconUsers width={15} height={15} />
+                        </span>
+                        <span className="stat-value">{assigneeSummary.activeCount}</span>
+                        <span className="stat-label">Faol xodimlar</span>
+                      </div>
+                      <div className="stat-card stat-card--mini">
+                        <span
+                          className="stat-card-icon"
+                          style={
+                            {
+                              '--accent': 'var(--status-in_progress)',
+                              '--accent-soft': 'var(--status-in_progress-soft)',
+                            } as AccentStyle
+                          }
+                        >
+                          <IconLayers width={15} height={15} />
+                        </span>
+                        <span className="stat-value">{assigneeSummary.avgWorkload}</span>
+                        <span className="stat-label">O'rtacha yuklama (kishi boshiga)</span>
+                      </div>
+                      <div className="stat-card stat-card--mini">
+                        <span
+                          className="stat-card-icon"
+                          style={{ '--accent': 'var(--success)', '--accent-soft': 'var(--success-tint)' } as AccentStyle}
+                        >
+                          <IconShield width={15} height={15} />
+                        </span>
+                        <span className="stat-value">
+                          {assigneeSummary.bestSla ? `${assigneeSummary.bestSla.slaComplianceRate}%` : '—'}
+                        </span>
+                        <span className="stat-label">
+                          Eng yuqori SLA
+                          {assigneeSummary.bestSla && ` — ${assigneeSummary.bestSla.fullname ?? assigneeSummary.bestSla.userId}`}
+                        </span>
+                      </div>
+                      <div className="stat-card stat-card--mini stat-card--danger">
+                        <span
+                          className="stat-card-icon"
+                          style={{ '--accent': 'var(--danger)', '--accent-soft': 'var(--error-tint)' } as AccentStyle}
+                        >
+                          <IconAlert width={15} height={15} />
+                        </span>
+                        <span className="stat-value">
+                          {assigneeSummary.worstSla ? `${assigneeSummary.worstSla.slaComplianceRate}%` : '—'}
+                        </span>
+                        <span className="stat-label">
+                          Eng past SLA
+                          {assigneeSummary.worstSla && ` — ${assigneeSummary.worstSla.fullname ?? assigneeSummary.worstSla.userId}`}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="table-wrap assignee-table-wrap">
                     <table className="tickets-table">
                       <thead>
                         <tr>
-                          <th>F.I.Sh</th>
-                          <th>Yopgan murojaatlar</th>
-                          <th>O'rtacha javob vaqti</th>
-                          <th>O'rtacha yopish vaqti</th>
+                          <th>Xodim</th>
+                          <th>Joriy yuklama</th>
+                          <th>Yopilgan</th>
+                          <th>Muhimlik taqsimoti</th>
+                          <th>O'rtacha javob</th>
+                          <th>O'rtacha yopish</th>
+                          <th>SLA muvofiqligi</th>
+                          <th />
                         </tr>
                       </thead>
                       <tbody>
                         {stats.byAssignee.map((a) => (
-                          <tr key={a.userId}>
+                          <tr
+                            key={a.userId}
+                            className={`clickable-row${a.userId === selectedAssigneeId ? ' assignee-row--selected' : ''}`}
+                            onClick={() => handleSelectAssignee(a.userId)}
+                          >
                             <td>
                               <div className="cell-user">
                                 <Avatar name={a.fullname} />
                                 <span className="cell-primary">{a.fullname ?? a.userId}</span>
                               </div>
                             </td>
-                            <td>{a.ticketsClosed}</td>
+                            <td>
+                              <WorkloadBadge openCount={a.ticketsOpenNow} />
+                            </td>
+                            <td>
+                              <span className="assignee-closed-cell">
+                                {a.ticketsClosed}
+                                <TrendBadge
+                                  delta={a.trendVsPreviousPeriod.ticketsClosedDelta}
+                                  title="Oldingi teng davrga nisbatan yopilgan murojaatlar"
+                                />
+                              </span>
+                            </td>
+                            <td>
+                              <PriorityStackedBar data={a.closedByPriority} />
+                            </td>
                             <td>{formatMinutes(a.avgFirstResponseMinutes)}</td>
                             <td>{formatMinutes(a.avgResolutionMinutes)}</td>
+                            <td>
+                              <SlaBadge complianceRate={a.slaComplianceRate} />
+                            </td>
+                            <td>
+                              <button
+                                type="button"
+                                className="assignee-detail-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleSelectAssignee(a.userId);
+                                }}
+                              >
+                                Batafsil
+                              </button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
-                </div>
-              </div>
-            )}
+
+                  <div className="bento-grid assignee-charts">
+                    <div className="chart-card span-6">
+                      <h3>SLA muvofiqligi reytingi</h3>
+                      <ResponsiveContainer width="100%" height={Math.max(160, assigneeSlaChartData.length * 38)}>
+                        <BarChart data={assigneeSlaChartData} layout="vertical" margin={{ left: 8, right: 40 }}>
+                          <CartesianGrid horizontal={false} stroke="var(--border)" />
+                          <XAxis
+                            type="number"
+                            domain={[0, 100]}
+                            tickFormatter={(v) => `${v}%`}
+                            stroke="var(--text-tertiary)"
+                            fontSize={12}
+                          />
+                          <YAxis type="category" dataKey="name" width={120} stroke="var(--text-tertiary)" fontSize={12} />
+                          <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--surface-alt)' }} />
+                          <Bar dataKey="value" name="SLA muvofiqligi" radius={[0, 6, 6, 0]} barSize={20}>
+                            {assigneeSlaChartData.map((entry) => (
+                              <Cell key={entry.userId} fill={TIER_COLOR[getSlaTier(entry.value)]} />
+                            ))}
+                            <LabelList
+                              dataKey="value"
+                              position="right"
+                              className="bar-value-label"
+                              formatter={(v: number) => `${v}%`}
+                            />
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    <div className="chart-card span-6">
+                      <h3>Ish yuki taqsimoti</h3>
+                      <p className="chart-card-subtitle">Hozirgi ochiq tiketlar, o'rtacha chiziqqa nisbatan</p>
+                      <ResponsiveContainer
+                        width="100%"
+                        height={Math.max(200, 40 + assigneeWorkloadChartData.length * 34)}
+                      >
+                        <BarChart data={assigneeWorkloadChartData} margin={{ top: 16, right: 16, left: -16, bottom: 8 }}>
+                          <CartesianGrid vertical={false} stroke="var(--border)" />
+                          <XAxis
+                            dataKey="name"
+                            stroke="var(--text-tertiary)"
+                            fontSize={11}
+                            tickLine={false}
+                            axisLine={false}
+                            interval={0}
+                            angle={-30}
+                            textAnchor="end"
+                            height={60}
+                          />
+                          <YAxis
+                            allowDecimals={false}
+                            stroke="var(--text-tertiary)"
+                            fontSize={12}
+                            tickLine={false}
+                            axisLine={false}
+                            width={32}
+                          />
+                          <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--surface-alt)' }} />
+                          <ReferenceLine
+                            y={assigneeSummary?.avgWorkload ?? 0}
+                            stroke="var(--text-muted)"
+                            strokeDasharray="4 4"
+                            label={{ value: "O'rtacha", position: 'insideTopRight', fill: 'var(--text-muted)', fontSize: 11 }}
+                          />
+                          <Bar dataKey="value" name="Ochiq tiketlar" radius={[6, 6, 0, 0]} barSize={26}>
+                            {assigneeWorkloadChartData.map((entry) => (
+                              <Cell key={entry.userId} fill={TIER_COLOR[getWorkloadTier(entry.value)]} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
 
             {stats.byOrganization.length > 0 && (
               <div className="section-card">

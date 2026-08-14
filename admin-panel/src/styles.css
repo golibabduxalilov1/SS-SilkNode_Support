@@ -90,6 +90,12 @@
   --status-inactive: var(--error-text);
   --status-inactive-soft: var(--error-tint);
 
+  /* Murojaat muhimligi (priority) → semantik rang, "Ijrochilar bo'yicha" stacked bar uchun */
+  --priority-critical: var(--error);
+  --priority-high: #f97316;
+  --priority-medium: var(--warning);
+  --priority-low: var(--success);
+
   --sidebar-bg: var(--panel);
   --sidebar-bg-alt: var(--veil);
   --sidebar-border: var(--border);
@@ -1291,6 +1297,10 @@ button {
   grid-column: span 5;
 }
 
+.bento-grid .span-6 {
+  grid-column: span 6;
+}
+
 .bento-grid .span-4 {
   grid-column: span 4;
 }
@@ -1939,6 +1949,157 @@ button {
 }
 
 /* ==========================================================================
+   Ijrochilar bo'yicha — chuqur tahlil bloki
+   ========================================================================== */
+
+.assignee-analytics .chart-card-head {
+  margin-bottom: 18px;
+}
+
+.dashboard-filter-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 14px;
+  border-radius: var(--radius-full);
+  background: var(--primary-soft);
+  color: var(--primary-soft-text);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dashboard-filter-banner-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--panel);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease);
+}
+
+.dashboard-filter-banner-clear:hover {
+  background: var(--sunken);
+}
+
+.assignee-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.stat-card--mini {
+  gap: 8px;
+  padding: 14px 16px;
+}
+
+.stat-card--mini .stat-value {
+  font-size: 20px;
+}
+
+.stat-card--danger {
+  border-color: color-mix(in srgb, var(--danger) 30%, var(--border-strong));
+}
+
+.assignee-table-wrap {
+  margin-bottom: 20px;
+}
+
+.assignee-row--selected {
+  background: var(--primary-soft) !important;
+}
+
+.assignee-closed-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.assignee-detail-btn {
+  padding: 5px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  background: var(--panel);
+  color: var(--primary);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--duration-fast) var(--ease), border-color var(--duration-fast) var(--ease);
+}
+
+.assignee-detail-btn:hover {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+}
+
+.workload-badge,
+.sla-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.workload-badge--good,
+.sla-badge--good {
+  background: var(--success-tint);
+  color: var(--success-text);
+}
+
+.workload-badge--warn,
+.sla-badge--warn {
+  background: var(--status-in_progress-soft);
+  color: var(--status-in_progress);
+}
+
+.workload-badge--bad,
+.sla-badge--bad {
+  background: var(--error-tint);
+  color: var(--error-text);
+}
+
+.priority-stack {
+  display: flex;
+  align-items: center;
+  width: 100px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  background: var(--veil);
+}
+
+.priority-stack-segment {
+  height: 100%;
+}
+
+.priority-stack--empty {
+  opacity: 0.5;
+}
+
+.assignee-charts {
+  margin-bottom: 0;
+}
+
+/* ==========================================================================
    Skeleton loaders
    ========================================================================== */
 
@@ -2396,50 +2557,6 @@ button {
   box-shadow: var(--glow-accent);
 }
 
-.status-select {
-  min-height: 32px;
-  padding: 4px 8px;
-  border-radius: var(--radius-sm);
-  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
-  background: var(--veil);
-  color: var(--text-secondary);
-  font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 600;
-  max-width: 160px;
-  cursor: pointer;
-}
-
-.status-select:focus {
-  outline: none;
-  box-shadow: var(--glow-accent);
-}
-
-.status-select--new {
-  background: var(--status-new-soft);
-  color: var(--status-new);
-}
-
-.status-select--in_progress {
-  background: var(--status-in_progress-soft);
-  color: var(--status-in_progress);
-}
-
-.status-select--waiting_user {
-  background: var(--status-waiting_user-soft);
-  color: var(--status-waiting_user);
-}
-
-.status-select--resolved {
-  background: var(--status-resolved-soft);
-  color: var(--status-resolved);
-}
-
-.status-select--closed {
-  background: var(--status-closed-soft);
-  color: var(--status-closed);
-}
-
 /* ==========================================================================
    Modal
    ========================================================================== */
@@ -2580,6 +2697,7 @@ button {
 
 @media (max-width: 1100px) {
   .bento-grid .span-5,
+  .bento-grid .span-6,
   .bento-grid .span-4,
   .bento-grid .span-3 {
     grid-column: span 12;

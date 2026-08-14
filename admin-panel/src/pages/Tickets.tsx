@@ -125,19 +125,6 @@ export function TicketsPage() {
 
   useEffect(load, []);
 
-  const handleStatusChange = async (ticket: Ticket, status: string) => {
-    try {
-      const res = await api.patch(`/admin/tickets/${ticket.id}/status`, { status });
-      const updated = res.data.data;
-      setTickets((prev) => prev.map((t) => (t.id === ticket.id ? { ...t, status: updated.status } : t)));
-    } catch (err: unknown) {
-      const message =
-        (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
-          ?.message ?? "Holatni o'zgartirib bo'lmadi.";
-      setError(message);
-    }
-  };
-
   const handleAssign = async (ticket: Ticket, assignedToId: string) => {
     try {
       const res = await api.patch(`/admin/tickets/${ticket.id}/assign`, {
@@ -350,18 +337,10 @@ export function TicketsPage() {
                       <td>
                         <span className={`priority priority--${t.priority}`}>{t.priority}</span>
                       </td>
-                      <td onClick={(e) => e.stopPropagation()}>
-                        <select
-                          className={`status-select status-select--${t.status}`}
-                          value={t.status}
-                          onChange={(e) => handleStatusChange(t, e.target.value)}
-                        >
-                          {STATUS_OPTIONS.map((o) => (
-                            <option key={o.value} value={o.value}>
-                              {o.label}
-                            </option>
-                          ))}
-                        </select>
+                      <td>
+                        <span className={`status status--${t.status}`}>
+                          {STATUS_OPTIONS.find((o) => o.value === t.status)?.label ?? t.status}
+                        </span>
                       </td>
                       <td onClick={(e) => e.stopPropagation()}>
                         <select

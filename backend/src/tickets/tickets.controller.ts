@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { TicketsService } from './tickets.service';
 import { OrganizationsService } from '../organizations/organizations.service';
 import { CategoriesService } from '../categories/categories.service';
@@ -76,11 +76,27 @@ export class TicketsController {
     return { success: true, data: tickets };
   }
 
-  /** GET /api/v1/admin/dashboard/stats — bo'lim 6, 8: status kartochkalari + Time Tracking. */
+  /**
+   * GET /api/v1/admin/dashboard/stats — bo'lim 6, 8: status kartochkalari + Time Tracking.
+   * Filtrlar ixtiyoriy: organizationId/categoryId/dateFrom/dateTo hisobot doirasini torlashtiradi,
+   * assignedToId esa faqat boshqa statistikalarni filtrlaydi — byAssignee doim to'liq ro'yxat qaytaradi.
+   */
   @Get('admin/dashboard/stats')
   @UseGuards(AdminJwtAuthGuard)
-  async getDashboardStats() {
-    const stats = await this.ticketsService.getDashboardStats();
+  async getDashboardStats(
+    @Query('organizationId') organizationId?: string,
+    @Query('assignedToId') assignedToId?: string,
+    @Query('categoryId') categoryId?: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+  ) {
+    const stats = await this.ticketsService.getDashboardStats({
+      organizationId: organizationId || undefined,
+      assignedToId: assignedToId || undefined,
+      categoryId: categoryId || undefined,
+      dateFrom: dateFrom ? new Date(dateFrom) : undefined,
+      dateTo: dateTo ? new Date(dateTo) : undefined,
+    });
     return { success: true, data: stats };
   }
 
