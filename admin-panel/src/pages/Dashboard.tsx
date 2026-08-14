@@ -7,9 +7,6 @@ import {
   LabelList,
   Pie,
   PieChart,
-  PolarAngleAxis,
-  RadialBar,
-  RadialBarChart,
   ReferenceLine,
   ResponsiveContainer,
   Sector,
@@ -22,8 +19,8 @@ import { AppShell } from '../components/AppShell';
 import {
   IconAlert,
   IconCheck,
-  IconClock,
   IconClose,
+  IconInbox,
   IconLayers,
   IconSearch,
   IconSpinner,
@@ -128,26 +125,6 @@ const STATUS_ORDER: Array<keyof DashboardStats['statusCounts']> = [
   'closed',
 ];
 
-function formatMinutes(minutes: number | null): string {
-  if (minutes == null) return '—';
-  if (minutes < 60) return `${minutes} daq.`;
-  const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
-  return `${hours} soat ${rest} daq.`;
-}
-
-function gaugeTier(minutes: number | null, goodMax: number, warnMax: number): 'good' | 'warn' | 'bad' {
-  if (minutes == null) return 'good';
-  if (minutes <= goodMax) return 'good';
-  if (minutes <= warnMax) return 'warn';
-  return 'bad';
-}
-
-function gaugePercent(minutes: number | null, warnMax: number): number {
-  if (minutes == null) return 0;
-  return Math.max(4, Math.min(100, Math.round((minutes / warnMax) * 100)));
-}
-
 const TIER_COLOR: Record<'good' | 'warn' | 'bad', string> = {
   good: 'var(--success)',
   warn: 'var(--status-in_progress)',
@@ -239,50 +216,6 @@ function renderActiveDonutSlice(props: any) {
       endAngle={endAngle}
       fill={fill}
     />
-  );
-}
-
-function TimeGauge({
-  icon,
-  label,
-  minutes,
-  goodMax,
-  warnMax,
-}: {
-  icon: ReactNode;
-  label: string;
-  minutes: number | null;
-  goodMax: number;
-  warnMax: number;
-}) {
-  const tier = gaugeTier(minutes, goodMax, warnMax);
-  const percent = gaugePercent(minutes, warnMax);
-  const data = [{ value: percent }];
-
-  return (
-    <div className="radial-gauge">
-      <div className="radial-gauge-chart">
-        <ResponsiveContainer width="100%" height={150}>
-          <RadialBarChart
-            data={data}
-            innerRadius="72%"
-            outerRadius="100%"
-            startAngle={90}
-            endAngle={-270}
-            barSize={13}
-          >
-            <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
-            <RadialBar dataKey="value" cornerRadius={8} fill={TIER_COLOR[tier]} background={{ fill: 'var(--surface-alt)' }} />
-          </RadialBarChart>
-        </ResponsiveContainer>
-        <div className="radial-gauge-center">
-          <span className="radial-gauge-value">{formatMinutes(minutes)}</span>
-        </div>
-      </div>
-      <span className="stat-label">
-        {icon} {label}
-      </span>
-    </div>
   );
 }
 
@@ -728,6 +661,17 @@ export function DashboardPage() {
       .reverse();
   }, [stats]);
 
+  const assigneeTotals = useMemo(() => {
+    if (!stats) return { assigned: 0, slaBreaches: 0 };
+    return stats.byAssignee.reduce(
+      (acc, a) => ({
+        assigned: acc.assigned + a.ticketsAssignedTotal,
+        slaBreaches: acc.slaBreaches + a.slaResolutionBreachCount,
+      }),
+      { assigned: 0, slaBreaches: 0 },
+    );
+  }, [stats]);
+
   // "Filtr yo'q = umumiy, filtr bor = kesim": faol filtrlarni o'qiladigan matnga aylantiradi.
   // null bo'lsa — hech qanday filtr faol emas, sahifa "Umumiy ko'rinish" holatida.
   const scopeLabel = useMemo(() => {
@@ -836,13 +780,12 @@ export function DashboardPage() {
           trend: null,
         },
         {
-          key: 'productivity',
-          icon: <IconTrendUp width={17} height={17} />,
-          value: stats.avgProductivityScore ?? 0,
-          suffix: '%',
-          label: "O'rtacha samaradorlik (foydali ish)",
-          accent: 'var(--success)',
-          accentSoft: 'var(--success-tint)',
+          key: 'total',
+          icon: <IconInbox width={17} height={17} />,
+          value: statusTotal,
+          label: 'Jami murojaatlar',
+          accent: 'var(--primary)',
+          accentSoft: 'var(--primary-soft)',
           trend: null,
         },
       ]
@@ -1026,30 +969,16 @@ export function DashboardPage() {
                 </p>
               </div>
 
-              <div className="chart-card span-4 time-tracking">
+              <div className="chart-card span-4">
                 <SectionHeader
-                  title="Time Tracking"
-                  subtitle="SLA maqsadlariga nisbatan o'rtacha ko'rsatkichlar"
+                  title="Umumiy ko'rsatkichlar"
+                  subtitle="Ijrochilar bo'yicha jami hisoblar"
                   filterContext={scopeLabel}
                 />
-                <div className="radial-gauges">
-                  <TimeGauge
-                    icon={<IconClock width={13} height={13} />}
-                    label="O'rtacha yopish vaqti"
-                    minutes={stats.avgResolutionMinutes}
-                    goodMax={240}
-                    warnMax={stats.slaThresholds.resolution}
-                  />
-                </div>
-              </div>
-
-              <div className="chart-card span-3">
-                <SectionHeader title="Yopilgan murojaatlar dinamikasi" filterContext={scopeLabel} />
                 <MiniStatRow
                   items={[
-                    { label: 'Bugun', value: stats.closedToday },
-                    { label: 'Shu hafta', value: stats.closedThisWeek },
-                    { label: 'Shu oy', value: stats.closedThisMonth },
+                    { label: 'Jami tayinlangan', value: assigneeTotals.assigned },
+                    { label: 'Jami muddat buzilishi', value: assigneeTotals.slaBreaches },
                   ]}
                 />
               </div>
@@ -1097,8 +1026,8 @@ export function DashboardPage() {
                           <th>Joriy yuklama</th>
                           <th>Yopilgan</th>
                           <th>Muhimlik taqsimoti</th>
-                          <th>O'rtacha yopish</th>
-                          <th>SLA muvofiqligi</th>
+                          <th>Jami tayinlangan</th>
+                          <th>Muddat muvofiqligi</th>
                           <th>Samaradorlik</th>
                           <th>Foydali ish %</th>
                           <th />
@@ -1136,7 +1065,7 @@ export function DashboardPage() {
                               <td>
                                 <PriorityStackedBar data={a.closedByPriority} />
                               </td>
-                              <td>{formatMinutes(a.avgResolutionMinutes)}</td>
+                              <td>{a.ticketsAssignedTotal}</td>
                               <td>
                                 <SlaBadge complianceRate={a.slaComplianceRate} />
                               </td>
@@ -1167,7 +1096,7 @@ export function DashboardPage() {
 
                   <div className="bento-grid assignee-charts">
                     <div className="chart-card span-6">
-                      <SectionHeader title="SLA muvofiqligi reytingi" subtitle="Yopilgan tiketlar nisbatida, pastdan yuqoriga saralangan" />
+                      <SectionHeader title="Muddat muvofiqligi reytingi" subtitle="Yopilgan tiketlar nisbatida, pastdan yuqoriga saralangan" />
                       <ResponsiveContainer width="100%" height={Math.max(160, assigneeSlaChartData.length * 38)}>
                         <BarChart data={assigneeSlaChartData} layout="vertical" margin={{ left: 8, right: 40 }}>
                           <CartesianGrid horizontal={false} stroke="var(--border)" strokeDasharray="3 5" />
@@ -1180,7 +1109,7 @@ export function DashboardPage() {
                           />
                           <YAxis type="category" dataKey="name" width={120} stroke="var(--text-tertiary)" fontSize={11} />
                           <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--surface-alt)' }} />
-                          <Bar dataKey="value" name="SLA muvofiqligi" radius={[0, 6, 6, 0]} barSize={20}>
+                          <Bar dataKey="value" name="Muddat muvofiqligi" radius={[0, 6, 6, 0]} barSize={20}>
                             {assigneeSlaChartData.map((entry) => (
                               <Cell key={entry.userId} fill={TIER_COLOR[getSlaTier(entry.value)]} />
                             ))}
@@ -1314,7 +1243,6 @@ export function DashboardPage() {
                           <th>Tashkilot</th>
                           <th>Murojaatlar soni</th>
                           <th>Yopilgan / Ochiq</th>
-                          <th>O'rtacha yopish vaqti</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1328,7 +1256,6 @@ export function DashboardPage() {
                             <td>
                               <OrganizationRatioBar closedCount={o.closedCount} openCount={o.openCount} />
                             </td>
-                            <td>{formatMinutes(o.avgResolutionMinutes)}</td>
                           </tr>
                         ))}
                       </tbody>
