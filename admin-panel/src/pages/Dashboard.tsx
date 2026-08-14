@@ -981,41 +981,6 @@ export function DashboardPage() {
             </div>
 
             <div className="bento-grid">
-              <div className="chart-card span-12 trend-chart-card">
-                <SectionHeader
-                  title="Murojaatlarni yaratish va hal qilish dinamikasi"
-                  subtitle="Yaratilgan, yopilgan va ochiq qolganlar (kumulyativ) — davr filtrga mos"
-                  filterContext={scopeLabel}
-                />
-                <TrendChart data={stats.dailyTrend} periodLabel={periodLabel} />
-              </div>
-
-              <div className="chart-card span-12 trend-chart-card">
-                <SectionHeader
-                  title="Murojaatlarni ochilishi va hal qilinishi"
-                  subtitle="Oxirgi 14 kunlik oyna — ochilgan va hal qilingan (resolved/closed) tiketlar"
-                  filterContext={scopeLabel}
-                />
-                <ResolutionFlowChart data={stats.resolutionFlow} />
-              </div>
-
-              <div className="chart-card span-12">
-                <SectionHeader
-                  title="Ijrochilar bo'yicha hal qilish dinamikasi"
-                  subtitle={
-                    selectedAssigneeId
-                      ? 'Tanlangan ijrochi vs boshqalar (jami), vaqt bo\'yicha yopilgan tiketlar'
-                      : "Eng faol 5 ijrochi, qolganlari 'Boshqalar' sifatida yig'ilgan"
-                  }
-                  filterContext={scopeLabel}
-                />
-                <AssigneeTrendChart
-                  data={stats.assigneeResolutionTrend}
-                  selectedAssigneeId={selectedAssigneeId}
-                  selectedAssigneeName={selectedAssigneeName}
-                />
-              </div>
-
               <div className="chart-card span-5">
                 <SectionHeader
                   title="Holat bo'yicha taqsimot"
@@ -1075,6 +1040,24 @@ export function DashboardPage() {
                 </p>
               </div>
 
+              <div className="chart-card span-12 trend-chart-card">
+                <SectionHeader
+                  title="Murojaatlarni yaratish va hal qilish dinamikasi"
+                  subtitle="Yaratilgan, yopilgan va ochiq qolganlar (kumulyativ) — davr filtrga mos"
+                  filterContext={scopeLabel}
+                />
+                <TrendChart data={stats.dailyTrend} periodLabel={periodLabel} />
+              </div>
+
+              <div className="chart-card span-12 trend-chart-card">
+                <SectionHeader
+                  title="Murojaatlarni ochilishi va hal qilinishi"
+                  subtitle="Oxirgi 14 kunlik oyna — ochilgan va hal qilingan (resolved/closed) tiketlar"
+                  filterContext={scopeLabel}
+                />
+                <ResolutionFlowChart data={stats.resolutionFlow} />
+              </div>
+
               <div className="chart-card span-12">
                 <SectionHeader
                   title="Kategoriya bo'yicha taqsimot"
@@ -1088,7 +1071,7 @@ export function DashboardPage() {
                       <XAxis type="number" allowDecimals={false} stroke="var(--text-tertiary)" fontSize={11} />
                       <YAxis type="category" dataKey="name" width={140} stroke="var(--text-tertiary)" fontSize={11} />
                       <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--surface-alt)' }} />
-                      <Bar dataKey="value" name="Murojaatlar soni" fill="var(--indigo-600)" radius={[0, 6, 6, 0]} barSize={20}>
+                      <Bar dataKey="value" name="Murojaatlar soni" fill="var(--indigo-600)" radius={[0, 6, 6, 0]} barSize={28}>
                         <LabelList dataKey="value" position="right" className="bar-value-label" />
                       </Bar>
                     </BarChart>
@@ -1096,6 +1079,23 @@ export function DashboardPage() {
                 ) : (
                   <p className="chart-empty-note">Hozircha kategoriya bo'yicha ma'lumot yo'q.</p>
                 )}
+              </div>
+
+              <div className="chart-card span-12">
+                <SectionHeader
+                  title="Ijrochilar bo'yicha hal qilish dinamikasi"
+                  subtitle={
+                    selectedAssigneeId
+                      ? 'Tanlangan ijrochi vs boshqalar (jami), vaqt bo\'yicha yopilgan tiketlar'
+                      : "Eng faol 5 ijrochi, qolganlari 'Boshqalar' sifatida yig'ilgan"
+                  }
+                  filterContext={scopeLabel}
+                />
+                <AssigneeTrendChart
+                  data={stats.assigneeResolutionTrend}
+                  selectedAssigneeId={selectedAssigneeId}
+                  selectedAssigneeName={selectedAssigneeName}
+                />
               </div>
             </div>
 
@@ -1248,7 +1248,7 @@ export function DashboardPage() {
                           />
                           <YAxis type="category" dataKey="name" width={120} stroke="var(--text-tertiary)" fontSize={11} />
                           <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--surface-alt)' }} />
-                          <Bar dataKey="value" name="Muddat muvofiqligi" radius={[0, 6, 6, 0]} barSize={20}>
+                          <Bar dataKey="value" name="Muddat muvofiqligi" radius={[0, 6, 6, 0]} barSize={28}>
                             {assigneeSlaChartData.map((entry) => (
                               <Cell key={entry.userId} fill={TIER_COLOR[getSlaTier(entry.value)]} />
                             ))}
@@ -1297,7 +1297,7 @@ export function DashboardPage() {
                             strokeDasharray="4 4"
                             label={{ value: "O'rtacha", position: 'insideTopRight', fill: 'var(--text-muted)', fontSize: 11 }}
                           />
-                          <Bar dataKey="value" name="Ochiq tiketlar" radius={[6, 6, 0, 0]} barSize={26}>
+                          <Bar dataKey="value" name="Ochiq tiketlar" radius={[6, 6, 0, 0]} barSize={32}>
                             {assigneeWorkloadChartData.map((entry) => (
                               <Cell key={entry.userId} fill={TIER_COLOR[getWorkloadTier(entry.value)]} />
                             ))}
@@ -1318,13 +1318,13 @@ export function DashboardPage() {
                           <YAxis type="category" dataKey="name" width={120} stroke="var(--text-tertiary)" fontSize={11} />
                           <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--surface-alt)' }} />
                           <Legend wrapperStyle={{ fontSize: 12 }} />
-                          <Bar dataKey="pending" name="Biriktirilgan" stackId="status" fill="var(--status-new)" barSize={20} />
+                          <Bar dataKey="pending" name="Biriktirilgan" stackId="status" fill="var(--status-new)" barSize={28} />
                           <Bar
                             dataKey="inProgress"
                             name="Jarayonda"
                             stackId="status"
                             fill="var(--status-in_progress)"
-                            barSize={20}
+                            barSize={28}
                           />
                           <Bar
                             dataKey="resolved"
@@ -1332,7 +1332,7 @@ export function DashboardPage() {
                             stackId="status"
                             fill="var(--status-resolved)"
                             radius={[0, 6, 6, 0]}
-                            barSize={20}
+                            barSize={28}
                           />
                         </BarChart>
                       </ResponsiveContainer>
@@ -1353,7 +1353,7 @@ export function DashboardPage() {
                           <XAxis type="number" allowDecimals={false} stroke="var(--text-tertiary)" fontSize={11} />
                           <YAxis type="category" dataKey="name" width={120} stroke="var(--text-tertiary)" fontSize={11} />
                           <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--surface-alt)' }} />
-                          <Bar dataKey="value" name="Yopilgan tiketlar" radius={[0, 6, 6, 0]} barSize={20}>
+                          <Bar dataKey="value" name="Yopilgan tiketlar" radius={[0, 6, 6, 0]} barSize={28}>
                             {assigneeCloseRateChartData.map((entry) => (
                               <Cell key={entry.userId} fill={TIER_COLOR[getCloseRateTier(entry.closeRate)]} />
                             ))}
@@ -1401,7 +1401,7 @@ export function DashboardPage() {
                         fill="url(#orgBarGradient)"
                         filter="url(#orgBarSoftShadow)"
                         radius={[0, 6, 6, 0]}
-                        barSize={26}
+                        barSize={32}
                       >
                         <LabelList dataKey="value" position="right" className="bar-value-label" />
                       </Bar>
