@@ -33,12 +33,6 @@ export function StatCardSkeleton() {
   );
 }
 
-export function ChartSkeleton({ height = 240 }: { height?: number }) {
-  return (
-    <div className="skeleton skeleton-chart" style={{ height }} />
-  );
-}
-
 export function Pagination({
   page,
   totalPages,
