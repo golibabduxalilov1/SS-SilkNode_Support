@@ -1040,6 +1040,29 @@ export function DashboardPage() {
                 </p>
               </div>
 
+              <div className="chart-card span-7">
+                <SectionHeader
+                  title="Kategoriya bo'yicha taqsimot"
+                  subtitle="Murojaatlar eng ko'p tushgan top kategoriyalar"
+                  filterContext={scopeLabel}
+                />
+                {categoryChartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={Math.max(220, categoryChartData.length * 38)}>
+                    <BarChart data={categoryChartData} layout="vertical" margin={{ left: 8, right: 40 }}>
+                      <CartesianGrid horizontal={false} stroke="var(--border)" strokeDasharray="3 5" />
+                      <XAxis type="number" allowDecimals={false} stroke="var(--text-tertiary)" fontSize={11} />
+                      <YAxis type="category" dataKey="name" width={140} stroke="var(--text-tertiary)" fontSize={11} />
+                      <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--surface-alt)' }} />
+                      <Bar dataKey="value" name="Murojaatlar soni" fill="var(--indigo-600)" radius={[0, 6, 6, 0]} barSize={28}>
+                        <LabelList dataKey="value" position="right" className="bar-value-label" />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p className="chart-empty-note">Hozircha kategoriya bo'yicha ma'lumot yo'q.</p>
+                )}
+              </div>
+
               <div className="chart-card span-12 trend-chart-card">
                 <SectionHeader
                   title="Murojaatlarni yaratish va hal qilish dinamikasi"
@@ -1056,29 +1079,6 @@ export function DashboardPage() {
                   filterContext={scopeLabel}
                 />
                 <ResolutionFlowChart data={stats.resolutionFlow} />
-              </div>
-
-              <div className="chart-card span-12">
-                <SectionHeader
-                  title="Kategoriya bo'yicha taqsimot"
-                  subtitle="Murojaatlar eng ko'p tushgan top kategoriyalar"
-                  filterContext={scopeLabel}
-                />
-                {categoryChartData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={Math.max(160, categoryChartData.length * 38)}>
-                    <BarChart data={categoryChartData} layout="vertical" margin={{ left: 8, right: 40 }}>
-                      <CartesianGrid horizontal={false} stroke="var(--border)" strokeDasharray="3 5" />
-                      <XAxis type="number" allowDecimals={false} stroke="var(--text-tertiary)" fontSize={11} />
-                      <YAxis type="category" dataKey="name" width={140} stroke="var(--text-tertiary)" fontSize={11} />
-                      <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--surface-alt)' }} />
-                      <Bar dataKey="value" name="Murojaatlar soni" fill="var(--indigo-600)" radius={[0, 6, 6, 0]} barSize={28}>
-                        <LabelList dataKey="value" position="right" className="bar-value-label" />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <p className="chart-empty-note">Hozircha kategoriya bo'yicha ma'lumot yo'q.</p>
-                )}
               </div>
 
               <div className="chart-card span-12">

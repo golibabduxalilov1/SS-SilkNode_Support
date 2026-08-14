@@ -1508,6 +1508,10 @@ button {
   grid-column: span 5;
 }
 
+.bento-grid .span-7 {
+  grid-column: span 7;
+}
+
 .bento-grid .span-6 {
   grid-column: span 6;
 }
@@ -3071,6 +3075,7 @@ button {
 
 @media (max-width: 1100px) {
   .bento-grid .span-5,
+  .bento-grid .span-7,
   .bento-grid .span-6,
   .bento-grid .span-4,
   .bento-grid .span-3 {
