@@ -981,6 +981,15 @@ export function DashboardPage() {
             </div>
 
             <div className="bento-grid">
+              <div className="chart-card span-12 trend-chart-card">
+                <SectionHeader
+                  title="Murojaatlarni yaratish va hal qilish dinamikasi"
+                  subtitle="Yaratilgan, yopilgan va ochiq qolganlar (kumulyativ) — davr filtrga mos"
+                  filterContext={scopeLabel}
+                />
+                <TrendChart data={stats.dailyTrend} periodLabel={periodLabel} />
+              </div>
+
               <div className="chart-card span-5">
                 <SectionHeader
                   title="Holat bo'yicha taqsimot"
@@ -1061,15 +1070,6 @@ export function DashboardPage() {
                 ) : (
                   <p className="chart-empty-note">Hozircha kategoriya bo'yicha ma'lumot yo'q.</p>
                 )}
-              </div>
-
-              <div className="chart-card span-12 trend-chart-card">
-                <SectionHeader
-                  title="Murojaatlarni yaratish va hal qilish dinamikasi"
-                  subtitle="Yaratilgan, yopilgan va ochiq qolganlar (kumulyativ) — davr filtrga mos"
-                  filterContext={scopeLabel}
-                />
-                <TrendChart data={stats.dailyTrend} periodLabel={periodLabel} />
               </div>
 
               <div className="chart-card span-12 trend-chart-card">
