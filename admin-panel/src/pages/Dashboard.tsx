@@ -856,7 +856,7 @@ export function DashboardPage() {
           key: 'closed',
           icon: <IconLock width={17} height={17} />,
           value: stats.statusCounts.closed,
-          label: 'Rad etilgan / yopilgan',
+          label: 'Yopilgan',
           accent: 'var(--status-closed)',
           accentSoft: 'var(--status-closed-soft)',
           trend: null,
