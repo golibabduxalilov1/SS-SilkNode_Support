@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
@@ -65,16 +65,22 @@ interface CreateTicketForm {
   title: string;
   description: string;
   categoryId: string;
+  customCategoryName: string;
   priority: string;
   organizationId: string;
+  customOrgName: string;
+  files: File[];
 }
 
 const EMPTY_CREATE_FORM: CreateTicketForm = {
   title: '',
   description: '',
   categoryId: '',
+  customCategoryName: '',
   priority: 'medium',
   organizationId: '',
+  customOrgName: '',
+  files: [],
 };
 
 function CreateTicketModal({
@@ -111,12 +117,25 @@ function CreateTicketModal({
 
   if (!isOpen) return null;
 
-  const disabled = isSaving || !form.title.trim() || !form.description.trim() || !form.categoryId;
+  const isOtherCategory = form.categoryId === '__other__';
+  const isOtherOrg = form.organizationId === '__other__';
+
+  const disabled =
+    isSaving ||
+    !form.title.trim() ||
+    !form.description.trim() ||
+    !form.categoryId ||
+    (isOtherCategory && !form.customCategoryName.trim()) ||
+    (isOtherOrg && !form.customOrgName.trim());
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (disabled) return;
     onSubmit(form);
+  };
+
+  const handleFilesChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setForm((f) => ({ ...f, files: e.target.files ? Array.from(e.target.files) : [] }));
   };
 
   return (
@@ -167,7 +186,16 @@ function CreateTicketModal({
                     {c.name}
                   </option>
                 ))}
+                <option value="__other__">Boshqa</option>
               </select>
+              {isOtherCategory && (
+                <input
+                  value={form.customCategoryName}
+                  onChange={(e) => setForm((f) => ({ ...f, customCategoryName: e.target.value }))}
+                  placeholder="Kategoriya nomini kiriting"
+                  required
+                />
+              )}
             </label>
             <label className="modal-field">
               <span>Muhimlik</span>
@@ -194,7 +222,23 @@ function CreateTicketModal({
                     {o.name}
                   </option>
                 ))}
+                <option value="__other__">Boshqa</option>
               </select>
+              {isOtherOrg && (
+                <input
+                  value={form.customOrgName}
+                  onChange={(e) => setForm((f) => ({ ...f, customOrgName: e.target.value }))}
+                  placeholder="Tashkilot nomini kiriting"
+                  required
+                />
+              )}
+            </label>
+            <label className="modal-field">
+              <span>Fayl biriktirish</span>
+              <input type="file" multiple onChange={handleFilesChange} />
+              {form.files.length > 0 && (
+                <p className="file-list">{form.files.map((f) => f.name).join(', ')}</p>
+              )}
             </label>
           </div>
           <div className="modal-footer">
@@ -315,13 +359,45 @@ export function TicketsPage() {
     setIsCreating(true);
     setCreateError(null);
     try {
-      await api.post('/admin/tickets', {
+      let resolvedOrganizationId = form.organizationId;
+      if (form.organizationId === '__other__') {
+        try {
+          const orgRes = await api.post('/admin/organizations', { name: form.customOrgName.trim() });
+          resolvedOrganizationId = orgRes.data.data.id;
+        } catch {
+          setCreateError("Tashkilot yaratib bo'lmadi.");
+          setIsCreating(false);
+          return;
+        }
+      }
+
+      let resolvedCategoryId = form.categoryId;
+      if (form.categoryId === '__other__') {
+        try {
+          const categoryRes = await api.post('/admin/categories', { name: form.customCategoryName.trim() });
+          resolvedCategoryId = categoryRes.data.data.id;
+        } catch {
+          setCreateError("Kategoriya yaratib bo'lmadi.");
+          setIsCreating(false);
+          return;
+        }
+      }
+
+      const res = await api.post('/admin/tickets', {
         title: form.title.trim(),
         description: form.description.trim(),
-        categoryId: form.categoryId,
+        categoryId: resolvedCategoryId,
         priority: form.priority,
-        organizationId: form.organizationId || undefined,
+        organizationId: resolvedOrganizationId || undefined,
       });
+      const ticketId = res.data.data.id;
+
+      for (const file of form.files) {
+        const formData = new FormData();
+        formData.append('file', file);
+        await api.post(`/admin/tickets/${ticketId}/attachments`, formData);
+      }
+
       setCreateModalOpen(false);
       load();
     } catch (err: unknown) {
