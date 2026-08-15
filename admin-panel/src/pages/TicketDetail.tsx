@@ -39,6 +39,7 @@ interface Ticket {
   priority: string;
   status: string;
   createdAt: string;
+  closedAt: string | null;
   resolutionMinutes: number | null;
   organization?: { name: string } | null;
   createdBy?: { fullname: string | null; phoneNumber: string | null } | null;
@@ -57,6 +58,13 @@ const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/
   /\/api\/v1\/?$/,
   '',
 );
+
+function formatDuration(minutes: number): string {
+  if (minutes < 60) return `${minutes} daq.`;
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return mins > 0 ? `${hours} soat ${mins} daq.` : `${hours} soat`;
+}
 
 export function TicketDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -175,6 +183,13 @@ export function TicketDetailPage() {
     );
   }
 
+  const firstAdminMessage = messages.find((m) => m.sender && m.sender.role !== 'user');
+  const firstResponseMinutes = firstAdminMessage
+    ? Math.round(
+        (new Date(firstAdminMessage.createdAt).getTime() - new Date(ticket.createdAt).getTime()) / 60000,
+      )
+    : null;
+
   return (
     <AppShell title={`#${ticket.number}`} breadcrumb="Dashboard / Murojaatlar">
       <div className="ticket-detail-page">
@@ -242,9 +257,21 @@ export function TicketDetailPage() {
             </span>
           </div>
           <div className="ticket-summary-meta-item">
+            <span className="ticket-summary-meta-label">Yakunlangan vaqti</span>
+            <span className="ticket-summary-meta-value">
+              {ticket.closedAt ? new Date(ticket.closedAt).toLocaleString('uz-UZ') : '—'}
+            </span>
+          </div>
+          <div className="ticket-summary-meta-item">
+            <span className="ticket-summary-meta-label">Javob berilguncha vaqt</span>
+            <span className="ticket-summary-meta-value">
+              {firstResponseMinutes != null ? formatDuration(firstResponseMinutes) : '—'}
+            </span>
+          </div>
+          <div className="ticket-summary-meta-item">
             <span className="ticket-summary-meta-label">Yopilish vaqti</span>
             <span className="ticket-summary-meta-value">
-              {ticket.resolutionMinutes != null ? `${ticket.resolutionMinutes} daq.` : '—'}
+              {ticket.resolutionMinutes != null ? formatDuration(ticket.resolutionMinutes) : '—'}
             </span>
           </div>
         </div>
