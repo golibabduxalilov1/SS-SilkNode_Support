@@ -178,9 +178,9 @@ export function TicketDetailPage() {
   return (
     <AppShell title={`#${ticket.number}`} breadcrumb="Dashboard / Murojaatlar">
       <div className="ticket-detail-page">
-      <button className="btn btn-ghost btn-sm page-back-btn" onClick={() => navigate('/dashboard')}>
+      <button className="btn btn-ghost btn-sm page-back-btn" onClick={() => navigate('/tickets')}>
         <IconChevronLeft width={15} height={15} />
-        Dashboard
+        Murojaatlar
       </button>
       <div className="ticket-summary-card">
         <div className="ticket-summary-top">
