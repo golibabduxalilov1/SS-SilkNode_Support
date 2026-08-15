@@ -176,17 +176,12 @@ export function TicketDetailPage() {
   }
 
   return (
-    <AppShell
-      title={`#${ticket.number}`}
-      breadcrumb="Dashboard / Murojaatlar"
-      actions={
-        <button className="btn btn-ghost btn-sm" onClick={() => navigate('/dashboard')}>
-          <IconChevronLeft width={15} height={15} />
-          Dashboard
-        </button>
-      }
-    >
+    <AppShell title={`#${ticket.number}`} breadcrumb="Dashboard / Murojaatlar">
       <div className="ticket-detail-page">
+      <button className="btn btn-ghost btn-sm page-back-btn" onClick={() => navigate('/dashboard')}>
+        <IconChevronLeft width={15} height={15} />
+        Dashboard
+      </button>
       <div className="ticket-summary-card">
         <div className="ticket-summary-top">
           <div className="ticket-summary-heading">

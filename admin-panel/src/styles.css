@@ -966,6 +966,10 @@ button {
   flex-shrink: 0;
 }
 
+.page-back-btn {
+  margin-bottom: 16px;
+}
+
 .topbar-right {
   display: flex;
   align-items: center;
