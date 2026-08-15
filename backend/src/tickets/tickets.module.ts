@@ -8,6 +8,7 @@ import { OrganizationsModule } from '../organizations/organizations.module';
 import { CategoriesModule } from '../categories/categories.module';
 import { BotModule } from '../bot/bot.module';
 import { UsersModule } from '../users/users.module';
+import { AuditLogModule } from '../audit-log/audit-log.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { UsersModule } from '../users/users.module';
     CategoriesModule,
     BotModule,
     UsersModule,
+    AuditLogModule,
   ],
   providers: [TicketsService],
   controllers: [TicketsController],

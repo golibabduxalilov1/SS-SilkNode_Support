@@ -7,9 +7,15 @@ import { OrganizationsService } from './organizations.service';
 import { OrganizationsController, PublicOrganizationsController } from './organizations.controller';
 import { AuthModule } from '../auth/auth.module';
 import { UsersModule } from '../users/users.module';
+import { AuditLogModule } from '../audit-log/audit-log.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Organization, Ticket, User]), AuthModule, UsersModule],
+  imports: [
+    TypeOrmModule.forFeature([Organization, Ticket, User]),
+    AuthModule,
+    UsersModule,
+    AuditLogModule,
+  ],
   providers: [OrganizationsService],
   controllers: [OrganizationsController, PublicOrganizationsController],
   exports: [OrganizationsService],

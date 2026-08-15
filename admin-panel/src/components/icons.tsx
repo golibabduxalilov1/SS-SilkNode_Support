@@ -32,6 +32,7 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  History,
 } from 'lucide-react';
 
 type IconProps = SVGProps<SVGSVGElement>;
@@ -70,3 +71,4 @@ export const IconShield = (props: IconProps) => <ShieldCheck strokeWidth={STROKE
 export const IconTrendUp = (props: IconProps) => <TrendingUp strokeWidth={STROKE} {...props} />;
 export const IconTrendDown = (props: IconProps) => <TrendingDown strokeWidth={STROKE} {...props} />;
 export const IconTrendFlat = (props: IconProps) => <Minus strokeWidth={STROKE} {...props} />;
+export const IconHistory = (props: IconProps) => <History strokeWidth={STROKE} {...props} />;

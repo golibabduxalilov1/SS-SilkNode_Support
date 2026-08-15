@@ -5,6 +5,8 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt.guard';
 import { TelegramAuthGuard } from '../auth/guards/telegram-auth.guard';
 import { UserEligibilityGuard } from '../auth/guards/user-eligibility.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { User } from '../users/entities/user.entity';
 
 class CreateCategoryDto {
   @IsString()
@@ -25,21 +27,21 @@ export class CategoriesController {
   }
 
   @Post()
-  async create(@Body() dto: CreateCategoryDto) {
-    const category = await this.categoriesService.create(dto.name);
+  async create(@Body() dto: CreateCategoryDto, @CurrentUser() actor: User) {
+    const category = await this.categoriesService.create(dto.name, actor);
     return { success: true, data: category };
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() dto: UpdateCategoryDto) {
-    const category = await this.categoriesService.update(id, dto);
+  async update(@Param('id') id: string, @Body() dto: UpdateCategoryDto, @CurrentUser() actor: User) {
+    const category = await this.categoriesService.update(id, dto, actor);
     return { success: true, data: category };
   }
 
   @Delete(':id')
   @HttpCode(200)
-  async remove(@Param('id') id: string) {
-    await this.categoriesService.remove(id);
+  async remove(@Param('id') id: string, @CurrentUser() actor: User) {
+    await this.categoriesService.remove(id, actor);
     return { success: true };
   }
 }

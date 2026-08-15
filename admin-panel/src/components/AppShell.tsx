@@ -6,6 +6,7 @@ import {
   IconBell,
   IconBuilding,
   IconGrid,
+  IconHistory,
   IconInbox,
   IconLayers,
   IconLogout,
@@ -26,6 +27,7 @@ const NAV_GROUPS = [
       { to: '/organizations', label: 'Tashkilotlar', icon: IconBuilding },
       { to: '/categories', label: 'Kategoriyalar', icon: IconLayers },
       { to: '/employees', label: 'Xodimlar', icon: IconUsers, superadminOnly: true },
+      { to: '/logs', label: 'Loglar', icon: IconHistory, superadminOnly: true },
     ],
   },
 ];

@@ -19,6 +19,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt.guard';
 import { AdminRolesGuard } from '../auth/guards/admin-roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User, UserRole } from './entities/user.entity';
 
 function toSafeUser(user: User) {
@@ -41,16 +42,16 @@ export class UsersController {
   @Post()
   @UseGuards(AdminRolesGuard)
   @Roles(UserRole.SUPERADMIN)
-  async create(@Body() dto: CreateUserDto) {
-    const user = await this.usersService.createAdmin(dto);
+  async create(@Body() dto: CreateUserDto, @CurrentUser() actor: User) {
+    const user = await this.usersService.createAdmin(dto, actor);
     return { success: true, data: toSafeUser(user) };
   }
 
   @Patch(':id')
   @UseGuards(AdminRolesGuard)
   @Roles(UserRole.SUPERADMIN)
-  async update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
-    const user = await this.usersService.updateAdmin(id, dto);
+  async update(@Param('id') id: string, @Body() dto: UpdateUserDto, @CurrentUser() actor: User) {
+    const user = await this.usersService.updateAdmin(id, dto, actor);
     return { success: true, data: toSafeUser(user) };
   }
 
@@ -62,7 +63,7 @@ export class UsersController {
     if (req.user.id === id) {
       throw new BadRequestException("O'zingizni o'chira olmaysiz.");
     }
-    await this.usersService.remove(id);
+    await this.usersService.remove(id, req.user);
     return { success: true };
   }
 }

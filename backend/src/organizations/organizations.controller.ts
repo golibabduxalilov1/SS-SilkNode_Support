@@ -5,6 +5,8 @@ import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt.guard';
 import { TelegramAuthGuard } from '../auth/guards/telegram-auth.guard';
 import { UserEligibilityGuard } from '../auth/guards/user-eligibility.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { User } from '../users/entities/user.entity';
 
 class CreateOrganizationDto {
   @IsString()
@@ -25,21 +27,21 @@ export class OrganizationsController {
   }
 
   @Post()
-  async create(@Body() dto: CreateOrganizationDto) {
-    const organization = await this.organizationsService.create(dto.name);
+  async create(@Body() dto: CreateOrganizationDto, @CurrentUser() actor: User) {
+    const organization = await this.organizationsService.create(dto.name, actor);
     return { success: true, data: organization };
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() dto: UpdateOrganizationDto) {
-    const organization = await this.organizationsService.update(id, dto);
+  async update(@Param('id') id: string, @Body() dto: UpdateOrganizationDto, @CurrentUser() actor: User) {
+    const organization = await this.organizationsService.update(id, dto, actor);
     return { success: true, data: organization };
   }
 
   @Delete(':id')
   @HttpCode(200)
-  async remove(@Param('id') id: string) {
-    await this.organizationsService.remove(id);
+  async remove(@Param('id') id: string, @CurrentUser() actor: User) {
+    await this.organizationsService.remove(id, actor);
     return { success: true };
   }
 }

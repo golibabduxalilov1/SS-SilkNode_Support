@@ -6,6 +6,12 @@ import { User, UserRole } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Ticket } from '../tickets/entities/ticket.entity';
+import { AuditLogService } from '../audit-log/audit-log.service';
+import { AuditAction } from '../audit-log/entities/audit-log.entity';
+
+function actorDisplayName(actor: User): string {
+  return actor.fullname ?? actor.adminLogin ?? actor.id;
+}
 
 @Injectable()
 export class UsersService {
@@ -14,6 +20,7 @@ export class UsersService {
     private readonly usersRepository: Repository<User>,
     @InjectRepository(Ticket)
     private readonly ticketsRepository: Repository<Ticket>,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   findByTelegramId(telegramId: string): Promise<User | null> {
@@ -90,7 +97,7 @@ export class UsersService {
     }
   }
 
-  async createAdmin(dto: CreateUserDto): Promise<User> {
+  async createAdmin(dto: CreateUserDto, actor: User): Promise<User> {
     const existing = await this.findByAdminLogin(dto.adminLogin);
     if (existing) {
       throw new ConflictException("Bu login band, boshqasini tanlang.");
@@ -110,6 +117,7 @@ export class UsersService {
       await this.assertSuperadminSlotAvailable(telegramOwner?.id);
     }
 
+    let created: User;
     if (telegramOwner) {
       telegramOwner.fullname = dto.fullname;
       telegramOwner.adminLogin = dto.adminLogin;
@@ -117,29 +125,41 @@ export class UsersService {
       telegramOwner.role = dto.role ?? UserRole.ADMIN;
       telegramOwner.organizationId = dto.organizationId ?? null;
       telegramOwner.isActive = true;
-      return this.usersRepository.save(telegramOwner);
+      created = await this.usersRepository.save(telegramOwner);
+    } else {
+      const user = this.usersRepository.create({
+        fullname: dto.fullname,
+        adminLogin: dto.adminLogin,
+        passwordHash,
+        role: dto.role ?? UserRole.ADMIN,
+        organizationId: dto.organizationId ?? null,
+        isActive: true,
+        isStarted: false,
+        isPhoneVerified: false,
+        telegramId: dto.telegramId ?? null,
+      });
+      created = await this.usersRepository.save(user);
     }
 
-    const user = this.usersRepository.create({
-      fullname: dto.fullname,
-      adminLogin: dto.adminLogin,
-      passwordHash,
-      role: dto.role ?? UserRole.ADMIN,
-      organizationId: dto.organizationId ?? null,
-      isActive: true,
-      isStarted: false,
-      isPhoneVerified: false,
-      telegramId: dto.telegramId ?? null,
-    });
+    await this.auditLogService.log(
+      actor.id,
+      actorDisplayName(actor),
+      AuditAction.EMPLOYEE_CREATED,
+      'user',
+      created.id,
+      { fullname: created.fullname, adminLogin: created.adminLogin, role: created.role },
+    );
 
-    return this.usersRepository.save(user);
+    return created;
   }
 
-  async updateAdmin(id: string, dto: UpdateUserDto): Promise<User> {
+  async updateAdmin(id: string, dto: UpdateUserDto, actor: User): Promise<User> {
     const user = await this.findById(id);
     if (!user) {
       throw new NotFoundException('Foydalanuvchi topilmadi.');
     }
+
+    const previousRole = user.role;
 
     if (dto.fullname !== undefined) user.fullname = dto.fullname;
     if (dto.adminLogin !== undefined && dto.adminLogin !== user.adminLogin) {
@@ -171,7 +191,29 @@ export class UsersService {
       }
     }
 
-    return this.usersRepository.save(user);
+    const updated = await this.usersRepository.save(user);
+
+    if (dto.role !== undefined && dto.role !== previousRole) {
+      await this.auditLogService.log(
+        actor.id,
+        actorDisplayName(actor),
+        AuditAction.EMPLOYEE_ROLE_CHANGED,
+        'user',
+        updated.id,
+        { from: previousRole, to: updated.role },
+      );
+    } else {
+      await this.auditLogService.log(
+        actor.id,
+        actorDisplayName(actor),
+        AuditAction.EMPLOYEE_UPDATED,
+        'user',
+        updated.id,
+        { fullname: updated.fullname, adminLogin: updated.adminLogin, isActive: updated.isActive },
+      );
+    }
+
+    return updated;
   }
 
   async deactivateAdmin(id: string): Promise<User> {
@@ -187,7 +229,7 @@ export class UsersService {
     return this.usersRepository.save(user);
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: string, actor: User): Promise<void> {
     const user = await this.findById(id);
     if (!user) {
       throw new NotFoundException('Foydalanuvchi topilmadi.');
@@ -203,5 +245,14 @@ export class UsersService {
     }
 
     await this.usersRepository.remove(user);
+
+    await this.auditLogService.log(
+      actor.id,
+      actorDisplayName(actor),
+      AuditAction.EMPLOYEE_DELETED,
+      'user',
+      id,
+      { fullname: user.fullname, adminLogin: user.adminLogin, role: user.role },
+    );
   }
 }

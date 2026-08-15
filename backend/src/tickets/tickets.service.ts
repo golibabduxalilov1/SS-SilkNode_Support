@@ -4,6 +4,8 @@ import { Repository } from 'typeorm';
 import { Ticket, TicketPriority, TicketStatus } from './entities/ticket.entity';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { User } from '../users/entities/user.entity';
+import { AuditLogService } from '../audit-log/audit-log.service';
+import { AuditAction } from '../audit-log/entities/audit-log.entity';
 
 export interface ClosedByPriority {
   low: number;
@@ -374,6 +376,7 @@ export class TicketsService {
   constructor(
     @InjectRepository(Ticket)
     private readonly ticketsRepository: Repository<Ticket>,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   private generateTicketNumber(): string {
@@ -428,10 +431,11 @@ export class TicketsService {
     });
   }
 
-  async updateStatus(id: string, status: TicketStatus): Promise<Ticket> {
+  async updateStatus(id: string, status: TicketStatus, actor: User): Promise<Ticket> {
     const ticket = await this.ticketsRepository.findOne({ where: { id } });
     if (!ticket) throw new NotFoundException('Murojaat topilmadi.');
 
+    const previousStatus = ticket.status;
     const wasSettled = ticket.status === TicketStatus.CLOSED || ticket.status === TicketStatus.RESOLVED;
     const reopening = wasSettled && (status === TicketStatus.NEW || status === TicketStatus.IN_PROGRESS || status === TicketStatus.WAITING_USER);
     if (reopening) {
@@ -453,17 +457,36 @@ export class TicketsService {
 
     await this.ticketsRepository.save(ticket);
 
+    await this.auditLogService.log(
+      actor.id,
+      actor.fullname ?? actor.adminLogin ?? actor.id,
+      AuditAction.TICKET_STATUS_CHANGED,
+      'ticket',
+      id,
+      { from: previousStatus, to: status },
+    );
+
     const updated = await this.findById(id);
     if (!updated) throw new NotFoundException('Murojaat topilmadi.');
     return updated;
   }
 
-  async assign(id: string, assignedToId: string | null): Promise<Ticket> {
+  async assign(id: string, assignedToId: string | null, actor: User): Promise<Ticket> {
     const ticket = await this.ticketsRepository.findOne({ where: { id } });
     if (!ticket) throw new NotFoundException('Murojaat topilmadi.');
 
+    const previousAssignedToId = ticket.assignedToId;
     ticket.assignedToId = assignedToId;
     await this.ticketsRepository.save(ticket);
+
+    await this.auditLogService.log(
+      actor.id,
+      actor.fullname ?? actor.adminLogin ?? actor.id,
+      AuditAction.TICKET_ASSIGNED,
+      'ticket',
+      id,
+      { from: previousAssignedToId, to: assignedToId },
+    );
 
     const updated = await this.findById(id);
     if (!updated) throw new NotFoundException('Murojaat topilmadi.');

@@ -11,6 +11,7 @@ import { MessagesModule } from './messages/messages.module';
 import { AttachmentsModule } from './attachments/attachments.module';
 import { AuthModule } from './auth/auth.module';
 import { BotModule } from './bot/bot.module';
+import { AuditLogModule } from './audit-log/audit-log.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { BotModule } from './bot/bot.module';
     AttachmentsModule,
     AuthModule,
     BotModule,
+    AuditLogModule,
   ],
 })
 export class AppModule {}

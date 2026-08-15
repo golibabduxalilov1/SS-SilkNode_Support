@@ -6,9 +6,10 @@ import { CategoriesService } from './categories.service';
 import { CategoriesController, PublicCategoriesController } from './categories.controller';
 import { AuthModule } from '../auth/auth.module';
 import { UsersModule } from '../users/users.module';
+import { AuditLogModule } from '../audit-log/audit-log.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Category, Ticket]), AuthModule, UsersModule],
+  imports: [TypeOrmModule.forFeature([Category, Ticket]), AuthModule, UsersModule, AuditLogModule],
   providers: [CategoriesService],
   controllers: [CategoriesController, PublicCategoriesController],
   exports: [CategoriesService],

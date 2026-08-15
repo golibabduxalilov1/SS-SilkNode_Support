@@ -128,16 +128,20 @@ export class TicketsController {
   /** PATCH /api/v1/admin/tickets/:id/status — statusni o'zgartirish (bo'lim 7, 8). */
   @Patch('admin/tickets/:id/status')
   @UseGuards(AdminJwtAuthGuard)
-  async updateStatus(@Param('id') id: string, @Body() dto: UpdateTicketStatusDto) {
-    const ticket = await this.ticketsService.updateStatus(id, dto.status);
+  async updateStatus(
+    @Param('id') id: string,
+    @Body() dto: UpdateTicketStatusDto,
+    @CurrentUser() actor: User,
+  ) {
+    const ticket = await this.ticketsService.updateStatus(id, dto.status, actor);
     return { success: true, data: ticket };
   }
 
   /** PATCH /api/v1/admin/tickets/:id/assign — ijrochini tayinlash. */
   @Patch('admin/tickets/:id/assign')
   @UseGuards(AdminJwtAuthGuard)
-  async assign(@Param('id') id: string, @Body() dto: AssignTicketDto) {
-    const ticket = await this.ticketsService.assign(id, dto.assignedToId || null);
+  async assign(@Param('id') id: string, @Body() dto: AssignTicketDto, @CurrentUser() actor: User) {
+    const ticket = await this.ticketsService.assign(id, dto.assignedToId || null, actor);
     return { success: true, data: ticket };
   }
 
