@@ -440,9 +440,9 @@ export class TicketsService {
 
     ticket.status = status;
 
-    // Har safar 'closed'ga o'tganda yangilanadi — murojaat qayta ochilib
-    // qayta yopilsa, closed_at/resolution_minutes so'nggi yopilishni aks ettiradi.
-    if (status === TicketStatus.CLOSED) {
+    // Har safar 'closed' yoki 'resolved'ga o'tganda yangilanadi — murojaat qayta ochilib
+    // qayta yakunlansa, closed_at/resolution_minutes so'nggi yakunlanishni aks ettiradi.
+    if (status === TicketStatus.CLOSED || status === TicketStatus.RESOLVED) {
       const now = new Date();
       ticket.closedAt = now;
       ticket.resolutionMinutes = diffMinutes(ticket.createdAt, now);
