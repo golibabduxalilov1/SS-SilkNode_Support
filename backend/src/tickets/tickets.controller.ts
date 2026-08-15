@@ -76,6 +76,16 @@ export class TicketsController {
     return { success: true, data: tickets };
   }
 
+  /** POST /api/v1/admin/tickets — admin panelda qo'lda murojaat yaratish. */
+  @Post('admin/tickets')
+  @UseGuards(AdminJwtAuthGuard)
+  @HttpCode(HttpStatus.CREATED)
+  async createFromAdmin(@Body() dto: CreateTicketDto, @CurrentUser() user: User) {
+    const ticket = await this.ticketsService.create(dto, user);
+    const full = await this.ticketsService.findById(ticket.id);
+    return { success: true, data: full };
+  }
+
   /**
    * GET /api/v1/admin/dashboard/stats — bo'lim 6, 8: status kartochkalari + Time Tracking.
    * Filtrlar ixtiyoriy: organizationId/categoryId/dateFrom/dateTo hisobot doirasini torlashtiradi,

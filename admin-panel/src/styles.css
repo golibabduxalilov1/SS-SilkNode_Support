@@ -3033,7 +3033,8 @@ button {
 }
 
 .modal-field input,
-.modal-field select {
+.modal-field select,
+.modal-field textarea {
   min-height: 44px;
   padding: 10px 14px;
   border-radius: var(--radius-sm);
@@ -3048,8 +3049,13 @@ button {
   transition: border-color var(--duration-fast) var(--ease), box-shadow var(--duration-fast) var(--ease);
 }
 
+.modal-field textarea {
+  resize: vertical;
+}
+
 .modal-field input:focus,
-.modal-field select:focus {
+.modal-field select:focus,
+.modal-field textarea:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: var(--glow-accent);

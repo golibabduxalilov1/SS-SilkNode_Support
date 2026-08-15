@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { AppShell } from '../components/AppShell';
 import { ConfirmModal } from '../components/ConfirmModal';
-import { IconInbox, IconSearch, IconTrash } from '../components/icons';
+import { IconClose, IconInbox, IconPlus, IconSearch, IconTicketNew, IconTrash } from '../components/icons';
 import { Avatar, EmptyState, Pagination, TableSkeleton } from '../components/ui';
 
 interface Message {
@@ -61,6 +61,156 @@ const PRIORITY_OPTIONS = [
 
 const PAGE_SIZE = 15;
 
+interface CreateTicketForm {
+  title: string;
+  description: string;
+  categoryId: string;
+  priority: string;
+  organizationId: string;
+}
+
+const EMPTY_CREATE_FORM: CreateTicketForm = {
+  title: '',
+  description: '',
+  categoryId: '',
+  priority: 'medium',
+  organizationId: '',
+};
+
+function CreateTicketModal({
+  isOpen,
+  organizations,
+  categories,
+  onClose,
+  onSubmit,
+  isSaving,
+  error,
+}: {
+  isOpen: boolean;
+  organizations: Organization[];
+  categories: Category[];
+  onClose: () => void;
+  onSubmit: (form: CreateTicketForm) => void;
+  isSaving: boolean;
+  error: string | null;
+}) {
+  const [form, setForm] = useState<CreateTicketForm>(EMPTY_CREATE_FORM);
+
+  useEffect(() => {
+    if (isOpen) setForm(EMPTY_CREATE_FORM);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  const disabled = isSaving || !form.title.trim() || !form.description.trim() || !form.categoryId;
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (disabled) return;
+    onSubmit(form);
+  };
+
+  return (
+    <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal-card">
+        <div className="modal-header">
+          <span className="modal-header-icon">
+            <IconTicketNew width={18} height={18} />
+          </span>
+          <h3>Yangi murojaat</h3>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Yopish">
+            <IconClose width={18} height={18} />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            {error && <p className="form-error">{error}</p>}
+            <label className="modal-field">
+              <span>Mavzu</span>
+              <input
+                value={form.title}
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                placeholder="Murojaat mavzusi"
+                required
+                autoFocus
+              />
+            </label>
+            <label className="modal-field">
+              <span>Tavsif</span>
+              <textarea
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                placeholder="Murojaat tafsilotlari"
+                rows={4}
+                required
+              />
+            </label>
+            <label className="modal-field">
+              <span>Kategoriya</span>
+              <select
+                value={form.categoryId}
+                onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}
+                required
+              >
+                <option value="">Tanlang</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="modal-field">
+              <span>Muhimlik</span>
+              <select
+                value={form.priority}
+                onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value }))}
+              >
+                {PRIORITY_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="modal-field">
+              <span>Tashkilot</span>
+              <select
+                value={form.organizationId}
+                onChange={(e) => setForm((f) => ({ ...f, organizationId: e.target.value }))}
+              >
+                <option value="">Tanlanmagan</option>
+                {organizations.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSaving}>
+              Bekor qilish
+            </button>
+            <button className="btn btn-primary" type="submit" disabled={disabled}>
+              {isSaving ? 'Yaratilmoqda...' : 'Yaratish'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function closingDuration(ticket: Ticket): string {
   if (!ticket.closedAt) return '-';
   const minutes = Math.max(
@@ -97,6 +247,9 @@ export function TicketsPage() {
   const [error, setError] = useState<string | null>(null);
   const [ticketToDelete, setTicketToDelete] = useState<Ticket | null>(null);
   const [page, setPage] = useState(1);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const load = () => {
     setIsLoading(true);
@@ -155,6 +308,29 @@ export function TicketsPage() {
         (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
           ?.message ?? "Murojaatni o'chirib bo'lmadi.";
       setError(message);
+    }
+  };
+
+  const handleCreateTicket = async (form: CreateTicketForm) => {
+    setIsCreating(true);
+    setCreateError(null);
+    try {
+      await api.post('/admin/tickets', {
+        title: form.title.trim(),
+        description: form.description.trim(),
+        categoryId: form.categoryId,
+        priority: form.priority,
+        organizationId: form.organizationId || undefined,
+      });
+      setCreateModalOpen(false);
+      load();
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
+          ?.message ?? "Murojaat yaratib bo'lmadi.";
+      setCreateError(message);
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -234,6 +410,17 @@ export function TicketsPage() {
                 placeholder="Murojaat, mijoz yoki raqam bo'yicha qidirish"
               />
             </div>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                setCreateError(null);
+                setCreateModalOpen(true);
+              }}
+            >
+              <IconPlus width={15} height={15} />
+              Yaratish
+            </button>
           </div>
 
           <div className="filters">
@@ -399,6 +586,19 @@ export function TicketsPage() {
           <Pagination page={currentPage} totalPages={totalPages} onChange={setPage} />
         </>
       )}
+
+      <CreateTicketModal
+        isOpen={createModalOpen}
+        organizations={organizations}
+        categories={categories}
+        onClose={() => {
+          if (isCreating) return;
+          setCreateModalOpen(false);
+        }}
+        onSubmit={handleCreateTicket}
+        isSaving={isCreating}
+        error={createError}
+      />
 
       <ConfirmModal
         isOpen={!!ticketToDelete}
