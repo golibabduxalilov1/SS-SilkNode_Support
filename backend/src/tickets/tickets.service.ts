@@ -446,6 +446,9 @@ export class TicketsService {
       const now = new Date();
       ticket.closedAt = now;
       ticket.resolutionMinutes = diffMinutes(ticket.createdAt, now);
+    } else if (reopening) {
+      ticket.closedAt = null;
+      ticket.resolutionMinutes = null;
     }
 
     await this.ticketsRepository.save(ticket);

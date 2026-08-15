@@ -183,13 +183,6 @@ export function TicketDetailPage() {
     );
   }
 
-  const firstAdminMessage = messages.find((m) => m.sender && m.sender.role !== 'user');
-  const firstResponseMinutes = firstAdminMessage
-    ? Math.round(
-        (new Date(firstAdminMessage.createdAt).getTime() - new Date(ticket.createdAt).getTime()) / 60000,
-      )
-    : null;
-
   return (
     <AppShell title={`#${ticket.number}`} breadcrumb="Dashboard / Murojaatlar">
       <div className="ticket-detail-page">
@@ -260,12 +253,6 @@ export function TicketDetailPage() {
             <span className="ticket-summary-meta-label">Yakunlangan vaqti</span>
             <span className="ticket-summary-meta-value">
               {ticket.closedAt ? new Date(ticket.closedAt).toLocaleString('uz-UZ') : '—'}
-            </span>
-          </div>
-          <div className="ticket-summary-meta-item">
-            <span className="ticket-summary-meta-label">Javob berilguncha vaqt</span>
-            <span className="ticket-summary-meta-value">
-              {firstResponseMinutes != null ? formatDuration(firstResponseMinutes) : '—'}
             </span>
           </div>
           <div className="ticket-summary-meta-item">
