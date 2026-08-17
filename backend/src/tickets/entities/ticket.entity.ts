@@ -69,6 +69,13 @@ export class Ticket {
   @Column({ name: 'created_by_id', type: 'bigint' })
   createdById: string;
 
+  /** Admin panelda qo'lda yaratilgan murojaatlar uchun — haqiqiy murojaatchining ismi (createdBy — uni yozgan xodim). */
+  @Column({ name: 'requester_name', type: 'varchar', length: 255, nullable: true })
+  requesterName: string | null;
+
+  @Column({ name: 'requester_phone', type: 'varchar', length: 20, nullable: true })
+  requesterPhone: string | null;
+
   @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: 'assigned_to_id' })
   assignedTo: User | null;

@@ -24,6 +24,8 @@ interface Ticket {
   closedAt?: string | null;
   organization?: { id: string; name: string } | null;
   createdBy?: { fullname: string | null; phoneNumber: string | null } | null;
+  requesterName?: string | null;
+  requesterPhone?: string | null;
   assignedTo?: { id: string; fullname: string | null } | null;
   messages?: Message[];
 }
@@ -69,6 +71,8 @@ interface CreateTicketForm {
   priority: string;
   organizationId: string;
   customOrgName: string;
+  requesterName: string;
+  requesterPhone: string;
   files: File[];
 }
 
@@ -80,6 +84,8 @@ const EMPTY_CREATE_FORM: CreateTicketForm = {
   priority: 'medium',
   organizationId: '',
   customOrgName: '',
+  requesterName: '',
+  requesterPhone: '',
   files: [],
 };
 
@@ -125,6 +131,8 @@ function CreateTicketModal({
     !form.title.trim() ||
     !form.description.trim() ||
     !form.categoryId ||
+    !form.requesterName.trim() ||
+    !form.requesterPhone.trim() ||
     (isOtherCategory && !form.customCategoryName.trim()) ||
     (isOtherOrg && !form.customOrgName.trim());
 
@@ -153,6 +161,24 @@ function CreateTicketModal({
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
             {error && <p className="form-error">{error}</p>}
+            <label className="modal-field">
+              <span>Murojaatchi F.I.O.</span>
+              <input
+                value={form.requesterName}
+                onChange={(e) => setForm((f) => ({ ...f, requesterName: e.target.value }))}
+                placeholder="Murojaatchining to'liq ismi"
+                required
+              />
+            </label>
+            <label className="modal-field">
+              <span>Murojaatchi telefon raqami</span>
+              <input
+                value={form.requesterPhone}
+                onChange={(e) => setForm((f) => ({ ...f, requesterPhone: e.target.value }))}
+                placeholder="+998 90 123 45 67"
+                required
+              />
+            </label>
             <label className="modal-field">
               <span>Mavzu</span>
               <input
@@ -389,6 +415,8 @@ export function TicketsPage() {
         categoryId: resolvedCategoryId,
         priority: form.priority,
         organizationId: resolvedOrganizationId || undefined,
+        requesterName: form.requesterName.trim(),
+        requesterPhone: form.requesterPhone.trim(),
       });
       const ticketId = res.data.data.id;
 
@@ -427,7 +455,7 @@ export function TicketsPage() {
         !term ||
         t.number.toLowerCase().includes(term) ||
         t.title.toLowerCase().includes(term) ||
-        (t.createdBy?.fullname ?? '').toLowerCase().includes(term);
+        (t.requesterName ?? t.createdBy?.fullname ?? '').toLowerCase().includes(term);
       return (
         matchesOrg &&
         matchesStatus &&
@@ -610,11 +638,13 @@ export function TicketsPage() {
                       <td>{t.organization?.name ?? '—'}</td>
                       <td>
                         <div className="cell-user">
-                          <Avatar name={t.createdBy?.fullname} />
+                          <Avatar name={t.requesterName ?? t.createdBy?.fullname} />
                           <div className="cell-user-info">
-                            <span>{t.createdBy?.fullname ?? '—'}</span>
-                            {t.createdBy?.phoneNumber && (
-                              <span className="cell-muted cell-user-phone">{t.createdBy.phoneNumber}</span>
+                            <span>{t.requesterName ?? t.createdBy?.fullname ?? '—'}</span>
+                            {(t.requesterPhone ?? t.createdBy?.phoneNumber) && (
+                              <span className="cell-muted cell-user-phone">
+                                {t.requesterPhone ?? t.createdBy?.phoneNumber}
+                              </span>
                             )}
                           </div>
                         </div>

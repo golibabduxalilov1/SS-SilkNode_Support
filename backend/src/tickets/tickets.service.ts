@@ -394,6 +394,8 @@ export class TicketsService {
       priority: dto.priority ?? TicketPriority.MEDIUM,
       organizationId: dto.organizationId ?? createdBy.organizationId ?? null,
       createdById: createdBy.id,
+      requesterName: dto.requesterName ?? null,
+      requesterPhone: dto.requesterPhone ?? null,
     });
     return this.ticketsRepository.save(ticket);
   }

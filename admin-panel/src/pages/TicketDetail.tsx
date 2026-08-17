@@ -43,6 +43,8 @@ interface Ticket {
   resolutionMinutes: number | null;
   organization?: { name: string } | null;
   createdBy?: { fullname: string | null; phoneNumber: string | null } | null;
+  requesterName?: string | null;
+  requesterPhone?: string | null;
   assignedTo?: { id: string; fullname: string | null } | null;
 }
 
@@ -233,9 +235,12 @@ export function TicketDetailPage() {
           <div className="ticket-summary-meta-item">
             <span className="ticket-summary-meta-label">Foydalanuvchi</span>
             <span className="ticket-summary-meta-value">
-              {ticket.createdBy?.fullname ?? '—'}
-              {ticket.createdBy?.phoneNumber && (
-                <span className="ticket-summary-meta-sub"> · {ticket.createdBy.phoneNumber}</span>
+              {ticket.requesterName ?? ticket.createdBy?.fullname ?? '—'}
+              {(ticket.requesterPhone ?? ticket.createdBy?.phoneNumber) && (
+                <span className="ticket-summary-meta-sub">
+                  {' '}
+                  · {ticket.requesterPhone ?? ticket.createdBy?.phoneNumber}
+                </span>
               )}
             </span>
           </div>

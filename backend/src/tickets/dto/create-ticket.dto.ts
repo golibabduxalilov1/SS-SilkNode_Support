@@ -22,4 +22,14 @@ export class CreateTicketDto {
   @IsOptional()
   @IsString()
   organizationId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  requesterName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  requesterPhone?: string;
 }
