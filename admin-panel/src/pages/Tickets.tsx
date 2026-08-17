@@ -272,7 +272,7 @@ function CreateTicketModal({
               Bekor qilish
             </button>
             <button className="btn btn-primary" type="submit" disabled={disabled}>
-              {isSaving ? 'Yaratilmoqda...' : 'Yaratish'}
+              {isSaving ? 'Yasalmoqda...' : 'Yasash'}
             </button>
           </div>
         </form>
@@ -523,7 +523,7 @@ export function TicketsPage() {
               }}
             >
               <IconPlus width={15} height={15} />
-              Yaratish
+              Yasash
             </button>
           </div>
 
