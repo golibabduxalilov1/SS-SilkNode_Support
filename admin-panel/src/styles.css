@@ -157,6 +157,7 @@ body {
   background: var(--canvas);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 h1,
@@ -711,6 +712,10 @@ button {
   height: 100vh;
 }
 
+.sidebar-overlay {
+  display: none;
+}
+
 .sidebar-brand {
   display: flex;
   align-items: center;
@@ -935,6 +940,27 @@ button {
   position: sticky;
   top: 0;
   z-index: 5;
+}
+
+.topbar-menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  flex-shrink: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease), color var(--duration-fast) var(--ease);
+}
+
+.topbar-menu-btn:hover {
+  background: var(--veil);
+  color: var(--text);
 }
 
 .topbar-titles {
@@ -3071,8 +3097,10 @@ button {
 
 /* ==========================================================================
    Responsive
+   Breakpoints: mobile <=640px, tablet 641-1024px, desktop >1024px
    ========================================================================== */
 
+/* ---- Tablet & mobile (<=1024px): sidebar becomes an off-canvas drawer ---- */
 @media (max-width: 1024px) {
   .app-content {
     padding: 28px 32px 40px;
@@ -3081,15 +3109,56 @@ button {
   .topbar {
     padding: 0 32px;
   }
-}
 
-@media (max-width: 1100px) {
+  .topbar-menu-btn {
+    display: inline-flex;
+  }
+
+  .sidebar {
+    position: fixed;
+    z-index: 60;
+    top: 0;
+    left: 0;
+    transform: translateX(-100%);
+    box-shadow: var(--shadow-lg);
+    transition: transform var(--duration-base) var(--ease);
+  }
+
+  .sidebar.is-open {
+    transform: translateX(0);
+  }
+
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    background: rgba(15, 23, 42, 0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--duration-base) var(--ease);
+  }
+
+  .sidebar-overlay.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Tablet: bento grid drops to 2 columns */
+  .bento-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .bento-grid .span-12 {
+    grid-column: span 2;
+  }
+
   .bento-grid .span-5,
   .bento-grid .span-7,
   .bento-grid .span-6,
   .bento-grid .span-4,
   .bento-grid .span-3 {
-    grid-column: span 12;
+    grid-column: span 1;
   }
 }
 
@@ -3136,5 +3205,130 @@ button {
 
   .chart-card-head {
     flex-direction: column;
+  }
+}
+
+/* ---- Tables: prevent column squeeze, scroll horizontally instead ---- */
+@media (max-width: 768px) {
+  .table-wrap {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tickets-table {
+    min-width: 640px;
+  }
+
+  .table-actions {
+    min-width: 0;
+  }
+
+  .table-actions button {
+    min-height: 40px;
+    padding: 8px 12px;
+  }
+}
+
+/* ---- Mobile (<=640px) ---- */
+@media (max-width: 640px) {
+  .app-content {
+    padding: 16px 16px 28px;
+  }
+
+  .topbar {
+    padding: 0 16px;
+    gap: 10px;
+  }
+
+  .topbar-title {
+    font-size: 15px;
+  }
+
+  .topbar-breadcrumb {
+    display: none;
+  }
+
+  .sidebar {
+    width: min(var(--sidebar-width), 82vw);
+  }
+
+  /* Mobile: bento grid stacks to a single column */
+  .bento-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .bento-grid .span-12,
+  .bento-grid .span-5,
+  .bento-grid .span-7,
+  .bento-grid .span-6,
+  .bento-grid .span-4,
+  .bento-grid .span-3 {
+    grid-column: span 1;
+  }
+
+  .stat-cards {
+    gap: 12px;
+  }
+
+  .chart-card,
+  .section-card,
+  .filter-panel,
+  .ticket-summary-card {
+    padding: 16px;
+  }
+
+  .donut-layout {
+    gap: 14px;
+  }
+
+  .donut-chart-wrap {
+    flex: 1 1 100%;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .toolbar-search {
+    max-width: none;
+  }
+
+  /* Touch targets >= 40x40 */
+  .topbar-menu-btn,
+  .topbar-bell,
+  .modal-close,
+  .pagination-page,
+  .login-input-toggle {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  /* Modal: full-screen sheet with sticky footer */
+  .modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .modal-card {
+    width: 100%;
+    max-width: 100%;
+    max-height: 92vh;
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+
+  .modal-body {
+    overflow-y: auto;
+    flex: 1 1 auto;
+  }
+
+  .modal-footer {
+    flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+
+  .modal-footer .btn {
+    flex: 1 1 auto;
   }
 }

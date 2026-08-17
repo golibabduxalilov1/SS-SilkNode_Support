@@ -5,11 +5,13 @@ import { useAuth } from '../auth/AuthContext';
 import {
   IconBell,
   IconBuilding,
+  IconClose,
   IconGrid,
   IconHistory,
   IconInbox,
   IconLayers,
   IconLogout,
+  IconMenu,
   IconUsers,
 } from './icons';
 
@@ -57,6 +59,7 @@ export function AppShell({ title, breadcrumb, actions, children }: AppShellProps
   const location = useLocation();
 
   const [newTicketsCount, setNewTicketsCount] = useState(0);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     api
@@ -65,6 +68,26 @@ export function AppShell({ title, breadcrumb, actions, children }: AppShellProps
       .catch(() => {});
   }, [location.pathname === '/dashboard']);
 
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    document.body.style.overflow = sidebarOpen ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [sidebarOpen]);
+
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSidebarOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [sidebarOpen]);
+
   const handleLogout = () => {
     logout();
     navigate('/login', { replace: true });
@@ -72,7 +95,12 @@ export function AppShell({ title, breadcrumb, actions, children }: AppShellProps
 
   return (
     <div className="app-shell">
-      <aside className="sidebar">
+      <div
+        className={`sidebar-overlay${sidebarOpen ? ' is-visible' : ''}`}
+        onClick={() => setSidebarOpen(false)}
+        aria-hidden="true"
+      />
+      <aside className={`sidebar${sidebarOpen ? ' is-open' : ''}`}>
         <NavLink to="/dashboard" className="sidebar-brand">
           <span className="sidebar-brand-mark">
             <img src="/logo.jpg" alt="Silknode" />
@@ -124,6 +152,15 @@ export function AppShell({ title, breadcrumb, actions, children }: AppShellProps
 
       <div className="app-main">
         <header className="topbar">
+          <button
+            type="button"
+            className="topbar-menu-btn"
+            onClick={() => setSidebarOpen((v) => !v)}
+            aria-label={sidebarOpen ? 'Menyuni yopish' : 'Menyuni ochish'}
+            aria-expanded={sidebarOpen}
+          >
+            {sidebarOpen ? <IconClose width={20} height={20} /> : <IconMenu width={20} height={20} />}
+          </button>
           <div className="topbar-titles">
             {breadcrumb && <span className="topbar-breadcrumb">{breadcrumb}</span>}
             <h1 className="topbar-title">{title}</h1>
