@@ -2912,6 +2912,36 @@ button {
   justify-content: flex-end;
 }
 
+/* Keep row actions reachable without horizontal scrolling: pin the
+   actions column to the right edge of the scrollable table area.
+   Scoped to the empty <th></th> that marks an actions column (see
+   Employees/Categories/Organizations/Tickets tables) so data columns
+   that merely happen to be last (e.g. Dashboard's org table) are
+   never force-pinned. */
+.tickets-table td.table-actions,
+.tickets-table th:empty {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  background: var(--panel);
+  box-shadow: -8px 0 8px -8px rgba(15, 23, 42, 0.12);
+}
+
+.tickets-table tbody tr:nth-child(even) td.table-actions {
+  background: var(--veil);
+}
+
+.tickets-table tbody tr:hover td.table-actions,
+.tickets-table tbody tr.clickable-row:hover td.table-actions {
+  background: var(--indigo-50);
+}
+
+.tickets-table th:empty {
+  z-index: 2;
+  background: var(--sunken);
+  box-shadow: none;
+}
+
 .table-actions button {
   display: inline-flex;
   align-items: center;

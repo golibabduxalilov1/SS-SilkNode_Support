@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Harness</title>
+<link rel="stylesheet" href="/src/styles.css" />
+<style>
+  /* Minimal icon placeholders so layout matches real SVG icon boxes */
+  .ic { display:inline-block; width:18px; height:18px; background: currentColor; opacity:.5; border-radius:3px; vertical-align:middle; }
+</style>
+</head>
+<body>
+  <div class="app-shell">
+    <div class="sidebar-overlay" id="overlay" aria-hidden="true"></div>
+    <aside class="sidebar" id="sidebar">
+      <a href="#" class="sidebar-brand">
+        <span class="sidebar-brand-mark">SN</span>
+        <span class="sidebar-brand-text">Silknode</span>
+      </a>
+      <nav class="sidebar-nav" aria-label="Asosiy navigatsiya">
+        <div class="sidebar-group">
+          <span class="sidebar-group-label">Ish faoliyati</span>
+          <a href="#" class="sidebar-nav-item is-active"><span class="ic"></span><span>Dashboard</span></a>
+          <a href="#" class="sidebar-nav-item"><span class="ic"></span><span>Murojaatlar</span><span class="sidebar-nav-badge">12</span></a>
+        </div>
+        <div class="sidebar-group">
+          <span class="sidebar-group-label">Boshqaruv</span>
+          <a href="#" class="sidebar-nav-item"><span class="ic"></span><span>Tashkilotlar</span></a>
+          <a href="#" class="sidebar-nav-item"><span class="ic"></span><span>Kategoriyalar</span></a>
+          <a href="#" class="sidebar-nav-item"><span class="ic"></span><span>Xodimlar</span></a>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <span class="avatar avatar--md">AD</span>
+          <div class="sidebar-user-info">
+            <span class="sidebar-user-name">Admin User</span>
+            <span class="sidebar-user-role">Superadmin</span>
+          </div>
+        </div>
+        <button class="sidebar-logout"><span class="ic"></span><span>Chiqish</span></button>
+      </div>
+    </aside>
+
+    <div class="app-main">
+      <header class="topbar">
+        <button type="button" class="topbar-menu-btn" id="menuBtn" aria-label="Menyuni ochish">☰</button>
+        <div class="topbar-titles">
+          <span class="topbar-breadcrumb">Bosh sahifa</span>
+          <h1 class="topbar-title">Dashboard</h1>
+        </div>
+        <div class="topbar-right">
+          <span class="role-badge">Superadmin</span>
+          <button type="button" class="topbar-bell">🔔<span class="topbar-bell-badge">5</span></button>
+          <div class="topbar-user">
+            <span class="avatar avatar--sm">AD</span>
+            <span class="topbar-user-name">Admin User</span>
+          </div>
+        </div>
+      </header>
+
+      <main class="app-content">
+        <div class="stat-cards">
+          <div class="stat-card"><div class="stat-card-top"><span class="stat-card-icon">◆</span><span class="stat-card-trend stat-card-trend--up">+12%</span></div><div class="stat-value">1,204</div><div class="stat-label">Jami murojaatlar</div></div>
+          <div class="stat-card"><div class="stat-card-top"><span class="stat-card-icon">◆</span><span class="stat-card-trend stat-card-trend--down">-3%</span></div><div class="stat-value">86</div><div class="stat-label">Yangi</div></div>
+          <div class="stat-card"><div class="stat-card-top"><span class="stat-card-icon">◆</span><span class="stat-card-trend stat-card-trend--flat">0%</span></div><div class="stat-value">312</div><div class="stat-label">Jarayonda</div></div>
+          <div class="stat-card"><div class="stat-card-top"><span class="stat-card-icon">◆</span><span class="stat-card-trend stat-card-trend--up">+8%</span></div><div class="stat-value">806</div><div class="stat-label">Yopilgan</div></div>
+        </div>
+
+        <div class="bento-grid">
+          <div class="span-7 chart-card"><h3>Murojaatlar dinamikasi</h3><div style="height:180px;background:var(--veil);border-radius:8px;"></div></div>
+          <div class="span-5 chart-card"><h3>Kategoriyalar</h3><div style="height:180px;background:var(--veil);border-radius:8px;"></div></div>
+          <div class="span-6 chart-card"><h3>Holat bo'yicha</h3><div style="height:140px;background:var(--veil);border-radius:8px;"></div></div>
+          <div class="span-6 chart-card"><h3>Ijrochilar</h3><div style="height:140px;background:var(--veil);border-radius:8px;"></div></div>
+          <div class="span-12 chart-card"><h3>Umumiy trend</h3><div style="height:160px;background:var(--veil);border-radius:8px;"></div></div>
+        </div>
+
+        <div class="section-card">
+          <h3>So'nggi murojaatlar</h3>
+          <div class="table-wrap">
+            <table class="tickets-table">
+              <thead><tr><th>ID</th><th>Mijoz</th><th>Mavzu</th><th>Tashkilot</th><th>Holat</th><th>Muhimlik</th><th>Sana</th><th>Amallar</th></tr></thead>
+              <tbody>
+                <tr><td>#1042</td><td>Aziz Karimov</td><td>Internet ulanish muammosi</td><td>Silk Telecom</td><td><span class="status status--new">Yangi</span></td><td><span class="priority priority--high">Yuqori</span></td><td>17.08.2026</td><td class="table-actions"><button>Tahrirlash</button><button class="danger">O'chirish</button></td></tr>
+                <tr><td>#1041</td><td>Dilnoza Yusupova</td><td>Balans yechilmayapti</td><td>PayNet</td><td><span class="status status--in_progress">Jarayonda</span></td><td><span class="priority priority--medium">O'rta</span></td><td>16.08.2026</td><td class="table-actions"><button>Tahrirlash</button><button class="danger">O'chirish</button></td></tr>
+                <tr><td>#1040</td><td>Bekzod Nazarov</td><td>Ilova ishlamayapti</td><td>Uzum Market</td><td><span class="status status--resolved">Yopilgan</span></td><td><span class="priority priority--low">Past</span></td><td>15.08.2026</td><td class="table-actions"><button>Tahrirlash</button><button class="danger">O'chirish</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div id="debug" style="position:fixed;bottom:0;left:0;background:#000;color:#0f0;font-size:10px;padding:4px;z-index:9999;font-family:monospace;"></div>
+  <script>
+    const sc = document.querySelector('.stat-cards');
+    const cs = getComputedStyle(sc);
+    document.getElementById('debug').textContent =
+      'winW=' + window.innerWidth +
+      ' docClientW=' + document.documentElement.clientWidth +
+      ' scBoxW=' + sc.getBoundingClientRect().width +
+      ' scrollW=' + document.documentElement.scrollWidth +
+      ' gridCols=' + cs.gridTemplateColumns +
+      ' bodyOverflowX=' + getComputedStyle(document.body).overflowX;
+    const btn = document.getElementById('menuBtn');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('overlay');
+    function open() {
+      sidebar.classList.add('is-open');
+      overlay.classList.add('is-visible');
+    }
+    function close() {
+      sidebar.classList.remove('is-open');
+      overlay.classList.remove('is-visible');
+    }
+    btn.addEventListener('click', () => sidebar.classList.contains('is-open') ? close() : open());
+    overlay.addEventListener('click', close);
+    if (location.hash === '#open') open();
+  </script>
+</body>
+</html>
