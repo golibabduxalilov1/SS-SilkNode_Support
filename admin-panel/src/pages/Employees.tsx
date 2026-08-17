@@ -360,16 +360,7 @@ export function EmployeesPage() {
         />
       ) : (
         <div className="table-wrap">
-          <table className="tickets-table tickets-table--equal">
-            <colgroup>
-              <col style={{ width: '17%' }} />
-              <col style={{ width: '11%' }} />
-              <col style={{ width: '10%' }} />
-              <col style={{ width: '9%' }} />
-              <col style={{ width: '11%' }} />
-              <col style={{ width: '8%' }} />
-              <col style={{ width: '34%' }} />
-            </colgroup>
+          <table className="tickets-table">
             <thead>
               <tr>
                 <th>F.I.Sh</th>
