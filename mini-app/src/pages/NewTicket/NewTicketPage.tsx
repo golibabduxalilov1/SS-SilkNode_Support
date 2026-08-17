@@ -80,7 +80,7 @@ export function NewTicketPage({ status, onCreated }: NewTicketPageProps) {
           const orgRes = await api.post('/organizations', { name: customOrgName.trim() });
           resolvedOrganizationId = orgRes.data.data.id;
         } catch {
-          setError('Tashkilot yaratib bo\'lmadi.');
+          setError('Tashkilot yasab bo\'lmadi.');
           setIsSubmitting(false);
           return;
         }
@@ -92,7 +92,7 @@ export function NewTicketPage({ status, onCreated }: NewTicketPageProps) {
           const categoryRes = await api.post('/categories', { name: customCategoryName.trim() });
           resolvedCategoryId = categoryRes.data.data.id;
         } catch {
-          setError('Kategoriya yaratib bo\'lmadi.');
+          setError('Kategoriya yasab bo\'lmadi.');
           setIsSubmitting(false);
           return;
         }

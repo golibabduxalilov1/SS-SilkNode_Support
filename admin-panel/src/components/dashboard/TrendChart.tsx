@@ -118,7 +118,7 @@ function TrendTooltip({
       <div className="chart-tooltip-label">{labelFormatter(label ?? '')}</div>
       <div className="chart-tooltip-row">
         <span className="chart-tooltip-swatch" style={{ background: 'var(--primary)' }} />
-        <span>Yaratilgan</span>
+        <span>Yasalgan</span>
         <strong>{point.created}</strong>
       </div>
       <div className="chart-tooltip-row">
@@ -156,7 +156,7 @@ export function TrendChart({ data, periodLabel }: { data: DailyTrendPoint[]; per
         <ul className="chart-legend chart-legend--inline">
           <li className="chart-legend-item">
             <span className="chart-legend-swatch" style={{ background: 'var(--primary)' }} />
-            <span className="chart-legend-name">Yaratilgan</span>
+            <span className="chart-legend-name">Yasalgan</span>
           </li>
           <li className="chart-legend-item">
             <span className="chart-legend-swatch" style={{ background: 'var(--success)' }} />
@@ -207,7 +207,7 @@ export function TrendChart({ data, periodLabel }: { data: DailyTrendPoint[]; per
           <Area
             type="monotone"
             dataKey="created"
-            name="Yaratilgan"
+            name="Yasalgan"
             stroke="var(--primary)"
             strokeWidth={2.5}
             fill="url(#trendCreatedFill)"
@@ -238,7 +238,7 @@ export function TrendChart({ data, periodLabel }: { data: DailyTrendPoint[]; per
       </ResponsiveContainer>
       {hasData ? (
         <p className="chart-summary-note">
-          {periodLabel}: <strong>{totalCreated}</strong> ta yaratildi, <strong>{totalClosed}</strong> ta yopildi,
+          {periodLabel}: <strong>{totalCreated}</strong> ta yasaldi, <strong>{totalClosed}</strong> ta yopildi,
           throughput: <strong>{throughput}</strong>
         </p>
       ) : (

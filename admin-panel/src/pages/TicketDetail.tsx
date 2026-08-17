@@ -249,7 +249,7 @@ export function TicketDetailPage() {
             <span className="ticket-summary-meta-value">{ticket.categoryEntity?.name ?? '—'}</span>
           </div>
           <div className="ticket-summary-meta-item">
-            <span className="ticket-summary-meta-label">Yaratildi</span>
+            <span className="ticket-summary-meta-label">Yasaldi</span>
             <span className="ticket-summary-meta-value">
               {new Date(ticket.createdAt).toLocaleString('uz-UZ')}
             </span>

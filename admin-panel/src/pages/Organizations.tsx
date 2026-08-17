@@ -150,7 +150,7 @@ export function OrganizationsPage() {
       load();
     } catch {
       setModalError(
-        modalMode === 'create' ? "Tashkilot yaratib bo'lmadi." : "Tashkilot nomini o'zgartirib bo'lmadi.",
+        modalMode === 'create' ? "Tashkilot yasab bo'lmadi." : "Tashkilot nomini o'zgartirib bo'lmadi.",
       );
     } finally {
       setIsSaving(false);

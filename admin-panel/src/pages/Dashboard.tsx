@@ -870,7 +870,7 @@ export function DashboardPage() {
           accentSoft: 'var(--status-new-soft)',
           trend:
             trendDelta && trendDelta.hasCreatedData
-              ? { delta: trendDelta.created, title: 'Bugun yaratilgan murojaatlar, kechaga nisbatan' }
+              ? { delta: trendDelta.created, title: 'Bugun yasalgan murojaatlar, kechaga nisbatan' }
               : null,
         },
         {
@@ -983,8 +983,8 @@ export function DashboardPage() {
             <div className="bento-grid">
               <div className="chart-card span-12 trend-chart-card">
                 <SectionHeader
-                  title="Murojaatlarni yaratish va hal qilish dinamikasi"
-                  subtitle="Yaratilgan, yopilgan va ochiq qolganlar (kumulyativ) — davr filtrga mos"
+                  title="Murojaatlarni yasash va hal qilish dinamikasi"
+                  subtitle="Yasalgan, yopilgan va ochiq qolganlar (kumulyativ) — davr filtrga mos"
                   filterContext={scopeLabel}
                 />
                 <TrendChart data={stats.dailyTrend} periodLabel={periodLabel} />

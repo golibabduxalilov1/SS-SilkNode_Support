@@ -391,7 +391,7 @@ export function TicketsPage() {
           const orgRes = await api.post('/admin/organizations', { name: form.customOrgName.trim() });
           resolvedOrganizationId = orgRes.data.data.id;
         } catch {
-          setCreateError("Tashkilot yaratib bo'lmadi.");
+          setCreateError("Tashkilot yasab bo'lmadi.");
           setIsCreating(false);
           return;
         }
@@ -403,7 +403,7 @@ export function TicketsPage() {
           const categoryRes = await api.post('/admin/categories', { name: form.customCategoryName.trim() });
           resolvedCategoryId = categoryRes.data.data.id;
         } catch {
-          setCreateError("Kategoriya yaratib bo'lmadi.");
+          setCreateError("Kategoriya yasab bo'lmadi.");
           setIsCreating(false);
           return;
         }
@@ -431,7 +431,7 @@ export function TicketsPage() {
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
-          ?.message ?? "Murojaat yaratib bo'lmadi.";
+          ?.message ?? "Murojaat yasab bo'lmadi.";
       setCreateError(message);
     } finally {
       setIsCreating(false);
@@ -584,11 +584,11 @@ export function TicketsPage() {
               </select>
             </label>
             <label>
-              Yaratildi (dan)
+              Yasaldi (dan)
               <input type="date" value={createdFrom} onChange={(e) => setCreatedFrom(e.target.value)} />
             </label>
             <label>
-              Yaratildi (gacha)
+              Yasaldi (gacha)
               <input type="date" value={createdTo} onChange={(e) => setCreatedTo(e.target.value)} />
             </label>
             <div className="filters-actions">
@@ -622,7 +622,7 @@ export function TicketsPage() {
                     <th>Holat</th>
                     <th>Mas'ul</th>
                     <th>Yopilish vaqti</th>
-                    <th>Yaratildi</th>
+                    <th>Yasaldi</th>
                     {isSuperadmin && <th></th>}
                   </tr>
                 </thead>

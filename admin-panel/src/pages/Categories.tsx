@@ -150,7 +150,7 @@ export function CategoriesPage() {
       load();
     } catch {
       setModalError(
-        modalMode === 'create' ? "Kategoriya yaratib bo'lmadi." : "Kategoriya nomini o'zgartirib bo'lmadi.",
+        modalMode === 'create' ? "Kategoriya yasab bo'lmadi." : "Kategoriya nomini o'zgartirib bo'lmadi.",
       );
     } finally {
       setIsSaving(false);
