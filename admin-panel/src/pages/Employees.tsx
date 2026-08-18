@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { AppShell } from '../components/AppShell';
@@ -88,7 +89,7 @@ function EmployeeModal({
     onSubmit(form, newOrgName);
   };
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-card">
         <div className="modal-header">
@@ -186,7 +187,8 @@ function EmployeeModal({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

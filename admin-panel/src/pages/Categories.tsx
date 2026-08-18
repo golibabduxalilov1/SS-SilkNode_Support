@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { api } from '../api/client';
 import { AppShell } from '../components/AppShell';
 import { ConfirmModal } from '../components/ConfirmModal';
@@ -57,7 +58,7 @@ function CategoryModal({
     onSubmit(trimmed);
   };
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-card">
         <div className="modal-header">
@@ -93,7 +94,8 @@ function CategoryModal({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

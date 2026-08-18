@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { IconAlert, IconClose } from './icons';
 
 export function ConfirmModal({
@@ -25,7 +26,7 @@ export function ConfirmModal({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onCancel()}>
       <div className="modal-card">
         <div className="modal-header">
@@ -49,6 +50,7 @@ export function ConfirmModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

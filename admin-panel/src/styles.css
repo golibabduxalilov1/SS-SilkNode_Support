@@ -3015,6 +3015,9 @@ button {
 .modal-card {
   width: 100%;
   max-width: 420px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
   border-radius: var(--radius-lg);
   background: var(--panel);
   border: 1px solid var(--border-strong);
@@ -3074,6 +3077,8 @@ button {
   flex-direction: column;
   gap: 14px;
   padding: 22px;
+  overflow-y: auto;
+  flex: 1 1 auto;
 }
 
 .modal-field {
@@ -3120,6 +3125,7 @@ button {
 .modal-footer {
   display: flex;
   justify-content: flex-end;
+  flex-shrink: 0;
   gap: 10px;
   padding: 18px 22px;
   border-top: 1px solid var(--border-strong);
