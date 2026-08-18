@@ -3046,6 +3046,13 @@ button {
   color: var(--primary);
 }
 
+.modal-card form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .modal-header h3 {
   flex: 1;
   min-width: 0;
