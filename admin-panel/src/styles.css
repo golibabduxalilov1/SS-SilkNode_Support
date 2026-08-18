@@ -3018,6 +3018,7 @@ button {
   max-height: 90vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   border-radius: var(--radius-lg);
   background: var(--panel);
   border: 1px solid var(--border-strong);
@@ -3079,6 +3080,7 @@ button {
   padding: 22px;
   overflow-y: auto;
   flex: 1 1 auto;
+  min-height: 0;
 }
 
 .modal-field {
