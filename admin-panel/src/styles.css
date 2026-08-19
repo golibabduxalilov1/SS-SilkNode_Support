@@ -1059,6 +1059,127 @@ button {
   border: 1.5px solid var(--panel);
 }
 
+.topbar-bell-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.topbar-bell-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 40;
+  overflow: hidden;
+  animation: fade-in var(--duration-fast) var(--ease) both;
+}
+
+.topbar-bell-dropdown-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.topbar-bell-dropdown-list {
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.topbar-bell-dropdown-loading {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.topbar-bell-dropdown-empty {
+  padding: 28px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.topbar-bell-dropdown-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease);
+}
+
+.topbar-bell-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.topbar-bell-dropdown-item:hover {
+  background: var(--veil);
+}
+
+.topbar-bell-dropdown-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.topbar-bell-dropdown-item-number {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.topbar-bell-dropdown-item-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.topbar-bell-dropdown-item-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.topbar-bell-dropdown-item-time {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.topbar-bell-dropdown-footer {
+  display: block;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  border-top: 1px solid var(--border);
+  background: var(--sunken);
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease);
+}
+
+.topbar-bell-dropdown-footer:hover {
+  background: var(--veil);
+}
+
 .topbar-user {
   display: flex;
   align-items: center;
