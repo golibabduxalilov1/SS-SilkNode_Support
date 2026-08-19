@@ -98,6 +98,63 @@ const EMPTY_CREATE_FORM: CreateTicketForm = {
   files: [],
 };
 
+function CreateTicketChoiceModal({
+  isOpen,
+  onClose,
+  onSelectNew,
+  onSelectLegacy,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSelectNew: () => void;
+  onSelectLegacy: () => void;
+}) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  return createPortal(
+    <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal-card modal-card-sm">
+        <div className="modal-header">
+          <h3>Murojaat yasash</h3>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Yopish">
+            <IconClose width={18} height={18} />
+          </button>
+        </div>
+        <div className="modal-body">
+          <button type="button" className="choice-option" onClick={onSelectNew}>
+            <span className="choice-option-icon">
+              <IconTicketNew width={18} height={18} />
+            </span>
+            <span className="choice-option-text">
+              <span className="choice-option-title">Yangi murojaat qo'shish</span>
+              <span className="choice-option-desc">Hozir kelib tushgan murojaatni ro'yxatdan o'tkazish</span>
+            </span>
+          </button>
+          <button type="button" className="choice-option" onClick={onSelectLegacy}>
+            <span className="choice-option-icon">
+              <IconHistory width={18} height={18} />
+            </span>
+            <span className="choice-option-text">
+              <span className="choice-option-title">Eski murojaat qo'shish</span>
+              <span className="choice-option-desc">Avval boshqa joyda yuritilgan arxiv murojaatni kiritish</span>
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 function CreateTicketModal({
   isOpen,
   organizations,
@@ -570,6 +627,7 @@ export function TicketsPage() {
   const [error, setError] = useState<string | null>(null);
   const [ticketToDelete, setTicketToDelete] = useState<Ticket | null>(null);
   const [page, setPage] = useState(1);
+  const [choiceModalOpen, setChoiceModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -825,22 +883,8 @@ export function TicketsPage() {
             </div>
             <button
               type="button"
-              className="btn btn-secondary"
-              onClick={() => {
-                setLegacyError(null);
-                setLegacyModalOpen(true);
-              }}
-            >
-              <IconHistory width={15} height={15} />
-              Eski murojaat qo'shish
-            </button>
-            <button
-              type="button"
               className="btn btn-primary"
-              onClick={() => {
-                setCreateError(null);
-                setCreateModalOpen(true);
-              }}
+              onClick={() => setChoiceModalOpen(true)}
             >
               <IconPlus width={15} height={15} />
               Yasash
@@ -1012,6 +1056,21 @@ export function TicketsPage() {
           <Pagination page={currentPage} totalPages={totalPages} onChange={setPage} />
         </>
       )}
+
+      <CreateTicketChoiceModal
+        isOpen={choiceModalOpen}
+        onClose={() => setChoiceModalOpen(false)}
+        onSelectNew={() => {
+          setChoiceModalOpen(false);
+          setCreateError(null);
+          setCreateModalOpen(true);
+        }}
+        onSelectLegacy={() => {
+          setChoiceModalOpen(false);
+          setLegacyError(null);
+          setLegacyModalOpen(true);
+        }}
+      />
 
       <CreateTicketModal
         isOpen={createModalOpen}

@@ -3140,6 +3140,60 @@ button {
   border-top: 1px solid var(--border-strong);
 }
 
+.modal-card-sm {
+  max-width: 380px;
+}
+
+.choice-option {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--panel);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--duration-fast) var(--ease), background var(--duration-fast) var(--ease);
+}
+
+.choice-option:hover {
+  border-color: var(--primary);
+  background: var(--indigo-50);
+}
+
+.choice-option-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: var(--indigo-50);
+  color: var(--primary);
+}
+
+.choice-option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.choice-option-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.choice-option-desc {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
 /* ==========================================================================
    Responsive
    Breakpoints: mobile <=640px, tablet 641-1024px, desktop >1024px
