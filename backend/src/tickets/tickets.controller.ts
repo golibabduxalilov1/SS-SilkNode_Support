@@ -7,6 +7,7 @@ import { UsersService } from '../users/users.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { CreateLegacyTicketDto } from './dto/create-legacy-ticket.dto';
 import { UpdateTicketStatusDto } from './dto/update-ticket-status.dto';
+import { UpdateTicketUserStatusDto } from './dto/update-ticket-user-status.dto';
 import { AssignTicketDto } from './dto/assign-ticket.dto';
 import { TelegramAuthGuard } from '../auth/guards/telegram-auth.guard';
 import { UserEligibilityGuard } from '../auth/guards/user-eligibility.guard';
@@ -66,6 +67,22 @@ export class TicketsController {
   @UseGuards(TelegramAuthGuard, UserEligibilityGuard)
   async findOneMine(@Param('id') id: string, @CurrentUser() user: User) {
     const ticket = await this.ticketsService.findOneForUser(id, user.id);
+    return { success: true, data: ticket };
+  }
+
+  /**
+   * PATCH /api/v1/tickets/:id/user-status — "Yechildi" / "Hal bo'lmadi" tugmalari uchun.
+   * Admin PATCH /admin/tickets/:id/status'dan farqli — faqat o'z murojaatiga va faqat
+   * cheklangan o'tishlarga (waiting_user/resolved -> resolved/closed/in_progress) ruxsat beradi.
+   */
+  @Patch('tickets/:id/user-status')
+  @UseGuards(TelegramAuthGuard, UserEligibilityGuard)
+  async updateStatusByUser(
+    @Param('id') id: string,
+    @Body() dto: UpdateTicketUserStatusDto,
+    @CurrentUser() user: User,
+  ) {
+    const ticket = await this.ticketsService.updateStatusByUser(id, dto.action, user);
     return { success: true, data: ticket };
   }
 

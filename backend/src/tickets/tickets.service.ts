@@ -530,6 +530,61 @@ export class TicketsService {
     return updated;
   }
 
+  /**
+   * Foydalanuvchi ("Yechildi" / "Hal bo'lmadi" tugmalari) uchun cheklangan status o'tishi.
+   * Faqat o'z murojaatiga taalluqli, faqat waiting_user/resolved holatida chaqirilishi mumkin —
+   * admin PATCH /admin/tickets/:id/status'dan farqli, ixtiyoriy statusga o'ta olmaydi.
+   */
+  async updateStatusByUser(id: string, action: 'resolve' | 'reopen', user: User): Promise<Ticket> {
+    const ticket = await this.ticketsRepository.findOne({ where: { id } });
+    if (!ticket) throw new NotFoundException('Murojaat topilmadi.');
+    if (ticket.createdById !== user.id) {
+      throw new NotFoundException('Murojaat topilmadi.');
+    }
+
+    if (ticket.status !== TicketStatus.WAITING_USER && ticket.status !== TicketStatus.RESOLVED) {
+      throw new BadRequestException("Murojaat holati bu amal uchun mos emas.");
+    }
+
+    const previousStatus = ticket.status;
+    const nextStatus =
+      action === 'resolve'
+        ? ticket.status === TicketStatus.RESOLVED
+          ? TicketStatus.CLOSED
+          : TicketStatus.RESOLVED
+        : TicketStatus.IN_PROGRESS;
+
+    if (action === 'reopen' && previousStatus === TicketStatus.RESOLVED) {
+      ticket.reopenedCount += 1;
+    }
+
+    ticket.status = nextStatus;
+
+    if (nextStatus === TicketStatus.CLOSED || nextStatus === TicketStatus.RESOLVED) {
+      const now = new Date();
+      ticket.closedAt = now;
+      ticket.resolutionMinutes = diffMinutes(ticket.createdAt, now);
+    } else {
+      ticket.closedAt = null;
+      ticket.resolutionMinutes = null;
+    }
+
+    await this.ticketsRepository.save(ticket);
+
+    await this.auditLogService.log(
+      user.id,
+      user.fullname ?? user.id,
+      AuditAction.TICKET_STATUS_CHANGED,
+      'ticket',
+      id,
+      { from: previousStatus, to: nextStatus },
+    );
+
+    const updated = await this.findById(id);
+    if (!updated) throw new NotFoundException('Murojaat topilmadi.');
+    return updated;
+  }
+
   async assign(id: string, assignedToId: string | null, actor: User): Promise<Ticket> {
     const ticket = await this.ticketsRepository.findOne({ where: { id } });
     if (!ticket) throw new NotFoundException('Murojaat topilmadi.');

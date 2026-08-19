@@ -61,6 +61,9 @@ export function TicketDetailPage({ ticketId, onBack }: TicketDetailPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [showRejectForm, setShowRejectForm] = useState(false);
+  const [rejectComment, setRejectComment] = useState('');
 
   const load = () => {
     setIsLoading(true);
@@ -96,6 +99,45 @@ export function TicketDetailPage({ ticketId, onBack }: TicketDetailPageProps) {
       setError(err?.response?.data?.error?.message ?? 'Faylni yuborib bo\'lmadi.');
     } finally {
       setDownloadingId(null);
+    }
+  };
+
+  const canConfirmResolution = ticket?.status === 'waiting_user' || ticket?.status === 'resolved';
+
+  const handleResolve = async () => {
+    setError(null);
+    setNotice(null);
+    setIsUpdatingStatus(true);
+    try {
+      const res = await api.patch(`/tickets/${ticketId}/user-status`, { action: 'resolve' });
+      setTicket(res.data.data);
+      setShowRejectForm(false);
+    } catch (err: any) {
+      setError(err?.response?.data?.error?.message ?? 'Xatolik yuz berdi.');
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const handleRejectSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!rejectComment.trim()) return;
+
+    setError(null);
+    setNotice(null);
+    setIsUpdatingStatus(true);
+    try {
+      await api.post(`/tickets/${ticketId}/messages`, { text: rejectComment });
+      const res = await api.patch(`/tickets/${ticketId}/user-status`, { action: 'reopen' });
+      setTicket(res.data.data);
+      setRejectComment('');
+      setShowRejectForm(false);
+      const messagesRes = await api.get(`/tickets/${ticketId}/messages`);
+      setMessages(messagesRes.data.data);
+    } catch (err: any) {
+      setError(err?.response?.data?.error?.message ?? 'Xatolik yuz berdi.');
+    } finally {
+      setIsUpdatingStatus(false);
     }
   };
 
@@ -152,6 +194,48 @@ export function TicketDetailPage({ ticketId, onBack }: TicketDetailPageProps) {
       </div>
       <p className="ticket-detail-description">{ticket.description}</p>
       {notice && <p className="form-notice">{notice}</p>}
+
+      {canConfirmResolution && (
+        <div className="ticket-confirm-resolution">
+          {!showRejectForm ? (
+            <div className="ticket-confirm-resolution-actions">
+              <button type="button" disabled={isUpdatingStatus} onClick={handleResolve}>
+                Yechildi
+              </button>
+              <button
+                type="button"
+                className="ticket-confirm-resolution-reject"
+                disabled={isUpdatingStatus}
+                onClick={() => setShowRejectForm(true)}
+              >
+                Hal bo'lmadi
+              </button>
+            </div>
+          ) : (
+            <form className="ticket-confirm-resolution-form" onSubmit={handleRejectSubmit}>
+              <textarea
+                value={rejectComment}
+                onChange={(e) => setRejectComment(e.target.value)}
+                placeholder="Nima uchun hal bo'lmaganini yozing..."
+                rows={3}
+              />
+              <div className="ticket-confirm-resolution-actions">
+                <button type="submit" disabled={isUpdatingStatus || !rejectComment.trim()}>
+                  Yuborish
+                </button>
+                <button
+                  type="button"
+                  className="ticket-confirm-resolution-reject"
+                  disabled={isUpdatingStatus}
+                  onClick={() => setShowRejectForm(false)}
+                >
+                  Bekor qilish
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      )}
 
       <div className="chat">
         {messages.map((m) => {
