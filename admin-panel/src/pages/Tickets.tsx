@@ -591,6 +591,12 @@ function LegacyTicketModal({
   );
 }
 
+function truncateWords(text: string, limit: number): string {
+  const words = text.trim().split(/\s+/);
+  if (words.length <= limit) return text;
+  return `${words.slice(0, limit).join(' ')}...`;
+}
+
 function closingDuration(ticket: Ticket): string {
   if (!ticket.closedAt) return '-';
   const minutes = Math.max(
@@ -998,7 +1004,7 @@ export function TicketsPage() {
                       onClick={() => navigate(`/dashboard/tickets/${t.id}`)}
                     >
                       <td className="cell-muted">{t.number}</td>
-                      <td className="cell-primary">{t.title}</td>
+                      <td className="cell-primary">{truncateWords(t.title, 7)}</td>
                       <td>{t.organization?.name ?? '—'}</td>
                       <td>
                         <div className="cell-user">
