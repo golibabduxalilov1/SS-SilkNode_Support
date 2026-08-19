@@ -5,7 +5,15 @@ import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { AppShell } from '../components/AppShell';
 import { ConfirmModal } from '../components/ConfirmModal';
-import { IconClose, IconInbox, IconPlus, IconSearch, IconTicketNew, IconTrash } from '../components/icons';
+import {
+  IconClose,
+  IconHistory,
+  IconInbox,
+  IconPlus,
+  IconSearch,
+  IconTicketNew,
+  IconTrash,
+} from '../components/icons';
 import { Avatar, EmptyState, Pagination, TableSkeleton } from '../components/ui';
 
 interface Message {
@@ -283,6 +291,249 @@ function CreateTicketModal({
   );
 }
 
+interface LegacyTicketForm {
+  title: string;
+  description: string;
+  categoryId: string;
+  customCategoryName: string;
+  priority: string;
+  organizationId: string;
+  customOrgName: string;
+  requesterName: string;
+  requesterPhone: string;
+  status: string;
+  createdAt: string;
+  closedAt: string;
+}
+
+const EMPTY_LEGACY_FORM: LegacyTicketForm = {
+  title: '',
+  description: '',
+  categoryId: '',
+  customCategoryName: '',
+  priority: 'medium',
+  organizationId: '',
+  customOrgName: '',
+  requesterName: '',
+  requesterPhone: '',
+  status: 'closed',
+  createdAt: '',
+  closedAt: '',
+};
+
+function LegacyTicketModal({
+  isOpen,
+  organizations,
+  categories,
+  onClose,
+  onSubmit,
+  isSaving,
+  error,
+}: {
+  isOpen: boolean;
+  organizations: Organization[];
+  categories: Category[];
+  onClose: () => void;
+  onSubmit: (form: LegacyTicketForm) => void;
+  isSaving: boolean;
+  error: string | null;
+}) {
+  const [form, setForm] = useState<LegacyTicketForm>(EMPTY_LEGACY_FORM);
+
+  useEffect(() => {
+    if (isOpen) setForm(EMPTY_LEGACY_FORM);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  const isOtherCategory = form.categoryId === '__other__';
+  const isOtherOrg = form.organizationId === '__other__';
+
+  const disabled =
+    isSaving ||
+    !form.title.trim() ||
+    !form.description.trim() ||
+    !form.categoryId ||
+    !form.requesterName.trim() ||
+    !form.requesterPhone.trim() ||
+    !form.createdAt ||
+    (isOtherCategory && !form.customCategoryName.trim()) ||
+    (isOtherOrg && !form.customOrgName.trim());
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (disabled) return;
+    onSubmit(form);
+  };
+
+  return createPortal(
+    <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal-card">
+        <div className="modal-header">
+          <span className="modal-header-icon">
+            <IconHistory width={18} height={18} />
+          </span>
+          <h3>Eski murojaat qo'shish</h3>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Yopish">
+            <IconClose width={18} height={18} />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            {error && <p className="form-error">{error}</p>}
+            <label className="modal-field">
+              <span>Murojaatchi F.I.O.</span>
+              <input
+                value={form.requesterName}
+                onChange={(e) => setForm((f) => ({ ...f, requesterName: e.target.value }))}
+                placeholder="Murojaatchining to'liq ismi"
+                required
+              />
+            </label>
+            <label className="modal-field">
+              <span>Murojaatchi telefon raqami</span>
+              <input
+                value={form.requesterPhone}
+                onChange={(e) => setForm((f) => ({ ...f, requesterPhone: e.target.value }))}
+                placeholder="+998 90 123 45 67"
+                required
+              />
+            </label>
+            <label className="modal-field">
+              <span>Mavzu</span>
+              <input
+                value={form.title}
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                placeholder="Murojaat mavzusi"
+                required
+                autoFocus
+              />
+            </label>
+            <label className="modal-field">
+              <span>Tavsif</span>
+              <textarea
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                placeholder="Murojaat tafsilotlari"
+                rows={4}
+                required
+              />
+            </label>
+            <label className="modal-field">
+              <span>Kategoriya</span>
+              <select
+                value={form.categoryId}
+                onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}
+                required
+              >
+                <option value="">Tanlang</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+                <option value="__other__">Boshqa</option>
+              </select>
+              {isOtherCategory && (
+                <input
+                  value={form.customCategoryName}
+                  onChange={(e) => setForm((f) => ({ ...f, customCategoryName: e.target.value }))}
+                  placeholder="Kategoriya nomini kiriting"
+                  required
+                />
+              )}
+            </label>
+            <label className="modal-field">
+              <span>Muhimlik</span>
+              <select
+                value={form.priority}
+                onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value }))}
+              >
+                {PRIORITY_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="modal-field">
+              <span>Tashkilot</span>
+              <select
+                value={form.organizationId}
+                onChange={(e) => setForm((f) => ({ ...f, organizationId: e.target.value }))}
+              >
+                <option value="">Tanlanmagan</option>
+                {organizations.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.name}
+                  </option>
+                ))}
+                <option value="__other__">Boshqa</option>
+              </select>
+              {isOtherOrg && (
+                <input
+                  value={form.customOrgName}
+                  onChange={(e) => setForm((f) => ({ ...f, customOrgName: e.target.value }))}
+                  placeholder="Tashkilot nomini kiriting"
+                  required
+                />
+              )}
+            </label>
+            <label className="modal-field">
+              <span>Holat</span>
+              <select
+                value={form.status}
+                onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+              >
+                {STATUS_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="modal-field">
+              <span>Yaratilgan sana/vaqt</span>
+              <input
+                type="datetime-local"
+                value={form.createdAt}
+                onChange={(e) => setForm((f) => ({ ...f, createdAt: e.target.value }))}
+                required
+              />
+            </label>
+            <label className="modal-field">
+              <span>Yopilgan sana/vaqt (ixtiyoriy)</span>
+              <input
+                type="datetime-local"
+                value={form.closedAt}
+                onChange={(e) => setForm((f) => ({ ...f, closedAt: e.target.value }))}
+              />
+            </label>
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSaving}>
+              Bekor qilish
+            </button>
+            <button className="btn btn-primary" type="submit" disabled={disabled}>
+              {isSaving ? 'Yasalmoqda...' : 'Yasash'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 function closingDuration(ticket: Ticket): string {
   if (!ticket.closedAt) return '-';
   const minutes = Math.max(
@@ -322,6 +573,9 @@ export function TicketsPage() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [legacyModalOpen, setLegacyModalOpen] = useState(false);
+  const [isCreatingLegacy, setIsCreatingLegacy] = useState(false);
+  const [legacyError, setLegacyError] = useState<string | null>(null);
 
   const load = () => {
     setIsLoading(true);
@@ -440,6 +694,59 @@ export function TicketsPage() {
     }
   };
 
+  const handleCreateLegacyTicket = async (form: LegacyTicketForm) => {
+    setIsCreatingLegacy(true);
+    setLegacyError(null);
+    try {
+      let resolvedOrganizationId = form.organizationId;
+      if (form.organizationId === '__other__') {
+        try {
+          const orgRes = await api.post('/admin/organizations', { name: form.customOrgName.trim() });
+          resolvedOrganizationId = orgRes.data.data.id;
+        } catch {
+          setLegacyError("Tashkilot yasab bo'lmadi.");
+          setIsCreatingLegacy(false);
+          return;
+        }
+      }
+
+      let resolvedCategoryId = form.categoryId;
+      if (form.categoryId === '__other__') {
+        try {
+          const categoryRes = await api.post('/admin/categories', { name: form.customCategoryName.trim() });
+          resolvedCategoryId = categoryRes.data.data.id;
+        } catch {
+          setLegacyError("Kategoriya yasab bo'lmadi.");
+          setIsCreatingLegacy(false);
+          return;
+        }
+      }
+
+      await api.post('/admin/tickets/legacy', {
+        title: form.title.trim(),
+        description: form.description.trim(),
+        categoryId: resolvedCategoryId,
+        priority: form.priority,
+        organizationId: resolvedOrganizationId || undefined,
+        requesterName: form.requesterName.trim(),
+        requesterPhone: form.requesterPhone.trim(),
+        status: form.status,
+        createdAt: new Date(form.createdAt).toISOString(),
+        closedAt: form.closedAt ? new Date(form.closedAt).toISOString() : undefined,
+      });
+
+      setLegacyModalOpen(false);
+      load();
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
+          ?.message ?? "Eski murojaatni saqlab bo'lmadi.";
+      setLegacyError(message);
+    } finally {
+      setIsCreatingLegacy(false);
+    }
+  };
+
   const filteredTickets = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
     const from = createdFrom ? new Date(`${createdFrom}T00:00:00`) : null;
@@ -516,6 +823,17 @@ export function TicketsPage() {
                 placeholder="Murojaat, mijoz yoki raqam bo'yicha qidirish"
               />
             </div>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                setLegacyError(null);
+                setLegacyModalOpen(true);
+              }}
+            >
+              <IconHistory width={15} height={15} />
+              Eski murojaat qo'shish
+            </button>
             <button
               type="button"
               className="btn btn-primary"
@@ -706,6 +1024,19 @@ export function TicketsPage() {
         onSubmit={handleCreateTicket}
         isSaving={isCreating}
         error={createError}
+      />
+
+      <LegacyTicketModal
+        isOpen={legacyModalOpen}
+        organizations={organizations}
+        categories={categories}
+        onClose={() => {
+          if (isCreatingLegacy) return;
+          setLegacyModalOpen(false);
+        }}
+        onSubmit={handleCreateLegacyTicket}
+        isSaving={isCreatingLegacy}
+        error={legacyError}
       />
 
       <ConfirmModal

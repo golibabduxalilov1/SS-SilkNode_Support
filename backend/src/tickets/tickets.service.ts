@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Ticket, TicketPriority, TicketStatus } from './entities/ticket.entity';
 import { CreateTicketDto } from './dto/create-ticket.dto';
+import { CreateLegacyTicketDto } from './dto/create-legacy-ticket.dto';
 import { User } from '../users/entities/user.entity';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { AuditAction } from '../audit-log/entities/audit-log.entity';
@@ -153,8 +154,11 @@ const MAX_TREND_DAYS = 180;
 // har doim so'nggi TREND_DAYS kun (yoki dateTo berilsa, o'sha sanagacha).
 const TREND_DAYS = 14;
 
+const MIN_RESOLUTION_MINUTES = 5;
+
 function diffMinutes(from: Date, to: Date): number {
-  return Math.round((to.getTime() - from.getTime()) / 60000);
+  const minutes = Math.round((to.getTime() - from.getTime()) / 60000);
+  return Math.max(minutes, MIN_RESOLUTION_MINUTES);
 }
 
 function average(values: number[]): number | null {
@@ -398,6 +402,59 @@ export class TicketsService {
       requesterPhone: dto.requesterPhone ?? null,
     });
     return this.ticketsRepository.save(ticket);
+  }
+
+  /**
+   * Eski (arxiv) murojaatlarni admin panelda qo'lda backfill qilish uchun — createdAt/closedAt/status
+   * adminning o'zi kiritadi. @CreateDateColumn/@UpdateDateColumn faqat .save() orqali yozilganda
+   * avtomatik joriy vaqtga almashtiriladi, shu sababli avval oddiy save() bilan yaratilib, so'ng
+   * repository.update() bilan (listener/decoratorlarni chetlab o'tib) sanalar to'g'ridan-to'g'ri yoziladi.
+   */
+  async createLegacy(dto: CreateLegacyTicketDto, createdBy: User): Promise<Ticket> {
+    const createdAt = new Date(dto.createdAt);
+    const closedAt = dto.closedAt ? new Date(dto.closedAt) : null;
+    const now = new Date();
+
+    if (createdAt.getTime() > now.getTime()) {
+      throw new BadRequestException("Yaratilgan sana kelajakka tegishli bo'lishi mumkin emas.");
+    }
+    if (closedAt) {
+      if (closedAt.getTime() > now.getTime()) {
+        throw new BadRequestException("Yopilgan sana kelajakka tegishli bo'lishi mumkin emas.");
+      }
+      if (closedAt.getTime() < createdAt.getTime()) {
+        throw new BadRequestException("Yopilgan sana yaratilgan sanadan oldin bo'lishi mumkin emas.");
+      }
+    }
+
+    const status = dto.status ?? (closedAt ? TicketStatus.CLOSED : TicketStatus.NEW);
+
+    const ticket = this.ticketsRepository.create({
+      number: this.generateTicketNumber(),
+      title: dto.title,
+      description: dto.description,
+      categoryId: dto.categoryId,
+      priority: dto.priority ?? TicketPriority.MEDIUM,
+      organizationId: dto.organizationId ?? createdBy.organizationId ?? null,
+      createdById: createdBy.id,
+      requesterName: dto.requesterName ?? null,
+      requesterPhone: dto.requesterPhone ?? null,
+      status,
+      closedAt,
+      resolutionMinutes: closedAt ? diffMinutes(createdAt, closedAt) : null,
+    });
+    const saved = await this.ticketsRepository.save(ticket);
+
+    // .save() @CreateDateColumn/@UpdateDateColumn'ni joriy vaqtga majburan o'rnatadi — shu sababli
+    // adminning kiritgan sanalarini xom UPDATE so'rovi bilan qayta yozamiz.
+    await this.ticketsRepository.update(saved.id, {
+      createdAt,
+      updatedAt: closedAt ?? createdAt,
+    });
+
+    const result = await this.findById(saved.id);
+    if (!result) throw new NotFoundException('Murojaat topilmadi.');
+    return result;
   }
 
   findMine(userId: string): Promise<Ticket[]> {

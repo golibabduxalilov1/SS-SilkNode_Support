@@ -5,6 +5,7 @@ import { CategoriesService } from '../categories/categories.service';
 import { NotifyAdminsService } from '../bot/notify-admins.service';
 import { UsersService } from '../users/users.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
+import { CreateLegacyTicketDto } from './dto/create-legacy-ticket.dto';
 import { UpdateTicketStatusDto } from './dto/update-ticket-status.dto';
 import { AssignTicketDto } from './dto/assign-ticket.dto';
 import { TelegramAuthGuard } from '../auth/guards/telegram-auth.guard';
@@ -84,6 +85,18 @@ export class TicketsController {
     const ticket = await this.ticketsService.create(dto, user);
     const full = await this.ticketsService.findById(ticket.id);
     return { success: true, data: full };
+  }
+
+  /**
+   * POST /api/v1/admin/tickets/legacy — eski (arxiv) murojaatlarni admin qo'lda backfill qilishi uchun.
+   * createdAt/closedAt/status adminning o'zi kiritadi (bo'lim: eski murojaat qo'shish).
+   */
+  @Post('admin/tickets/legacy')
+  @UseGuards(AdminJwtAuthGuard)
+  @HttpCode(HttpStatus.CREATED)
+  async createLegacy(@Body() dto: CreateLegacyTicketDto, @CurrentUser() user: User) {
+    const ticket = await this.ticketsService.createLegacy(dto, user);
+    return { success: true, data: ticket };
   }
 
   /**
