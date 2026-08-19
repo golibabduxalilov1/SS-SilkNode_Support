@@ -477,10 +477,17 @@ export class TicketsService {
   }
 
   findAllForAdmin(): Promise<Ticket[]> {
-    return this.ticketsRepository.find({
-      relations: ['organization', 'categoryEntity', 'createdBy', 'assignedTo', 'messages'],
-      order: { createdAt: 'DESC' },
-    });
+    return this.ticketsRepository
+      .createQueryBuilder('ticket')
+      .leftJoinAndSelect('ticket.organization', 'organization')
+      .leftJoinAndSelect('ticket.categoryEntity', 'categoryEntity')
+      .leftJoinAndSelect('ticket.createdBy', 'createdBy')
+      .leftJoinAndSelect('ticket.assignedTo', 'assignedTo')
+      .leftJoinAndSelect('ticket.messages', 'messages')
+      .addSelect(`CASE WHEN ticket.status = 'new' THEN 0 ELSE 1 END`, 'status_rank')
+      .orderBy('status_rank', 'ASC')
+      .addOrderBy('ticket.createdAt', 'DESC')
+      .getMany();
   }
 
   findById(id: string): Promise<Ticket | null> {
