@@ -3319,6 +3319,54 @@ button {
   color: var(--text-muted);
 }
 
+.choice-option-icon--success {
+  background: var(--success-tint);
+  color: var(--success-text);
+}
+
+.choice-option-icon--danger {
+  background: var(--danger-soft);
+  color: var(--danger-soft-text);
+}
+
+.export-filters {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.export-filters .modal-field {
+  gap: 6px;
+}
+
+.export-format-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.export-section-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  margin: 4px 0 -4px;
+}
+
+.export-result-count {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: -6px 0 0;
+}
+
+@media (max-width: 640px) {
+  .export-filters,
+  .export-format-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ==========================================================================
    Responsive
    Breakpoints: mobile <=640px, tablet 641-1024px, desktop >1024px

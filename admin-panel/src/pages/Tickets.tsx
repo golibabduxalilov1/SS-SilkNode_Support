@@ -7,6 +7,9 @@ import { AppShell } from '../components/AppShell';
 import { ConfirmModal } from '../components/ConfirmModal';
 import {
   IconClose,
+  IconDownload,
+  IconFileSpreadsheet,
+  IconFileText,
   IconHistory,
   IconInbox,
   IconPlus,
@@ -15,6 +18,7 @@ import {
   IconTrash,
 } from '../components/icons';
 import { Avatar, EmptyState, Pagination, TableSkeleton } from '../components/ui';
+import { exportTableToExcel, exportTableToPdf } from '../utils/tableExport';
 
 interface Message {
   id: string;
@@ -71,6 +75,59 @@ const PRIORITY_OPTIONS = [
 ];
 
 const PAGE_SIZE = 15;
+
+interface TicketFilters {
+  organizationFilter: string;
+  statusFilter: string;
+  priorityFilter: string;
+  categoryFilter: string;
+  assignedToFilter: string;
+  createdFrom: string;
+  createdTo: string;
+  searchTerm: string;
+}
+
+const EMPTY_TICKET_FILTERS: TicketFilters = {
+  organizationFilter: '',
+  statusFilter: '',
+  priorityFilter: '',
+  categoryFilter: '',
+  assignedToFilter: '',
+  createdFrom: '',
+  createdTo: '',
+  searchTerm: '',
+};
+
+function filterTickets(tickets: Ticket[], filters: TicketFilters): Ticket[] {
+  const term = filters.searchTerm.trim().toLowerCase();
+  const from = filters.createdFrom ? new Date(`${filters.createdFrom}T00:00:00`) : null;
+  const to = filters.createdTo ? new Date(`${filters.createdTo}T23:59:59.999`) : null;
+  return tickets.filter((t) => {
+    const matchesOrg = !filters.organizationFilter || t.organization?.id === filters.organizationFilter;
+    const matchesStatus = !filters.statusFilter || t.status === filters.statusFilter;
+    const matchesPriority = !filters.priorityFilter || t.priority === filters.priorityFilter;
+    const matchesCategory = !filters.categoryFilter || t.categoryEntity?.id === filters.categoryFilter;
+    const matchesAssignedTo = !filters.assignedToFilter || t.assignedTo?.id === filters.assignedToFilter;
+    const createdDate = new Date(t.createdAt);
+    const matchesFrom = !from || createdDate >= from;
+    const matchesTo = !to || createdDate <= to;
+    const matchesTerm =
+      !term ||
+      t.number.toLowerCase().includes(term) ||
+      t.title.toLowerCase().includes(term) ||
+      (t.requesterName ?? t.createdBy?.fullname ?? '').toLowerCase().includes(term);
+    return (
+      matchesOrg &&
+      matchesStatus &&
+      matchesPriority &&
+      matchesCategory &&
+      matchesAssignedTo &&
+      matchesFrom &&
+      matchesTo &&
+      matchesTerm
+    );
+  });
+}
 
 interface CreateTicketForm {
   title: string;
@@ -591,6 +648,289 @@ function LegacyTicketModal({
   );
 }
 
+function ticketPriorityLabel(priority: string): string {
+  return PRIORITY_OPTIONS.find((o) => o.value === priority)?.label ?? priority;
+}
+
+function ticketStatusLabel(status: string): string {
+  return STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status;
+}
+
+function ticketsToExportRows(tickets: Ticket[]): (string | number)[][] {
+  return tickets.map((t) => [
+    t.number,
+    t.title,
+    t.organization?.name ?? '-',
+    t.requesterName ?? t.createdBy?.fullname ?? '-',
+    t.requesterPhone ?? t.createdBy?.phoneNumber ?? '-',
+    t.categoryEntity?.name ?? '-',
+    ticketPriorityLabel(t.priority),
+    ticketStatusLabel(t.status),
+    t.assignedTo?.fullname ?? 'Tayinlanmagan',
+    new Date(t.createdAt).toLocaleString('uz-UZ'),
+    closingDuration(t),
+  ]);
+}
+
+const EXPORT_HEADERS = [
+  '№',
+  'Mavzu',
+  'Tashkilot',
+  'Foydalanuvchi',
+  'Telefon',
+  'Kategoriya',
+  'Muhimlik',
+  'Holat',
+  "Mas'ul",
+  'Yaratildi',
+  'Yopilish vaqti',
+];
+
+function ExportTicketsModal({
+  isOpen,
+  onClose,
+  tickets,
+  organizations,
+  categories,
+  admins,
+  initialFilters,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  tickets: Ticket[];
+  organizations: Organization[];
+  categories: Category[];
+  admins: AdminUser[];
+  initialFilters: TicketFilters;
+}) {
+  const [filters, setFilters] = useState<TicketFilters>(initialFilters);
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) setFilters(initialFilters);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  const matched = filterTickets(tickets, filters);
+
+  const buildExportTable = () => {
+    const filterSummary = [
+      filters.statusFilter && `Holat: ${ticketStatusLabel(filters.statusFilter)}`,
+      filters.priorityFilter && `Muhimlik: ${ticketPriorityLabel(filters.priorityFilter)}`,
+      filters.organizationFilter &&
+        `Tashkilot: ${organizations.find((o) => o.id === filters.organizationFilter)?.name ?? ''}`,
+      filters.categoryFilter &&
+        `Kategoriya: ${categories.find((c) => c.id === filters.categoryFilter)?.name ?? ''}`,
+      filters.assignedToFilter &&
+        `Mas'ul: ${admins.find((a) => a.id === filters.assignedToFilter)?.fullname ?? ''}`,
+      filters.createdFrom && `${filters.createdFrom} dan`,
+      filters.createdTo && `${filters.createdTo} gacha`,
+      filters.searchTerm && `Qidiruv: "${filters.searchTerm}"`,
+    ]
+      .filter(Boolean)
+      .join(' • ');
+
+    return {
+      title: 'Murojaatlar ro\'yxati',
+      subtitle: `Yaratildi: ${new Date().toLocaleString('uz-UZ')} • Jami: ${matched.length} ta${
+        filterSummary ? ` • ${filterSummary}` : ''
+      }`,
+      headers: EXPORT_HEADERS,
+      rows: ticketsToExportRows(matched),
+      fileName: `murojaatlar_${new Date().toISOString().slice(0, 10)}`,
+    };
+  };
+
+  const handleExportExcel = async () => {
+    setIsExportingExcel(true);
+    try {
+      const table = buildExportTable();
+      await exportTableToExcel({ ...table, fileName: `${table.fileName}.xlsx` });
+      onClose();
+    } finally {
+      setIsExportingExcel(false);
+    }
+  };
+
+  const handleExportPdf = () => {
+    setIsExportingPdf(true);
+    try {
+      const table = buildExportTable();
+      exportTableToPdf({ ...table, fileName: `${table.fileName}.pdf` });
+      onClose();
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
+  const clearExportFilters = () => setFilters(EMPTY_TICKET_FILTERS);
+
+  return createPortal(
+    <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal-card">
+        <div className="modal-header">
+          <span className="modal-header-icon">
+            <IconDownload width={18} height={18} />
+          </span>
+          <h3>Murojaatlarni yuklab olish</h3>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Yopish">
+            <IconClose width={18} height={18} />
+          </button>
+        </div>
+        <div className="modal-body">
+          <p className="export-section-label">Filtrlar</p>
+          <div className="export-filters">
+            <label className="modal-field">
+              <span>Tashkilot</span>
+              <select
+                value={filters.organizationFilter}
+                onChange={(e) => setFilters((f) => ({ ...f, organizationFilter: e.target.value }))}
+              >
+                <option value="">Barchasi</option>
+                {organizations.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="modal-field">
+              <span>Holat</span>
+              <select
+                value={filters.statusFilter}
+                onChange={(e) => setFilters((f) => ({ ...f, statusFilter: e.target.value }))}
+              >
+                <option value="">Barchasi</option>
+                {STATUS_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="modal-field">
+              <span>Muhimlik</span>
+              <select
+                value={filters.priorityFilter}
+                onChange={(e) => setFilters((f) => ({ ...f, priorityFilter: e.target.value }))}
+              >
+                <option value="">Barchasi</option>
+                {PRIORITY_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="modal-field">
+              <span>Kategoriya</span>
+              <select
+                value={filters.categoryFilter}
+                onChange={(e) => setFilters((f) => ({ ...f, categoryFilter: e.target.value }))}
+              >
+                <option value="">Barchasi</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="modal-field">
+              <span>Mas'ul</span>
+              <select
+                value={filters.assignedToFilter}
+                onChange={(e) => setFilters((f) => ({ ...f, assignedToFilter: e.target.value }))}
+              >
+                <option value="">Barchasi</option>
+                {admins.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.fullname ?? a.id}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="modal-field">
+              <span>Qidiruv</span>
+              <input
+                value={filters.searchTerm}
+                onChange={(e) => setFilters((f) => ({ ...f, searchTerm: e.target.value }))}
+                placeholder="Raqam, mavzu yoki mijoz"
+              />
+            </label>
+            <label className="modal-field">
+              <span>Yaratildi (dan)</span>
+              <input
+                type="date"
+                value={filters.createdFrom}
+                onChange={(e) => setFilters((f) => ({ ...f, createdFrom: e.target.value }))}
+              />
+            </label>
+            <label className="modal-field">
+              <span>Yaratildi (gacha)</span>
+              <input
+                type="date"
+                value={filters.createdTo}
+                onChange={(e) => setFilters((f) => ({ ...f, createdTo: e.target.value }))}
+              />
+            </label>
+          </div>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={clearExportFilters}>
+            Filterlarni tozalash
+          </button>
+
+          <p className="export-result-count">{matched.length} ta murojaat yuklab olinadi</p>
+
+          <p className="export-section-label">Format</p>
+          <div className="export-format-grid">
+            <button
+              type="button"
+              className="choice-option"
+              onClick={handleExportExcel}
+              disabled={isExportingExcel || matched.length === 0}
+            >
+              <span className="choice-option-icon choice-option-icon--success">
+                <IconFileSpreadsheet width={18} height={18} />
+              </span>
+              <span className="choice-option-text">
+                <span className="choice-option-title">{isExportingExcel ? 'Tayyorlanmoqda...' : 'Excel'}</span>
+                <span className="choice-option-desc">.xlsx fayl sifatida yuklab olish</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              className="choice-option"
+              onClick={handleExportPdf}
+              disabled={isExportingPdf || matched.length === 0}
+            >
+              <span className="choice-option-icon choice-option-icon--danger">
+                <IconFileText width={18} height={18} />
+              </span>
+              <span className="choice-option-text">
+                <span className="choice-option-title">{isExportingPdf ? 'Tayyorlanmoqda...' : 'PDF'}</span>
+                <span className="choice-option-desc">.pdf fayl sifatida yuklab olish</span>
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 function truncateWords(text: string, limit: number): string {
   const words = text.trim().split(/\s+/);
   if (words.length <= limit) return text;
@@ -634,6 +974,7 @@ export function TicketsPage() {
   const [ticketToDelete, setTicketToDelete] = useState<Ticket | null>(null);
   const [page, setPage] = useState(1);
   const [choiceModalOpen, setChoiceModalOpen] = useState(false);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -811,46 +1152,30 @@ export function TicketsPage() {
     }
   };
 
-  const filteredTickets = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
-    const from = createdFrom ? new Date(`${createdFrom}T00:00:00`) : null;
-    const to = createdTo ? new Date(`${createdTo}T23:59:59.999`) : null;
-    return tickets.filter((t) => {
-      const matchesOrg = !organizationFilter || t.organization?.id === organizationFilter;
-      const matchesStatus = !statusFilter || t.status === statusFilter;
-      const matchesPriority = !priorityFilter || t.priority === priorityFilter;
-      const matchesCategory = !categoryFilter || t.categoryEntity?.id === categoryFilter;
-      const matchesAssignedTo = !assignedToFilter || t.assignedTo?.id === assignedToFilter;
-      const createdDate = new Date(t.createdAt);
-      const matchesFrom = !from || createdDate >= from;
-      const matchesTo = !to || createdDate <= to;
-      const matchesTerm =
-        !term ||
-        t.number.toLowerCase().includes(term) ||
-        t.title.toLowerCase().includes(term) ||
-        (t.requesterName ?? t.createdBy?.fullname ?? '').toLowerCase().includes(term);
-      return (
-        matchesOrg &&
-        matchesStatus &&
-        matchesPriority &&
-        matchesCategory &&
-        matchesAssignedTo &&
-        matchesFrom &&
-        matchesTo &&
-        matchesTerm
-      );
-    });
-  }, [
-    tickets,
-    organizationFilter,
-    statusFilter,
-    priorityFilter,
-    categoryFilter,
-    assignedToFilter,
-    createdFrom,
-    createdTo,
-    searchTerm,
-  ]);
+  const filteredTickets = useMemo(
+    () =>
+      filterTickets(tickets, {
+        organizationFilter,
+        statusFilter,
+        priorityFilter,
+        categoryFilter,
+        assignedToFilter,
+        createdFrom,
+        createdTo,
+        searchTerm,
+      }),
+    [
+      tickets,
+      organizationFilter,
+      statusFilter,
+      priorityFilter,
+      categoryFilter,
+      assignedToFilter,
+      createdFrom,
+      createdTo,
+      searchTerm,
+    ],
+  );
 
   useEffect(() => {
     setPage(1);
@@ -887,6 +1212,14 @@ export function TicketsPage() {
                 placeholder="Murojaat, mijoz yoki raqam bo'yicha qidirish"
               />
             </div>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setExportModalOpen(true)}
+            >
+              <IconDownload width={15} height={15} />
+              Yuklab olish
+            </button>
             <button
               type="button"
               className="btn btn-primary"
@@ -1102,6 +1435,25 @@ export function TicketsPage() {
         onSubmit={handleCreateLegacyTicket}
         isSaving={isCreatingLegacy}
         error={legacyError}
+      />
+
+      <ExportTicketsModal
+        isOpen={exportModalOpen}
+        onClose={() => setExportModalOpen(false)}
+        tickets={tickets}
+        organizations={organizations}
+        categories={categories}
+        admins={admins}
+        initialFilters={{
+          organizationFilter,
+          statusFilter,
+          priorityFilter,
+          categoryFilter,
+          assignedToFilter,
+          createdFrom,
+          createdTo,
+          searchTerm,
+        }}
       />
 
       <ConfirmModal
