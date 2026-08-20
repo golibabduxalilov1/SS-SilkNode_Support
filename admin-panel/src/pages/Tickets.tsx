@@ -708,7 +708,7 @@ function ExportTicketsModal({
   const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   useEffect(() => {
-    if (isOpen) setFilters(initialFilters);
+    if (isOpen) setFilters({ ...initialFilters, searchTerm: '' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
@@ -861,14 +861,6 @@ function ExportTicketsModal({
                   </option>
                 ))}
               </select>
-            </label>
-            <label className="modal-field">
-              <span>Qidiruv</span>
-              <input
-                value={filters.searchTerm}
-                onChange={(e) => setFilters((f) => ({ ...f, searchTerm: e.target.value }))}
-                placeholder="Raqam, mavzu yoki mijoz"
-              />
             </label>
             <label className="modal-field">
               <span>Yaratildi (dan)</span>
