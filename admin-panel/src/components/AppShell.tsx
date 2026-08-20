@@ -6,6 +6,7 @@ import {
   IconBell,
   IconBuilding,
   IconClose,
+  IconDownload,
   IconGrid,
   IconHistory,
   IconInbox,
@@ -77,6 +78,7 @@ interface AppShellProps {
   breadcrumb?: string;
   actions?: ReactNode;
   children: ReactNode;
+  contentClassName?: string;
 }
 
 function initials(name: string | null | undefined): string {
@@ -91,7 +93,7 @@ const ROLE_LABELS: Record<string, string> = {
   superadmin: 'Superadmin',
 };
 
-export function AppShell({ title, breadcrumb, actions, children }: AppShellProps) {
+export function AppShell({ title, breadcrumb, actions, children, contentClassName }: AppShellProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -212,6 +214,21 @@ export function AppShell({ title, breadcrumb, actions, children }: AppShellProps
                     {to === '/tickets' && newTicketsCount > 0 && (
                       <span className="sidebar-nav-badge">{newTicketsCount > 99 ? '99+' : newTicketsCount}</span>
                     )}
+                    {to === '/tickets' && (
+                      <button
+                        type="button"
+                        className="sidebar-nav-download"
+                        title="Murojaatlarni yuklab olish"
+                        aria-label="Murojaatlarni yuklab olish"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          navigate('/tickets?export=1');
+                        }}
+                      >
+                        <IconDownload width={13} height={13} />
+                      </button>
+                    )}
                   </NavLink>
                 ))}
               </div>
@@ -326,7 +343,7 @@ export function AppShell({ title, breadcrumb, actions, children }: AppShellProps
           </div>
         </header>
 
-        <main className="app-content">{children}</main>
+        <main className={`app-content${contentClassName ? ` ${contentClassName}` : ''}`}>{children}</main>
       </div>
     </div>
   );
