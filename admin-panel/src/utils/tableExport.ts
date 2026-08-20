@@ -1,6 +1,8 @@
 import ExcelJS from 'exceljs';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { ROBOTO_REGULAR_BASE64 } from '../assets/fonts/robotoRegularBase64';
+import { ROBOTO_BOLD_BASE64 } from '../assets/fonts/robotoBoldBase64';
 
 const BRAND_INDIGO = '4F46E5';
 const BRAND_INDIGO_SOFT = 'EEF2FF';
@@ -13,6 +15,14 @@ export interface ExportTable {
   headers: string[];
   rows: (string | number)[][];
   fileName: string;
+}
+
+function registerUnicodeFont(doc: jsPDF): void {
+  doc.addFileToVFS('Roboto-Regular.ttf', ROBOTO_REGULAR_BASE64);
+  doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+  doc.addFileToVFS('Roboto-Bold.ttf', ROBOTO_BOLD_BASE64);
+  doc.addFont('Roboto-Bold.ttf', 'Roboto', 'bold');
+  doc.setFont('Roboto', 'normal');
 }
 
 function triggerDownload(blob: Blob, fileName: string) {
@@ -104,14 +114,15 @@ export async function exportTableToExcel(table: ExportTable): Promise<void> {
 export function exportTableToPdf(table: ExportTable): void {
   const { title, subtitle, headers, rows, fileName } = table;
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  registerUnicodeFont(doc);
 
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('Roboto', 'bold');
   doc.setFontSize(16);
   doc.setTextColor(30, 27, 75);
   doc.text(title, 24, 32);
 
   if (subtitle) {
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('Roboto', 'normal');
     doc.setFontSize(10);
     doc.setTextColor(100, 116, 139);
     doc.text(subtitle, 24, 48);
@@ -122,14 +133,14 @@ export function exportTableToPdf(table: ExportTable): void {
     body: rows,
     startY: subtitle ? 60 : 48,
     margin: { left: 24, right: 24 },
-    styles: { fontSize: 8.5, cellPadding: 6, textColor: [15, 23, 42], lineColor: [226, 232, 240] },
-    headStyles: { fillColor: BRAND_INDIGO_RGB, textColor: [255, 255, 255], fontStyle: 'bold' },
+    styles: { font: 'Roboto', fontSize: 8.5, cellPadding: 6, textColor: [15, 23, 42], lineColor: [226, 232, 240] },
+    headStyles: { font: 'Roboto', fillColor: BRAND_INDIGO_RGB, textColor: [255, 255, 255], fontStyle: 'bold' },
     alternateRowStyles: { fillColor: BRAND_INDIGO_SOFT_RGB },
     didDrawPage: () => {
       const pageCount = doc.getNumberOfPages();
       const currentPage = doc.getCurrentPageInfo().pageNumber;
       const pageSize = doc.internal.pageSize;
-      doc.setFont('helvetica', 'normal');
+      doc.setFont('Roboto', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(148, 163, 184);
       doc.text(
