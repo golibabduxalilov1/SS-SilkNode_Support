@@ -218,10 +218,10 @@ export function AppShell({ title, breadcrumb, actions, children, contentClassNam
                     {to === '/tickets' && (
                       <button
                         type="button"
-                        className="sidebar-nav-download"
+                        className="sidebar-nav-item sidebar-nav-item--button"
                         onClick={() => navigate('/tickets?export=1')}
                       >
-                        <IconDownload width={14} height={14} />
+                        <IconDownload className="sidebar-nav-icon" />
                         <span>Yuklab olish</span>
                       </button>
                     )}

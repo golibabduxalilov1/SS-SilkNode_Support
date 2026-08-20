@@ -848,30 +848,13 @@ button {
   flex-direction: column;
 }
 
-.sidebar-nav-download {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 2px 0 4px 32px;
-  padding: 6px 10px;
+.sidebar-nav-item--button {
+  width: 100%;
   border: none;
-  border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--text-muted);
-  font-size: 12.5px;
-  font-weight: 500;
+  font-family: inherit;
   cursor: pointer;
-  transition: background var(--duration-fast) var(--ease), color var(--duration-fast) var(--ease);
-}
-
-.sidebar-nav-download svg {
-  flex-shrink: 0;
-  opacity: 0.75;
-}
-
-.sidebar-nav-download:hover {
-  background: var(--veil);
-  color: var(--primary);
+  text-align: left;
 }
 
 .sidebar-nav-badge {
