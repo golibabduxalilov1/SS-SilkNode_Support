@@ -838,23 +838,34 @@ button {
   color: var(--primary);
 }
 
+.sidebar-nav-entry {
+  display: flex;
+  flex-direction: column;
+}
+
 .sidebar-nav-download {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  flex-shrink: 0;
+  gap: 8px;
+  margin: 2px 0 4px 32px;
+  padding: 6px 10px;
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 500;
   cursor: pointer;
   transition: background var(--duration-fast) var(--ease), color var(--duration-fast) var(--ease);
 }
 
+.sidebar-nav-download svg {
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
 .sidebar-nav-download:hover {
-  background: var(--indigo-50);
+  background: var(--veil);
   color: var(--primary);
 }
 

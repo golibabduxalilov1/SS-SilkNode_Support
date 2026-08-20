@@ -204,32 +204,28 @@ export function AppShell({ title, breadcrumb, actions, children, contentClassNam
               <div className="sidebar-group" key={group.label}>
                 <span className="sidebar-group-label">{group.label}</span>
                 {items.map(({ to, label, icon: Icon }) => (
-                  <NavLink
-                    key={to}
-                    to={to}
-                    className={({ isActive }) => `sidebar-nav-item${isActive ? ' is-active' : ''}`}
-                  >
-                    <Icon className="sidebar-nav-icon" />
-                    <span>{label}</span>
-                    {to === '/tickets' && newTicketsCount > 0 && (
-                      <span className="sidebar-nav-badge">{newTicketsCount > 99 ? '99+' : newTicketsCount}</span>
-                    )}
+                  <div key={to} className="sidebar-nav-entry">
+                    <NavLink
+                      to={to}
+                      className={({ isActive }) => `sidebar-nav-item${isActive ? ' is-active' : ''}`}
+                    >
+                      <Icon className="sidebar-nav-icon" />
+                      <span>{label}</span>
+                      {to === '/tickets' && newTicketsCount > 0 && (
+                        <span className="sidebar-nav-badge">{newTicketsCount > 99 ? '99+' : newTicketsCount}</span>
+                      )}
+                    </NavLink>
                     {to === '/tickets' && (
                       <button
                         type="button"
                         className="sidebar-nav-download"
-                        title="Murojaatlarni yuklab olish"
-                        aria-label="Murojaatlarni yuklab olish"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          navigate('/tickets?export=1');
-                        }}
+                        onClick={() => navigate('/tickets?export=1')}
                       >
-                        <IconDownload width={13} height={13} />
+                        <IconDownload width={14} height={14} />
+                        <span>Yuklab olish</span>
                       </button>
                     )}
-                  </NavLink>
+                  </div>
                 ))}
               </div>
             );
