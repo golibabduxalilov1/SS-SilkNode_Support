@@ -1238,7 +1238,9 @@ button {
   flex: 1;
   min-width: 0;
   width: 100%;
+  max-width: 100%;
   padding: 32px 40px 48px;
+  overflow-x: hidden;
   animation: fade-in var(--duration-base) var(--ease) both;
 }
 
@@ -1251,13 +1253,16 @@ button {
 
 .app-content--table-scroll > * {
   min-width: 0;
+  max-width: 100%;
   flex-shrink: 0;
 }
 
 .app-content--table-scroll > .table-wrap {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
 }
 
 .back-link {
@@ -2085,7 +2090,9 @@ button {
   border: 1px solid var(--border-strong);
   background: var(--panel);
   box-shadow: var(--shadow-sm);
-  overflow: auto;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
 }
 
 .section-card .tickets-table {
