@@ -149,6 +149,10 @@ body,
   height: 100%;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   font-family: var(--font-sans);
@@ -1243,10 +1247,15 @@ button {
   overflow: hidden;
 }
 
+.app-content--table-scroll > * {
+  min-width: 0;
+  flex-shrink: 0;
+}
+
 .app-content--table-scroll > .table-wrap {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  overflow: auto;
 }
 
 .back-link {
