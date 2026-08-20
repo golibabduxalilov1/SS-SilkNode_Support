@@ -3211,6 +3211,7 @@ button {
   gap: 14px;
   padding: 22px;
   overflow-y: auto;
+  overflow-x: hidden;
   flex: 1 1 auto;
   min-height: 0;
 }
@@ -3267,6 +3268,10 @@ button {
 
 .modal-card-sm {
   max-width: 380px;
+}
+
+.modal-card-lg {
+  max-width: 640px;
 }
 
 .choice-option {
@@ -3331,18 +3336,27 @@ button {
 
 .export-filters {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+  min-width: 0;
 }
 
 .export-filters .modal-field {
   gap: 6px;
+  min-width: 0;
+}
+
+.export-filters .modal-field select,
+.export-filters .modal-field input {
+  width: 100%;
+  min-width: 0;
 }
 
 .export-format-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+  min-width: 0;
 }
 
 .export-section-label {

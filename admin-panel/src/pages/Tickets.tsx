@@ -779,7 +779,7 @@ function ExportTicketsModal({
 
   return createPortal(
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal-card">
+      <div className="modal-card modal-card-lg">
         <div className="modal-header">
           <span className="modal-header-icon">
             <IconDownload width={18} height={18} />
