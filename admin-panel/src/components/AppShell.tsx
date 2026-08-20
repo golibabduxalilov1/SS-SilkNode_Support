@@ -6,7 +6,6 @@ import {
   IconBell,
   IconBuilding,
   IconClose,
-  IconDownload,
   IconGrid,
   IconHistory,
   IconInbox,
@@ -204,28 +203,17 @@ export function AppShell({ title, breadcrumb, actions, children, contentClassNam
               <div className="sidebar-group" key={group.label}>
                 <span className="sidebar-group-label">{group.label}</span>
                 {items.map(({ to, label, icon: Icon }) => (
-                  <div key={to} className="sidebar-nav-entry">
-                    <NavLink
-                      to={to}
-                      className={({ isActive }) => `sidebar-nav-item${isActive ? ' is-active' : ''}`}
-                    >
-                      <Icon className="sidebar-nav-icon" />
-                      <span>{label}</span>
-                      {to === '/tickets' && newTicketsCount > 0 && (
-                        <span className="sidebar-nav-badge">{newTicketsCount > 99 ? '99+' : newTicketsCount}</span>
-                      )}
-                    </NavLink>
-                    {to === '/tickets' && (
-                      <button
-                        type="button"
-                        className="sidebar-nav-item sidebar-nav-item--button"
-                        onClick={() => navigate('/tickets?export=1')}
-                      >
-                        <IconDownload className="sidebar-nav-icon" />
-                        <span>Yuklab olish</span>
-                      </button>
+                  <NavLink
+                    key={to}
+                    to={to}
+                    className={({ isActive }) => `sidebar-nav-item${isActive ? ' is-active' : ''}`}
+                  >
+                    <Icon className="sidebar-nav-icon" />
+                    <span>{label}</span>
+                    {to === '/tickets' && newTicketsCount > 0 && (
+                      <span className="sidebar-nav-badge">{newTicketsCount > 99 ? '99+' : newTicketsCount}</span>
                     )}
-                  </div>
+                  </NavLink>
                 ))}
               </div>
             );

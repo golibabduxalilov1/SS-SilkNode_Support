@@ -1,6 +1,6 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { AppShell } from '../components/AppShell';
@@ -947,7 +947,6 @@ function closingDuration(ticket: Ticket): string {
 /** Asosiy TZ bo'lim 6 dagi murojaatlar jadvali — endi Dashboard'dan ajratilgan alohida bo'lim. */
 export function TicketsPage() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { user } = useAuth();
   const isSuperadmin = user?.role === 'superadmin';
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -1004,14 +1003,6 @@ export function TicketsPage() {
   };
 
   useEffect(load, []);
-
-  useEffect(() => {
-    if (new URLSearchParams(location.search).get('export') === '1') {
-      setExportModalOpen(true);
-      navigate('/tickets', { replace: true });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.search]);
 
   const handleAssign = async (ticket: Ticket, assignedToId: string) => {
     try {
@@ -1213,6 +1204,14 @@ export function TicketsPage() {
                 placeholder="Murojaat, mijoz yoki raqam bo'yicha qidirish"
               />
             </div>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setExportModalOpen(true)}
+            >
+              <IconDownload width={15} height={15} />
+              Yuklab olish
+            </button>
             <button
               type="button"
               className="btn btn-primary"
