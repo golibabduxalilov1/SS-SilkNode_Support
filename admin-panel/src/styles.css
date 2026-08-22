@@ -149,6 +149,10 @@ body,
   height: 100%;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   font-family: var(--font-sans);
@@ -697,6 +701,7 @@ button {
 .app-shell {
   display: flex;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 .sidebar {
@@ -806,6 +811,8 @@ button {
 }
 
 .sidebar-nav-item span:not(.sidebar-nav-badge) {
+  flex: 1 1 auto;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -833,6 +840,37 @@ button {
 
 .sidebar-nav-item.is-active .sidebar-nav-icon {
   opacity: 1;
+  color: var(--primary);
+}
+
+.sidebar-nav-entry {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-nav-download {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 4px 32px;
+  padding: 6px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease), color var(--duration-fast) var(--ease);
+}
+
+.sidebar-nav-download svg {
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
+.sidebar-nav-download:hover {
+  background: var(--veil);
   color: var(--primary);
 }
 
@@ -925,6 +963,7 @@ button {
   min-width: 0;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
 }
 
 .topbar {
@@ -1210,10 +1249,15 @@ button {
   overflow: hidden;
 }
 
+.app-content--table-scroll > * {
+  min-width: 0;
+  flex-shrink: 0;
+}
+
 .app-content--table-scroll > .table-wrap {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  overflow: auto;
 }
 
 .back-link {
