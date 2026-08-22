@@ -157,12 +157,14 @@ export function AppShell({ title, breadcrumb, actions, children, contentClassNam
     setSidebarOpen(false);
   }, [location.pathname]);
 
+  const lockPageScroll = contentClassName?.includes('app-content--table-scroll') ?? false;
+
   useEffect(() => {
-    document.body.style.overflow = sidebarOpen ? 'hidden' : '';
+    document.body.style.overflow = sidebarOpen || lockPageScroll ? 'hidden' : '';
     return () => {
       document.body.style.overflow = '';
     };
-  }, [sidebarOpen]);
+  }, [sidebarOpen, lockPageScroll]);
 
   useEffect(() => {
     if (!sidebarOpen) return;
