@@ -1214,7 +1214,6 @@ button {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  overflow-x: auto;
 }
 
 .back-link {
@@ -2052,7 +2051,6 @@ button {
 
 .tickets-table {
   width: 100%;
-  min-width: 1020px;
   border-collapse: collapse;
   background: var(--panel);
 }
@@ -3513,6 +3511,10 @@ button {
 @media (max-width: 768px) {
   .table-wrap {
     -webkit-overflow-scrolling: touch;
+  }
+
+  .tickets-table {
+    min-width: 640px;
   }
 
   .table-actions {
