@@ -160,9 +160,12 @@ export function AppShell({ title, breadcrumb, actions, children, contentClassNam
   const lockPageScroll = contentClassName?.includes('app-content--table-scroll') ?? false;
 
   useEffect(() => {
-    document.body.style.overflow = sidebarOpen || lockPageScroll ? 'hidden' : '';
+    const shouldLock = sidebarOpen || lockPageScroll;
+    document.body.style.overflow = shouldLock ? 'hidden' : '';
+    document.documentElement.style.overflow = shouldLock ? 'hidden' : '';
     return () => {
       document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
     };
   }, [sidebarOpen, lockPageScroll]);
 
