@@ -1211,6 +1211,22 @@ export function TicketsPage() {
     currentPage * PAGE_SIZE,
   );
 
+  useEffect(() => {
+    const headEl = tableHeadScrollRef.current;
+    const bodyEl = tableBodyScrollRef.current;
+    if (!headEl || !bodyEl) return;
+
+    const syncScrollbarGutter = () => {
+      const scrollbarWidth = bodyEl.offsetWidth - bodyEl.clientWidth;
+      headEl.style.paddingRight = `${scrollbarWidth}px`;
+    };
+
+    syncScrollbarGutter();
+    const observer = new ResizeObserver(syncScrollbarGutter);
+    observer.observe(bodyEl);
+    return () => observer.disconnect();
+  }, [paginatedTickets]);
+
   return (
     <AppShell title="Murojaatlar" breadcrumb="Barcha murojaatlar" contentClassName="app-content--table-scroll">
       {isLoading ? (
