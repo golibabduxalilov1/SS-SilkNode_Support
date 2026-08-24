@@ -76,7 +76,7 @@ const PRIORITY_OPTIONS = [
 
 const PAGE_SIZE = 15;
 
-const TICKET_COLUMN_WIDTHS = [6, 16, 9, 13, 8, 7, 8, 9, 8, 8];
+const TICKET_COLUMN_WIDTHS = [22, 9, 13, 8, 7, 8, 9, 8, 8];
 const TICKET_COLUMN_WIDTHS_WITH_ACTIONS = [...TICKET_COLUMN_WIDTHS, 8];
 
 function TicketTableColgroup({ isSuperadmin }: { isSuperadmin: boolean }) {
@@ -1332,7 +1332,6 @@ export function TicketsPage() {
                   <TicketTableColgroup isSuperadmin={isSuperadmin} />
                   <thead>
                     <tr>
-                      <th>#</th>
                       <th>Mavzu</th>
                       <th>Tashkilot</th>
                       <th>Foydalanuvchi</th>
@@ -1357,7 +1356,6 @@ export function TicketsPage() {
                       className="clickable-row"
                       onClick={() => navigate(`/dashboard/tickets/${t.id}`)}
                     >
-                      <td className="cell-muted">{t.number}</td>
                       <td className="cell-primary">{truncateWords(t.title, 7)}</td>
                       <td>{t.organization?.name ?? '—'}</td>
                       <td>
