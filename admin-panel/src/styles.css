@@ -2198,6 +2198,16 @@ button {
   font-size: 12px;
 }
 
+.cell-datetime {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.35;
+}
+
+.cell-datetime-time {
+  font-size: 12px;
+}
+
 .cell-primary {
   font-weight: 600;
   color: var(--text);

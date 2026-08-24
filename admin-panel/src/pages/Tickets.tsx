@@ -1411,7 +1411,12 @@ export function TicketsPage() {
                         </select>
                       </td>
                       <td className="cell-muted">{closingDuration(t)}</td>
-                      <td className="cell-muted">{new Date(t.createdAt).toLocaleString('uz-UZ')}</td>
+                      <td className="cell-muted">
+                        <div className="cell-datetime">
+                          <span>{new Date(t.createdAt).toLocaleDateString('uz-UZ')}</span>
+                          <span className="cell-datetime-time">{new Date(t.createdAt).toLocaleTimeString('uz-UZ')}</span>
+                        </div>
+                      </td>
                       {isSuperadmin && (
                         <td className="table-actions" onClick={(e) => e.stopPropagation()}>
                           <button className="danger" onClick={() => setTicketToDelete(t)}>
