@@ -126,6 +126,7 @@
   /* Layout */
   --topbar-height: 64px;
   --sidebar-width: 260px;
+  --sidebar-width-collapsed: 76px;
 
   /* ---- Legacy aliases (referenced by inline styles / JS) ---- */
   --bg: var(--canvas);
@@ -717,6 +718,7 @@ button {
   left: 0;
   height: 100vh;
   z-index: 50;
+  transition: width var(--duration-base) var(--ease);
 }
 
 .sidebar-overlay {
@@ -959,6 +961,32 @@ button {
   height: 18px;
 }
 
+.sidebar-collapse-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 9px 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease), color var(--duration-fast) var(--ease);
+}
+
+.sidebar-collapse-btn:hover {
+  background: var(--veil);
+  color: var(--text);
+}
+
+.sidebar-collapse-btn svg {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
 
 .app-main {
   flex: 1;
@@ -967,6 +995,58 @@ button {
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
+  transition: margin-left var(--duration-base) var(--ease);
+}
+
+/* ---- Desktop (>=1025px): collapsible icon-only sidebar ---- */
+@media (min-width: 1025px) {
+  .sidebar.is-collapsed {
+    width: var(--sidebar-width-collapsed);
+  }
+
+  .sidebar.is-collapsed .sidebar-brand {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .sidebar.is-collapsed .sidebar-brand-text,
+  .sidebar.is-collapsed .sidebar-group-label,
+  .sidebar.is-collapsed .sidebar-nav-item span:not(.sidebar-nav-badge),
+  .sidebar.is-collapsed .sidebar-user-info,
+  .sidebar.is-collapsed .sidebar-logout span,
+  .sidebar.is-collapsed .sidebar-collapse-btn span {
+    display: none;
+  }
+
+  .sidebar.is-collapsed .sidebar-nav-item,
+  .sidebar.is-collapsed .sidebar-logout,
+  .sidebar.is-collapsed .sidebar-collapse-btn,
+  .sidebar.is-collapsed .sidebar-user {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .sidebar.is-collapsed .sidebar-nav-item {
+    position: relative;
+    border-left-color: transparent;
+  }
+
+  .sidebar.is-collapsed .sidebar-nav-item.is-active {
+    border-left-color: transparent;
+  }
+
+  .sidebar.is-collapsed .sidebar-nav-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    margin-left: 0;
+  }
+
+  .app-shell.is-sidebar-collapsed .app-main {
+    margin-left: var(--sidebar-width-collapsed);
+  }
 }
 
 .topbar {
@@ -3550,6 +3630,10 @@ button {
 
   .topbar-menu-btn {
     display: inline-flex;
+  }
+
+  .sidebar-collapse-btn {
+    display: none;
   }
 
   .sidebar {

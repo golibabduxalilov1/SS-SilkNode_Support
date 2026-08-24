@@ -35,6 +35,8 @@ import {
   History,
   Download,
   FileSpreadsheet,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 
 type IconProps = SVGProps<SVGSVGElement>;
@@ -76,3 +78,5 @@ export const IconTrendFlat = (props: IconProps) => <Minus strokeWidth={STROKE} {
 export const IconHistory = (props: IconProps) => <History strokeWidth={STROKE} {...props} />;
 export const IconDownload = (props: IconProps) => <Download strokeWidth={STROKE} {...props} />;
 export const IconFileSpreadsheet = (props: IconProps) => <FileSpreadsheet strokeWidth={STROKE} {...props} />;
+export const IconPanelLeftClose = (props: IconProps) => <PanelLeftClose strokeWidth={STROKE} {...props} />;
+export const IconPanelLeftOpen = (props: IconProps) => <PanelLeftOpen strokeWidth={STROKE} {...props} />;

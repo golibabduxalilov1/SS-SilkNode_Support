@@ -12,8 +12,12 @@ import {
   IconLayers,
   IconLogout,
   IconMenu,
+  IconPanelLeftClose,
+  IconPanelLeftOpen,
   IconUsers,
 } from './icons';
+
+const SIDEBAR_COLLAPSED_KEY = 'sidebarCollapsed';
 
 const STATUS_LABELS: Record<string, string> = {
   new: 'Yangi',
@@ -99,6 +103,7 @@ export function AppShell({ title, breadcrumb, actions, children, contentClassNam
 
   const [newTicketsCount, setNewTicketsCount] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1');
   const [bellOpen, setBellOpen] = useState(false);
   const [recentTickets, setRecentTickets] = useState<RecentTicket[]>([]);
   const [recentTicketsLoading, setRecentTicketsLoading] = useState(false);
@@ -180,14 +185,22 @@ export function AppShell({ title, breadcrumb, actions, children, contentClassNam
     navigate('/login', { replace: true });
   };
 
+  const toggleCollapsed = () => {
+    setCollapsed((v) => {
+      const next = !v;
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? '1' : '0');
+      return next;
+    });
+  };
+
   return (
-    <div className="app-shell">
+    <div className={`app-shell${collapsed ? ' is-sidebar-collapsed' : ''}`}>
       <div
         className={`sidebar-overlay${sidebarOpen ? ' is-visible' : ''}`}
         onClick={() => setSidebarOpen(false)}
         aria-hidden="true"
       />
-      <aside className={`sidebar${sidebarOpen ? ' is-open' : ''}`}>
+      <aside className={`sidebar${sidebarOpen ? ' is-open' : ''}${collapsed ? ' is-collapsed' : ''}`}>
         <NavLink to="/dashboard" className="sidebar-brand">
           <span className="sidebar-brand-mark">
             <img src="/logo.jpg" alt="Silknode" />
@@ -230,6 +243,17 @@ export function AppShell({ title, breadcrumb, actions, children, contentClassNam
               <span className="sidebar-user-role">{user?.role ? ROLE_LABELS[user.role] ?? user.role : '—'}</span>
             </div>
           </div>
+          <button
+            type="button"
+            className="sidebar-collapse-btn"
+            onClick={toggleCollapsed}
+            aria-label={collapsed ? "Sidebar-ni yoyish" : "Sidebar-ni yig'ish"}
+            aria-expanded={!collapsed}
+            title={collapsed ? "Yoyish" : "Yig'ish"}
+          >
+            {collapsed ? <IconPanelLeftOpen width={18} height={18} /> : <IconPanelLeftClose width={18} height={18} />}
+            <span>Yig'ish</span>
+          </button>
           <button className="sidebar-logout" onClick={handleLogout}>
             <IconLogout />
             <span>Chiqish</span>
