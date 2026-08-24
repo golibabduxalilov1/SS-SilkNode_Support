@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
@@ -75,6 +75,20 @@ const PRIORITY_OPTIONS = [
 ];
 
 const PAGE_SIZE = 15;
+
+const TICKET_COLUMN_WIDTHS = [6, 16, 9, 13, 8, 7, 8, 9, 8, 8];
+const TICKET_COLUMN_WIDTHS_WITH_ACTIONS = [...TICKET_COLUMN_WIDTHS, 8];
+
+function TicketTableColgroup({ isSuperadmin }: { isSuperadmin: boolean }) {
+  const widths = isSuperadmin ? TICKET_COLUMN_WIDTHS_WITH_ACTIONS : TICKET_COLUMN_WIDTHS;
+  return (
+    <colgroup>
+      {widths.map((w, i) => (
+        <col key={i} style={{ width: `${w}%` }} />
+      ))}
+    </colgroup>
+  );
+}
 
 interface TicketFilters {
   organizationFilter: string;
@@ -973,6 +987,14 @@ export function TicketsPage() {
   const [legacyModalOpen, setLegacyModalOpen] = useState(false);
   const [isCreatingLegacy, setIsCreatingLegacy] = useState(false);
   const [legacyError, setLegacyError] = useState<string | null>(null);
+  const tableHeadScrollRef = useRef<HTMLDivElement>(null);
+  const tableBodyScrollRef = useRef<HTMLDivElement>(null);
+
+  const handleTableBodyScroll = () => {
+    if (tableHeadScrollRef.current && tableBodyScrollRef.current) {
+      tableHeadScrollRef.current.scrollLeft = tableBodyScrollRef.current.scrollLeft;
+    }
+  };
 
   const load = () => {
     setIsLoading(true);
@@ -1304,24 +1326,31 @@ export function TicketsPage() {
               description="Filtrni o'zgartirib ko'ring yoki yangi murojaat kelishini kuting."
             />
           ) : (
-            <div className="table-wrap">
-              <table className="tickets-table">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Mavzu</th>
-                    <th>Tashkilot</th>
-                    <th>Foydalanuvchi</th>
-                    <th>Kategoriya</th>
-                    <th>Muhimlik</th>
-                    <th>Holat</th>
-                    <th>Mas'ul</th>
-                    <th>Yopilish vaqti</th>
-                    <th>Yasaldi</th>
-                    {isSuperadmin && <th></th>}
-                  </tr>
-                </thead>
-                <tbody>
+            <div className="table-wrap table-wrap--split">
+              <div className="table-head-scroll" ref={tableHeadScrollRef}>
+                <table className="tickets-table">
+                  <TicketTableColgroup isSuperadmin={isSuperadmin} />
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Mavzu</th>
+                      <th>Tashkilot</th>
+                      <th>Foydalanuvchi</th>
+                      <th>Kategoriya</th>
+                      <th>Muhimlik</th>
+                      <th>Holat</th>
+                      <th>Mas'ul</th>
+                      <th>Yopilish vaqti</th>
+                      <th>Yasaldi</th>
+                      {isSuperadmin && <th></th>}
+                    </tr>
+                  </thead>
+                </table>
+              </div>
+              <div className="table-body-scroll" ref={tableBodyScrollRef} onScroll={handleTableBodyScroll}>
+                <table className="tickets-table">
+                  <TicketTableColgroup isSuperadmin={isSuperadmin} />
+                  <tbody>
                   {paginatedTickets.map((t) => (
                     <tr
                       key={t.id}
@@ -1379,8 +1408,9 @@ export function TicketsPage() {
                       )}
                     </tr>
                   ))}
-                </tbody>
-              </table>
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 

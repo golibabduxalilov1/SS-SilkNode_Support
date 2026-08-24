@@ -7,6 +7,7 @@ import { UsersService } from '../users/users.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { CreateLegacyTicketDto } from './dto/create-legacy-ticket.dto';
 import { UpdateTicketStatusDto } from './dto/update-ticket-status.dto';
+import { UpdateTicketClosedAtDto } from './dto/update-ticket-closed-at.dto';
 import { UpdateTicketUserStatusDto } from './dto/update-ticket-user-status.dto';
 import { AssignTicketDto } from './dto/assign-ticket.dto';
 import { TelegramAuthGuard } from '../auth/guards/telegram-auth.guard';
@@ -172,6 +173,18 @@ export class TicketsController {
   @UseGuards(AdminJwtAuthGuard)
   async assign(@Param('id') id: string, @Body() dto: AssignTicketDto, @CurrentUser() actor: User) {
     const ticket = await this.ticketsService.assign(id, dto.assignedToId || null, actor);
+    return { success: true, data: ticket };
+  }
+
+  /** PATCH /api/v1/admin/tickets/:id/closed-at — "Yopilish vaqti"ni (closedAt) qo'lda tuzatish. */
+  @Patch('admin/tickets/:id/closed-at')
+  @UseGuards(AdminJwtAuthGuard)
+  async updateClosedAt(
+    @Param('id') id: string,
+    @Body() dto: UpdateTicketClosedAtDto,
+    @CurrentUser() actor: User,
+  ) {
+    const ticket = await this.ticketsService.updateClosedAt(id, dto.closedAt, actor);
     return { success: true, data: ticket };
   }
 

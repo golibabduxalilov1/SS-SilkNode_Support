@@ -1260,7 +1260,6 @@ button {
 .app-content--table-scroll > .table-wrap {
   flex: 1;
   min-height: 0;
-  overflow: auto;
 }
 
 .back-link {
@@ -2091,6 +2090,27 @@ button {
   overflow: auto;
 }
 
+.table-wrap--split {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.table-head-scroll {
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.table-body-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.table-wrap--split .tickets-table {
+  table-layout: fixed;
+}
+
 .section-card .tickets-table {
   border: none;
   border-radius: 0;
@@ -2852,6 +2872,50 @@ button {
 .ticket-summary-meta-sub {
   color: var(--text-muted);
   font-weight: 400;
+}
+
+.ticket-summary-meta-label--editable {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ticket-summary-meta-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 1px;
+  border-radius: 4px;
+  line-height: 0;
+}
+
+.ticket-summary-meta-edit-btn:hover {
+  color: var(--text);
+  background: var(--bg-hover, rgba(0, 0, 0, 0.06));
+}
+
+.ticket-summary-meta-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ticket-summary-meta-edit input[type='datetime-local'] {
+  font-size: 13px;
+  padding: 5px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.ticket-summary-meta-edit-actions {
+  display: flex;
+  gap: 6px;
 }
 
 .ticket-summary-description {

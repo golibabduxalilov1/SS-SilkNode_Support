@@ -614,6 +614,43 @@ export class TicketsService {
     return updated;
   }
 
+  /**
+   * "Yopilish vaqti" (resolutionMinutes) hisoblanadigan closedAt'ni admin qo'lda tuzatishi uchun —
+   * masalan, avvalgi status o'zgarishi vaqti noto'g'ri qayd etilgan bo'lsa.
+   */
+  async updateClosedAt(id: string, closedAtInput: string, actor: User): Promise<Ticket> {
+    const ticket = await this.ticketsRepository.findOne({ where: { id } });
+    if (!ticket) throw new NotFoundException('Murojaat topilmadi.');
+
+    const closedAt = new Date(closedAtInput);
+    const now = new Date();
+
+    if (closedAt.getTime() > now.getTime()) {
+      throw new BadRequestException("Yopilish vaqti kelajakka tegishli bo'lishi mumkin emas.");
+    }
+    if (closedAt.getTime() < ticket.createdAt.getTime()) {
+      throw new BadRequestException("Yopilish vaqti yaratilgan sanadan oldin bo'lishi mumkin emas.");
+    }
+
+    const previousClosedAt = ticket.closedAt;
+    ticket.closedAt = closedAt;
+    ticket.resolutionMinutes = diffMinutes(ticket.createdAt, closedAt);
+    await this.ticketsRepository.save(ticket);
+
+    await this.auditLogService.log(
+      actor.id,
+      actor.fullname ?? actor.adminLogin ?? actor.id,
+      AuditAction.TICKET_CLOSED_AT_CHANGED,
+      'ticket',
+      id,
+      { from: previousClosedAt, to: closedAt },
+    );
+
+    const updated = await this.findById(id);
+    if (!updated) throw new NotFoundException('Murojaat topilmadi.');
+    return updated;
+  }
+
   async remove(id: string): Promise<void> {
     const ticket = await this.ticketsRepository.findOne({ where: { id } });
     if (!ticket) throw new NotFoundException('Murojaat topilmadi.');

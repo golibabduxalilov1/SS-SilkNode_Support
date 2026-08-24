@@ -2,7 +2,7 @@ import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { AppShell } from '../components/AppShell';
-import { IconChevronLeft, IconFileText, IconInbox, IconPaperclip, IconSend } from '../components/icons';
+import { IconChevronLeft, IconEdit, IconFileText, IconInbox, IconPaperclip, IconSend } from '../components/icons';
 import { Avatar, EmptyState } from '../components/ui';
 import { formatFileSize } from '../utils/formatFileSize';
 
@@ -68,6 +68,11 @@ function formatDuration(minutes: number): string {
   return mins > 0 ? `${hours} soat ${mins} daq.` : `${hours} soat`;
 }
 
+function toDateTimeLocalValue(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 export function TicketDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -80,6 +85,10 @@ export function TicketDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isEditingClosedAt, setIsEditingClosedAt] = useState(false);
+  const [closedAtDraft, setClosedAtDraft] = useState('');
+  const [isSavingClosedAt, setIsSavingClosedAt] = useState(false);
+  const [closedAtError, setClosedAtError] = useState<string | null>(null);
 
   const load = () => {
     setIsLoading(true);
@@ -110,6 +119,35 @@ export function TicketDetailPage() {
       assignedToId: assignedToId || null,
     });
     setTicket(res.data.data);
+  };
+
+  const handleStartEditClosedAt = () => {
+    if (!ticket) return;
+    setClosedAtDraft(toDateTimeLocalValue(ticket.closedAt ? new Date(ticket.closedAt) : new Date()));
+    setClosedAtError(null);
+    setIsEditingClosedAt(true);
+  };
+
+  const handleCancelEditClosedAt = () => {
+    setIsEditingClosedAt(false);
+    setClosedAtError(null);
+  };
+
+  const handleSaveClosedAt = async () => {
+    if (!ticket || !closedAtDraft) return;
+    setIsSavingClosedAt(true);
+    setClosedAtError(null);
+    try {
+      const res = await api.patch(`/admin/tickets/${ticket.id}/closed-at`, {
+        closedAt: new Date(closedAtDraft).toISOString(),
+      });
+      setTicket(res.data.data);
+      setIsEditingClosedAt(false);
+    } catch (err: any) {
+      setClosedAtError(err?.response?.data?.error?.message ?? 'Xatolik yuz berdi.');
+    } finally {
+      setIsSavingClosedAt(false);
+    }
   };
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -261,10 +299,49 @@ export function TicketDetailPage() {
             </span>
           </div>
           <div className="ticket-summary-meta-item">
-            <span className="ticket-summary-meta-label">Yopilish vaqti</span>
-            <span className="ticket-summary-meta-value">
-              {ticket.resolutionMinutes != null ? formatDuration(ticket.resolutionMinutes) : '—'}
+            <span className="ticket-summary-meta-label ticket-summary-meta-label--editable">
+              <button
+                type="button"
+                className="ticket-summary-meta-edit-btn"
+                onClick={handleStartEditClosedAt}
+                title="Yopilish vaqtini o'zgartirish"
+              >
+                <IconEdit width={12} height={12} />
+              </button>
+              Yopilish vaqti
             </span>
+            {isEditingClosedAt ? (
+              <div className="ticket-summary-meta-edit">
+                <input
+                  type="datetime-local"
+                  value={closedAtDraft}
+                  onChange={(e) => setClosedAtDraft(e.target.value)}
+                />
+                <div className="ticket-summary-meta-edit-actions">
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={handleSaveClosedAt}
+                    disabled={isSavingClosedAt || !closedAtDraft}
+                  >
+                    {isSavingClosedAt ? 'Saqlanmoqda...' : 'Saqlash'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={handleCancelEditClosedAt}
+                    disabled={isSavingClosedAt}
+                  >
+                    Bekor qilish
+                  </button>
+                </div>
+                {closedAtError && <p className="form-error">{closedAtError}</p>}
+              </div>
+            ) : (
+              <span className="ticket-summary-meta-value">
+                {ticket.resolutionMinutes != null ? formatDuration(ticket.resolutionMinutes) : '—'}
+              </span>
+            )}
           </div>
         </div>
 
