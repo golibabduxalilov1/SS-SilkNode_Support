@@ -76,15 +76,15 @@ const PRIORITY_OPTIONS = [
 
 const PAGE_SIZE = 15;
 
-const TICKET_COLUMN_WIDTHS = [22, 9, 13, 8, 7, 8, 9, 8, 8];
-const TICKET_COLUMN_WIDTHS_WITH_ACTIONS = [...TICKET_COLUMN_WIDTHS, 8];
+const TICKET_COLUMN_WIDTHS = [260, 140, 210, 120, 100, 120, 190, 110, 160];
+const TICKET_COLUMN_WIDTHS_WITH_ACTIONS = [...TICKET_COLUMN_WIDTHS, 140];
 
 function TicketTableColgroup({ isSuperadmin }: { isSuperadmin: boolean }) {
   const widths = isSuperadmin ? TICKET_COLUMN_WIDTHS_WITH_ACTIONS : TICKET_COLUMN_WIDTHS;
   return (
     <colgroup>
       {widths.map((w, i) => (
-        <col key={i} style={{ width: `${w}%` }} />
+        <col key={i} style={{ width: `${w}px` }} />
       ))}
     </colgroup>
   );
@@ -1357,7 +1357,7 @@ export function TicketsPage() {
                       onClick={() => navigate(`/dashboard/tickets/${t.id}`)}
                     >
                       <td className="cell-primary">{truncateWords(t.title, 7)}</td>
-                      <td>{t.organization?.name ?? '—'}</td>
+                      <td className="cell-nowrap">{t.organization?.name ?? '—'}</td>
                       <td>
                         <div className="cell-user">
                           <Avatar name={t.requesterName ?? t.createdBy?.fullname} />

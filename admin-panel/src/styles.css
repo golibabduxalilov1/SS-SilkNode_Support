@@ -2109,6 +2109,19 @@ button {
 
 .table-wrap--split .tickets-table {
   table-layout: fixed;
+  width: max-content;
+  min-width: 100%;
+}
+
+.table-wrap--split .tickets-table td,
+.table-wrap--split .tickets-table th {
+  overflow: hidden;
+}
+
+.table-wrap--split .tickets-table td.cell-muted,
+.table-wrap--split .tickets-table td.cell-nowrap {
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .section-card .tickets-table {
@@ -2152,6 +2165,7 @@ button {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+  white-space: nowrap;
   border-bottom: 1px solid var(--border-strong);
 }
 
