@@ -3624,6 +3624,38 @@ button {
     margin-left: 0;
   }
 
+  /* Let the whole page scroll instead of locking to viewport height
+     with an inner scroll container — nested scroll areas are awkward
+     to use with touch, so tables/pages just flow with the page. */
+  .app-shell {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .app-content--table-scroll {
+    height: auto;
+    overflow: visible;
+  }
+
+  .app-content--table-scroll > .table-wrap {
+    flex: none;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+    overflow-y: visible;
+  }
+
+  .table-body-scroll {
+    overflow-y: visible;
+    overflow-x: auto;
+    height: auto;
+  }
+
+  .tickets-table th {
+    position: static;
+  }
+
   .app-content {
     padding: 28px 32px 40px;
   }
