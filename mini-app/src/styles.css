@@ -153,6 +153,17 @@ button {
   animation: fadeSlideIn var(--duration-slow) var(--ease) both;
 }
 
+/* Telegram Desktop / iPad can open Mini Apps at tablet-width viewports.
+   Keep phones edge-to-edge (below 600px, the max-width above never binds)
+   and give wider viewports a centered, slightly roomier column instead of
+   a stretched full-bleed layout. */
+@media (min-width: 600px) {
+  .app {
+    max-width: 560px;
+    padding: 28px 24px 56px;
+  }
+}
+
 /* ==========================================================================
    Splash / error / admin-notice
    ========================================================================== */
@@ -168,6 +179,11 @@ button {
   padding: 24px;
   text-align: center;
   color: var(--text-secondary);
+}
+
+.splash-screen p,
+.error-screen p {
+  max-width: 320px;
 }
 
 .splash-spinner {
@@ -654,7 +670,7 @@ button {
   border-radius: var(--radius-md);
   background: var(--panel);
   border: 1px solid var(--border);
-  max-width: 85%;
+  max-width: min(85%, 420px);
 }
 
 .chat-message--admin {
