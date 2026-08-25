@@ -56,7 +56,7 @@ export function LoginPage() {
         <div className="login-showcase-content">
           <div className="login-showcase-brand">
             <span className="login-mark">
-              <img src="/logo.jpg" alt="Silknode" />
+              <img src="/logo.png" alt="Silknode" />
             </span>
             <h2>Silknode Support</h2>
           </div>
@@ -78,7 +78,7 @@ export function LoginPage() {
       <main className="login-panel">
         <form className="login-form" onSubmit={handleSubmit} noValidate>
           <span className="login-mark login-mark-mobile">
-            <img src="/logo.jpg" alt="Silknode" />
+            <img src="/logo.png" alt="Silknode" />
           </span>
           <div className="login-form-heading">
             <h1>Xush kelibsiz</h1>

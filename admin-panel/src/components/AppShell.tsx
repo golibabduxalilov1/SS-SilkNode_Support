@@ -203,7 +203,7 @@ export function AppShell({ title, breadcrumb, actions, children, contentClassNam
       <aside className={`sidebar${sidebarOpen ? ' is-open' : ''}${collapsed ? ' is-collapsed' : ''}`}>
         <NavLink to="/dashboard" className="sidebar-brand">
           <span className="sidebar-brand-mark">
-            <img src="/logo.jpg" alt="Silknode" />
+            <img src="/logo.png" alt="Silknode" />
           </span>
           <span className="sidebar-brand-text">Silknode</span>
         </NavLink>
