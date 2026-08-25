@@ -6,38 +6,38 @@
   color-scheme: light;
 
   /* Typography */
-  --font-display: 'Roboto', -apple-system, 'Segoe UI', system-ui, sans-serif;
-  --font-sans: 'Roboto', -apple-system, 'Segoe UI', system-ui, sans-serif;
-  --font-mono: 'Roboto', -apple-system, 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
+  --font-sans: 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
 
   /* Surfaces */
-  --canvas: #f8fafc;
+  --canvas: #f3f4f6;
   --panel: #ffffff;
-  --sunken: #f8fafc;
-  --veil: #f1f5f9;
+  --sunken: #f9fafb;
+  --veil: #f3f4f6;
 
   /* Text hierarchy */
-  --text: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
+  --text: #111827;
+  --text-secondary: #4b5563;
+  --text-muted: #9ca3af;
 
   /* Borders — barely-there */
-  --border: #f1f5f9;
-  --border-strong: #e2e8f0;
+  --border: #f3f4f6;
+  --border-strong: #f3f4f6;
 
   /* Dark chrome accents (rarely used solid dark chip) */
-  --dark-surface: #0f172a;
-  --dark-hover: #1e293b;
+  --dark-surface: #0e1d47;
+  --dark-hover: #16295e;
 
-  /* Brand — indigo scale */
-  --indigo-50: #eef2ff;
-  --indigo-500: #6366f1;
-  --indigo-600: #4f46e5;
-  --indigo-700: #4338ca;
+  /* Brand — blue scale (aliased as "indigo" for legacy variable names) */
+  --indigo-50: #eff6ff;
+  --indigo-500: #1e9af7;
+  --indigo-600: #1e9af7;
+  --indigo-700: #1483d6;
 
   --accent: var(--indigo-500);
   --accent-hover: var(--indigo-700);
-  --dark-accent: var(--indigo-700);
+  --dark-accent: #1e9af7;
   --accent-tint: var(--indigo-50);
   --gradient-accent: var(--indigo-600);
 
@@ -45,7 +45,10 @@
   --primary-hover: var(--indigo-700);
   --primary-fg: #ffffff;
   --primary-soft: var(--indigo-50);
-  --primary-soft-text: var(--indigo-700);
+  --primary-soft-text: #1e9af7;
+
+  /* Sidebar — solid dark navy per design system */
+  --sidebar-navy: #0e1d47;
 
   /* Semantic — fixed meaning, never decorative */
   --success: #10b981;
@@ -79,8 +82,8 @@
   --status-new-soft: var(--info-tint);
   --status-in_progress: var(--indigo-700);
   --status-in_progress-soft: var(--indigo-50);
-  --status-waiting_user: var(--warning-text);
-  --status-waiting_user-soft: var(--warning-tint);
+  --status-waiting_user: #f97316;
+  --status-waiting_user-soft: #fff7ed;
   --status-resolved: var(--success-text);
   --status-resolved-soft: var(--success-tint);
   --status-closed: var(--neutral-text);
@@ -112,10 +115,10 @@
   --radius-full: 9999px;
 
   /* Elevation — flat, single soft shadow */
-  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.1), 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.025);
   --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
   --shadow-lg: 0 16px 40px rgba(15, 23, 42, 0.12);
-  --glow-accent: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  --glow-accent: 0 0 0 3px rgba(30, 154, 247, 0.18);
 
   /* Motion */
   --ease: cubic-bezier(0.2, 0, 0, 1);
@@ -124,7 +127,7 @@
   --duration-slow: 250ms;
 
   /* Layout */
-  --topbar-height: 64px;
+  --topbar-height: 80px;
   --sidebar-width: 260px;
   --sidebar-width-collapsed: 76px;
 
@@ -364,7 +367,7 @@ button {
   justify-content: space-between;
   gap: 40px;
   padding: 56px 64px;
-  background: linear-gradient(160deg, var(--indigo-600) 0%, var(--indigo-700) 55%, #312e81 100%);
+  background: linear-gradient(160deg, var(--sidebar-navy) 0%, #16295e 55%, #0a1533 100%);
   color: #fff;
   overflow: hidden;
 }
@@ -708,8 +711,8 @@ button {
 .sidebar {
   width: var(--sidebar-width);
   flex-shrink: 0;
-  background: var(--panel);
-  border-right: 1px solid var(--border-strong);
+  background: var(--sidebar-navy);
+  border-right: none;
   display: flex;
   flex-direction: column;
   padding: 20px 14px;
@@ -728,9 +731,9 @@ button {
 .sidebar-brand {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 10px;
-  padding: 4px 6px 22px 8px;
+  padding: 4px 8px 22px 8px;
   text-decoration: none;
   cursor: pointer;
 }
@@ -742,8 +745,8 @@ button {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: var(--dark-surface);
-  color: #fff;
+  background: #ffffff;
+  color: var(--primary);
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 18px;
@@ -759,12 +762,12 @@ button {
 
 .sidebar-brand-text {
   min-width: 0;
-  color: var(--text);
+  color: #ffffff;
   font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 30px;
+  font-weight: 600;
+  font-size: 22px;
   letter-spacing: -0.01em;
-  text-align: center;
+  text-align: left;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -795,7 +798,7 @@ button {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.35);
 }
 
 .sidebar-nav-item {
@@ -805,13 +808,11 @@ button {
   min-height: 40px;
   padding: 9px 12px;
   border-radius: var(--radius-sm);
-  border-left: 3px solid transparent;
-  color: var(--text-secondary);
+  color: #d1d5db;
   text-decoration: none;
   font-size: 14px;
   font-weight: 500;
-  transition: background var(--duration-fast) var(--ease), color var(--duration-fast) var(--ease),
-    border-color var(--duration-fast) var(--ease);
+  transition: background var(--duration-fast) var(--ease), color var(--duration-fast) var(--ease);
 }
 
 .sidebar-nav-item span:not(.sidebar-nav-badge) {
@@ -831,20 +832,19 @@ button {
 }
 
 .sidebar-nav-item:hover {
-  background: var(--veil);
-  color: var(--text);
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
 }
 
 .sidebar-nav-item.is-active {
-  background: var(--indigo-50);
-  border-left-color: var(--primary);
-  color: var(--text);
+  background: var(--primary);
+  color: #ffffff;
   font-weight: 600;
 }
 
 .sidebar-nav-item.is-active .sidebar-nav-icon {
   opacity: 1;
-  color: var(--primary);
+  color: #ffffff;
 }
 
 .sidebar-nav-entry {
@@ -873,9 +873,13 @@ button {
   opacity: 0.75;
 }
 
+.sidebar-nav-download {
+  color: rgba(255, 255, 255, 0.45);
+}
+
 .sidebar-nav-download:hover {
-  background: var(--veil);
-  color: var(--primary);
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
 }
 
 .sidebar-nav-badge {
@@ -896,7 +900,7 @@ button {
 }
 
 .sidebar-footer {
-  border-top: 1px solid var(--border-strong);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   margin-top: 14px;
   padding-top: 14px;
   display: flex;
@@ -918,7 +922,7 @@ button {
 }
 
 .sidebar-user-name {
-  color: var(--text);
+  color: #ffffff;
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
@@ -927,7 +931,7 @@ button {
 }
 
 .sidebar-user-role {
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.45);
   font-size: 11px;
   font-family: var(--font-sans);
   text-transform: uppercase;
@@ -943,7 +947,7 @@ button {
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--text-secondary);
+  color: #d1d5db;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -951,8 +955,8 @@ button {
 }
 
 .sidebar-logout:hover {
-  background: var(--error-tint);
-  color: var(--error-text);
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
 }
 
 .sidebar-logout svg {
@@ -970,7 +974,7 @@ button {
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--text-secondary);
+  color: #d1d5db;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -978,8 +982,8 @@ button {
 }
 
 .sidebar-collapse-btn:hover {
-  background: var(--veil);
-  color: var(--text);
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
 }
 
 .sidebar-collapse-btn svg {
@@ -1056,7 +1060,7 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 0 40px;
+  padding: 0 32px;
   background: var(--panel);
   border-bottom: 1px solid var(--border-strong);
   position: sticky;
