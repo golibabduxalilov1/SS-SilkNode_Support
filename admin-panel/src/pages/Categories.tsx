@@ -199,7 +199,7 @@ export function CategoriesPage() {
         />
       ) : (
         <div className="table-wrap">
-          <table className="tickets-table tickets-table--equal">
+          <table className="tickets-table tickets-table--equal categories-table">
             <thead>
               <tr>
                 <th>Nomi</th>

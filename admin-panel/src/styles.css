@@ -3791,6 +3791,11 @@ button {
     font-size: 0;
     gap: 0;
   }
+
+  .categories-table .table-actions {
+    flex-direction: row;
+    flex-wrap: nowrap;
+  }
 }
 
 /* ---- Mobile (<=640px) ---- */
