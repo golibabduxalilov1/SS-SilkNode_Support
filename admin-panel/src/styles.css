@@ -3644,9 +3644,12 @@ button {
     overflow-y: visible;
   }
 
+  .table-head-scroll {
+    overflow: visible;
+  }
+
   .table-body-scroll {
-    overflow-y: visible;
-    overflow-x: auto;
+    overflow: visible;
     height: auto;
   }
 
