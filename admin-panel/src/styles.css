@@ -3778,14 +3778,18 @@ button {
 
   .table-actions {
     min-width: 0;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    max-width: 132px;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: flex-end;
   }
 
   .table-actions button {
     min-height: 40px;
-    padding: 8px 12px;
+    width: 40px;
+    padding: 0;
+    justify-content: center;
+    font-size: 0;
+    gap: 0;
   }
 }
 
