@@ -3778,6 +3778,9 @@ button {
 
   .table-actions {
     min-width: 0;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: 132px;
   }
 
   .table-actions button {
