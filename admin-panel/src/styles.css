@@ -3792,7 +3792,9 @@ button {
     gap: 0;
   }
 
-  .categories-table .table-actions {
+  .categories-table .table-actions,
+  .employees-table .table-actions,
+  .organizations-table .table-actions {
     flex-direction: row;
     flex-wrap: nowrap;
   }

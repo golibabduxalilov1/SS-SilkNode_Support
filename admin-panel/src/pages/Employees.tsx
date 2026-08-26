@@ -362,7 +362,7 @@ export function EmployeesPage() {
         />
       ) : (
         <div className="table-wrap">
-          <table className="tickets-table">
+          <table className="tickets-table employees-table">
             <thead>
               <tr>
                 <th>F.I.Sh</th>
