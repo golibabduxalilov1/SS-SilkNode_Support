@@ -3271,28 +3271,30 @@ button {
 
 /* Keep row actions reachable without horizontal scrolling: pin the
    actions column to the right edge of the scrollable table area.
-   Scoped to the empty <th></th> that marks an actions column (see
-   Employees/Categories/Organizations/Tickets tables) so data columns
-   that merely happen to be last (e.g. Dashboard's org table) are
-   never force-pinned. */
-.tickets-table td.table-actions,
-.tickets-table th:empty {
+   Scoped to .table-wrap--split (Tickets page), whose head/body are
+   separate scroll containers synced via JS, so the pinned column
+   needs its own stacking to stay put during that sync. Categories/
+   Employees/Organizations tables share one scroll container for
+   head and body, so their actions column scrolls with everything
+   else and needs no pinning or z-index. */
+.table-wrap--split .tickets-table td.table-actions,
+.table-wrap--split .tickets-table th:empty {
   position: sticky;
   right: 0;
   z-index: 1;
   background: var(--panel);
 }
 
-.tickets-table tbody tr:nth-child(even) td.table-actions {
+.table-wrap--split .tickets-table tbody tr:nth-child(even) td.table-actions {
   background: var(--veil);
 }
 
-.tickets-table tbody tr:hover td.table-actions,
-.tickets-table tbody tr.clickable-row:hover td.table-actions {
+.table-wrap--split .tickets-table tbody tr:hover td.table-actions,
+.table-wrap--split .tickets-table tbody tr.clickable-row:hover td.table-actions {
   background: var(--indigo-50);
 }
 
-.tickets-table th:empty {
+.table-wrap--split .tickets-table th:empty {
   z-index: 2;
   background: var(--sunken);
 }
