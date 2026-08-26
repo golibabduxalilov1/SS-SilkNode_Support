@@ -165,8 +165,25 @@ export function AppShell({ title, breadcrumb, actions, children, contentClassNam
   const locksPageScroll = contentClassName?.includes('app-content--table-scroll') ?? false;
 
   useEffect(() => {
-    document.body.style.overflow = sidebarOpen || locksPageScroll ? 'hidden' : '';
+    if (!locksPageScroll) {
+      document.body.style.overflow = sidebarOpen ? 'hidden' : '';
+      return () => {
+        document.body.style.overflow = '';
+      };
+    }
+
+    // Below 1024px the table-scroll layout switches to letting the whole
+    // page flow/scroll (see .app-content--table-scroll in styles.css) —
+    // locking body scroll there would trap the user with no way to reach
+    // rows/actions below the fold, so only lock on desktop.
+    const desktopQuery = window.matchMedia('(min-width: 1025px)');
+    const applyLock = () => {
+      document.body.style.overflow = sidebarOpen || desktopQuery.matches ? 'hidden' : '';
+    };
+    applyLock();
+    desktopQuery.addEventListener('change', applyLock);
     return () => {
+      desktopQuery.removeEventListener('change', applyLock);
       document.body.style.overflow = '';
     };
   }, [sidebarOpen, locksPageScroll]);
