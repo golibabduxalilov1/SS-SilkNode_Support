@@ -3721,6 +3721,21 @@ button {
   .bento-grid .span-3 {
     grid-column: span 1;
   }
+
+  .ticket-summary-controls {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .ticket-summary-controls label {
+    width: 100%;
+  }
+
+  .ticket-summary-controls select {
+    width: 100%;
+    min-width: 0;
+  }
 }
 
 @media (max-width: 900px) {
