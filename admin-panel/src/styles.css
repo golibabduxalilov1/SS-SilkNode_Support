@@ -2174,36 +2174,19 @@ button {
   overflow: auto;
 }
 
-.table-wrap--split {
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.table-head-scroll {
-  flex-shrink: 0;
-  overflow: hidden;
-}
-
-.table-body-scroll {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-}
-
-.table-wrap--split .tickets-table {
+.table-wrap--pin-actions .tickets-table {
   table-layout: fixed;
   width: max-content;
   min-width: 100%;
 }
 
-.table-wrap--split .tickets-table td,
-.table-wrap--split .tickets-table th {
+.table-wrap--pin-actions .tickets-table td,
+.table-wrap--pin-actions .tickets-table th {
   overflow: hidden;
 }
 
-.table-wrap--split .tickets-table td.cell-muted,
-.table-wrap--split .tickets-table td.cell-nowrap {
+.table-wrap--pin-actions .tickets-table td.cell-muted,
+.table-wrap--pin-actions .tickets-table td.cell-nowrap {
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -3271,30 +3254,28 @@ button {
 
 /* Keep row actions reachable without horizontal scrolling: pin the
    actions column to the right edge of the scrollable table area.
-   Scoped to .table-wrap--split (Tickets page), whose head/body are
-   separate scroll containers synced via JS, so the pinned column
-   needs its own stacking to stay put during that sync. Categories/
-   Employees/Organizations tables share one scroll container for
-   head and body, so their actions column scrolls with everything
-   else and needs no pinning or z-index. */
-.table-wrap--split .tickets-table td.table-actions,
-.table-wrap--split .tickets-table th:empty {
+   Scoped to .table-wrap--pin-actions (Tickets page), which is wide
+   enough to need horizontal scroll. Categories/Employees/Organizations
+   tables don't need this since their actions column already stays
+   in view without scrolling. */
+.table-wrap--pin-actions .tickets-table td.table-actions,
+.table-wrap--pin-actions .tickets-table th:empty {
   position: sticky;
   right: 0;
   z-index: 1;
   background: var(--panel);
 }
 
-.table-wrap--split .tickets-table tbody tr:nth-child(even) td.table-actions {
+.table-wrap--pin-actions .tickets-table tbody tr:nth-child(even) td.table-actions {
   background: var(--veil);
 }
 
-.table-wrap--split .tickets-table tbody tr:hover td.table-actions,
-.table-wrap--split .tickets-table tbody tr.clickable-row:hover td.table-actions {
+.table-wrap--pin-actions .tickets-table tbody tr:hover td.table-actions,
+.table-wrap--pin-actions .tickets-table tbody tr.clickable-row:hover td.table-actions {
   background: var(--indigo-50);
 }
 
-.table-wrap--split .tickets-table th:empty {
+.table-wrap--pin-actions .tickets-table th:empty {
   z-index: 2;
   background: var(--sunken);
 }
@@ -3644,15 +3625,6 @@ button {
   .table-wrap {
     overflow-x: auto;
     overflow-y: visible;
-  }
-
-  .table-head-scroll {
-    overflow: visible;
-  }
-
-  .table-body-scroll {
-    overflow: visible;
-    height: auto;
   }
 
   .tickets-table th {

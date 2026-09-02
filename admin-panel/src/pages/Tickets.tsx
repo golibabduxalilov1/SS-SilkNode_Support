@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
@@ -987,15 +987,6 @@ export function TicketsPage() {
   const [legacyModalOpen, setLegacyModalOpen] = useState(false);
   const [isCreatingLegacy, setIsCreatingLegacy] = useState(false);
   const [legacyError, setLegacyError] = useState<string | null>(null);
-  const tableHeadScrollRef = useRef<HTMLDivElement>(null);
-  const tableBodyScrollRef = useRef<HTMLDivElement>(null);
-
-  const handleTableBodyScroll = () => {
-    if (tableHeadScrollRef.current && tableBodyScrollRef.current) {
-      tableHeadScrollRef.current.scrollLeft = tableBodyScrollRef.current.scrollLeft;
-    }
-  };
-
   const load = () => {
     setIsLoading(true);
     Promise.all([
@@ -1211,22 +1202,6 @@ export function TicketsPage() {
     currentPage * PAGE_SIZE,
   );
 
-  useEffect(() => {
-    const headEl = tableHeadScrollRef.current;
-    const bodyEl = tableBodyScrollRef.current;
-    if (!headEl || !bodyEl) return;
-
-    const syncScrollbarGutter = () => {
-      const scrollbarWidth = bodyEl.offsetWidth - bodyEl.clientWidth;
-      headEl.style.paddingRight = `${scrollbarWidth}px`;
-    };
-
-    syncScrollbarGutter();
-    const observer = new ResizeObserver(syncScrollbarGutter);
-    observer.observe(bodyEl);
-    return () => observer.disconnect();
-  }, [paginatedTickets]);
-
   return (
     <AppShell title="Murojaatlar" breadcrumb="Barcha murojaatlar" contentClassName="app-content--table-scroll">
       {isLoading ? (
@@ -1342,30 +1317,24 @@ export function TicketsPage() {
               description="Filtrni o'zgartirib ko'ring yoki yangi murojaat kelishini kuting."
             />
           ) : (
-            <div className="table-wrap table-wrap--split">
-              <div className="table-head-scroll" ref={tableHeadScrollRef}>
-                <table className="tickets-table">
-                  <TicketTableColgroup isSuperadmin={isSuperadmin} />
-                  <thead>
-                    <tr>
-                      <th>Mavzu</th>
-                      <th>Tashkilot</th>
-                      <th>Foydalanuvchi</th>
-                      <th>Kategoriya</th>
-                      <th>Muhimlik</th>
-                      <th>Holat</th>
-                      <th>Mas'ul</th>
-                      <th>Yopilish vaqti</th>
-                      <th>Yasaldi</th>
-                      {isSuperadmin && <th></th>}
-                    </tr>
-                  </thead>
-                </table>
-              </div>
-              <div className="table-body-scroll" ref={tableBodyScrollRef} onScroll={handleTableBodyScroll}>
-                <table className="tickets-table">
-                  <TicketTableColgroup isSuperadmin={isSuperadmin} />
-                  <tbody>
+            <div className="table-wrap table-wrap--pin-actions">
+              <table className="tickets-table">
+                <TicketTableColgroup isSuperadmin={isSuperadmin} />
+                <thead>
+                  <tr>
+                    <th>Mavzu</th>
+                    <th>Tashkilot</th>
+                    <th>Foydalanuvchi</th>
+                    <th>Kategoriya</th>
+                    <th>Muhimlik</th>
+                    <th>Holat</th>
+                    <th>Mas'ul</th>
+                    <th>Yopilish vaqti</th>
+                    <th>Yasaldi</th>
+                    {isSuperadmin && <th></th>}
+                  </tr>
+                </thead>
+                <tbody>
                   {paginatedTickets.map((t) => (
                     <tr
                       key={t.id}
@@ -1427,9 +1396,8 @@ export function TicketsPage() {
                       )}
                     </tr>
                   ))}
-                  </tbody>
-                </table>
-              </div>
+                </tbody>
+              </table>
             </div>
           )}
 
