@@ -2,6 +2,7 @@ import { ReactNode, useEffect, useRef, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
+import { useTheme } from '../theme/ThemeContext';
 import {
   IconBell,
   IconBuilding,
@@ -12,8 +13,10 @@ import {
   IconLayers,
   IconLogout,
   IconMenu,
+  IconMoon,
   IconPanelLeftClose,
   IconPanelLeftOpen,
+  IconSun,
   IconUsers,
 } from './icons';
 
@@ -98,6 +101,7 @@ const ROLE_LABELS: Record<string, string> = {
 
 export function AppShell({ title, breadcrumb, actions, children, contentClassName }: AppShellProps) {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -296,6 +300,15 @@ export function AppShell({ title, breadcrumb, actions, children, contentClassNam
           {actions && <div className="topbar-actions">{actions}</div>}
           <div className="topbar-right">
             {user?.role && <span className="role-badge">{ROLE_LABELS[user.role] ?? user.role}</span>}
+            <button
+              type="button"
+              className="theme-toggle"
+              onClick={toggleTheme}
+              aria-label={theme === 'dark' ? "Yorug' rejimga o'tish" : "Qorong'i rejimga o'tish"}
+              title={theme === 'dark' ? "Yorug' rejim" : "Qorong'i rejim"}
+            >
+              {theme === 'dark' ? <IconSun width={19} height={19} /> : <IconMoon width={19} height={19} />}
+            </button>
             <div className="topbar-bell-wrap" ref={bellRef}>
               <button
                 type="button"
