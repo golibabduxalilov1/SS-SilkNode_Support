@@ -30,14 +30,14 @@
   --dark-hover: #16295e;
 
   /* Brand — blue scale (aliased as "indigo" for legacy variable names) */
-  --indigo-50: color-mix(in srgb, #3498db 10%, white);
-  --indigo-500: #3498db;
-  --indigo-600: #3498db;
-  --indigo-700: color-mix(in srgb, #3498db 78%, black);
+  --indigo-50: #eff6ff;
+  --indigo-500: #1e9af7;
+  --indigo-600: #1e9af7;
+  --indigo-700: #1483d6;
 
   --accent: var(--indigo-500);
   --accent-hover: var(--indigo-700);
-  --dark-accent: #3498db;
+  --dark-accent: #1e9af7;
   --accent-tint: var(--indigo-50);
   --gradient-accent: var(--indigo-600);
 
@@ -45,15 +45,15 @@
   --primary-hover: var(--indigo-700);
   --primary-fg: #ffffff;
   --primary-soft: var(--indigo-50);
-  --primary-soft-text: var(--indigo-700);
+  --primary-soft-text: #1e9af7;
 
   /* Sidebar — solid dark navy per design system */
   --sidebar-navy: #0e1d47;
 
   /* Semantic — fixed meaning, never decorative */
-  --success: #2ecc71;
-  --success-tint: color-mix(in srgb, #2ecc71 12%, white);
-  --success-text: color-mix(in srgb, #2ecc71 65%, black);
+  --success: #10b981;
+  --success-tint: #ecfdf5;
+  --success-text: #047857;
 
   --warning: #f59e0b;
   --warning-tint: #fffbeb;
@@ -118,7 +118,7 @@
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.025);
   --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
   --shadow-lg: 0 16px 40px rgba(15, 23, 42, 0.12);
-  --glow-accent: 0 0 0 3px rgba(52, 152, 219, 0.18);
+  --glow-accent: 0 0 0 3px rgba(30, 154, 247, 0.18);
   --bg-hover: rgba(0, 0, 0, 0.06);
   --skeleton-shine: rgba(255, 255, 255, 0.8);
 
@@ -152,13 +152,13 @@
     color-scheme: dark;
 
     --canvas: #0e1d47;
-    --panel: color-mix(in srgb, #0e1d47 76%, white);
-    --sunken: color-mix(in srgb, #0e1d47 82%, white);
+    --panel: #485373;
+    --sunken: #394668;
     --veil: #0e1d47;
 
     --text: #ffffff;
-    --text-secondary: color-mix(in srgb, white 72%, #0e1d47);
-    --text-muted: color-mix(in srgb, white 50%, #0e1d47);
+    --text-secondary: #bcc0cb;
+    --text-muted: #878ea3;
 
     --border: rgba(255, 255, 255, 0.08);
     --border-strong: rgba(255, 255, 255, 0.14);
@@ -166,22 +166,22 @@
     --indigo-50: rgba(52, 152, 219, 0.16);
     --indigo-500: #3498db;
     --indigo-600: #3498db;
-    --indigo-700: color-mix(in srgb, #3498db 60%, white);
+    --indigo-700: #85c1e9;
 
     --success-tint: rgba(46, 204, 113, 0.16);
-    --success-text: color-mix(in srgb, #2ecc71 65%, white);
+    --success-text: #77dea3;
 
     --warning-tint: rgba(245, 158, 11, 0.16);
-    --warning-text: color-mix(in srgb, #f59e0b 70%, white);
+    --warning-text: #f8bb54;
 
     --error-tint: rgba(239, 68, 68, 0.16);
-    --error-text: color-mix(in srgb, #ef4444 70%, white);
+    --error-text: #f47c7c;
 
     --neutral-tint: rgba(107, 114, 128, 0.2);
-    --neutral-text: color-mix(in srgb, #6b7280 75%, white);
+    --neutral-text: #9095a0;
 
     --info-tint: rgba(59, 130, 246, 0.16);
-    --info-text: color-mix(in srgb, #3b82f6 65%, white);
+    --info-text: #80aef9;
 
     --status-waiting_user-soft: rgba(249, 115, 22, 0.16);
 
@@ -198,13 +198,13 @@
   color-scheme: dark;
 
   --canvas: #0e1d47;
-  --panel: color-mix(in srgb, #0e1d47 76%, white);
-  --sunken: color-mix(in srgb, #0e1d47 82%, white);
+  --panel: #485373;
+  --sunken: #394668;
   --veil: #0e1d47;
 
   --text: #ffffff;
-  --text-secondary: color-mix(in srgb, white 72%, #0e1d47);
-  --text-muted: color-mix(in srgb, white 50%, #0e1d47);
+  --text-secondary: #bcc0cb;
+  --text-muted: #878ea3;
 
   --border: rgba(255, 255, 255, 0.08);
   --border-strong: rgba(255, 255, 255, 0.14);
@@ -212,22 +212,22 @@
   --indigo-50: rgba(52, 152, 219, 0.16);
   --indigo-500: #3498db;
   --indigo-600: #3498db;
-  --indigo-700: color-mix(in srgb, #3498db 60%, white);
+  --indigo-700: #85c1e9;
 
   --success-tint: rgba(46, 204, 113, 0.16);
-  --success-text: color-mix(in srgb, #2ecc71 65%, white);
+  --success-text: #77dea3;
 
   --warning-tint: rgba(245, 158, 11, 0.16);
-  --warning-text: color-mix(in srgb, #f59e0b 70%, white);
+  --warning-text: #f8bb54;
 
   --error-tint: rgba(239, 68, 68, 0.16);
-  --error-text: color-mix(in srgb, #ef4444 70%, white);
+  --error-text: #f47c7c;
 
   --neutral-tint: rgba(107, 114, 128, 0.2);
-  --neutral-text: color-mix(in srgb, #6b7280 75%, white);
+  --neutral-text: #9095a0;
 
   --info-tint: rgba(59, 130, 246, 0.16);
-  --info-text: color-mix(in srgb, #3b82f6 65%, white);
+  --info-text: #80aef9;
 
   --status-waiting_user-soft: rgba(249, 115, 22, 0.16);
 
@@ -1237,7 +1237,7 @@ button {
   border-radius: var(--radius-full);
   background: var(--indigo-50);
   color: var(--indigo-700);
-  border: 1px solid color-mix(in srgb, var(--indigo-500) 22%, transparent);
+  border: 1px solid rgba(99, 102, 241, 0.18);
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
