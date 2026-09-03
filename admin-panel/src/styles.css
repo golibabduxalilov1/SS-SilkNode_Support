@@ -2387,6 +2387,8 @@ button {
   padding: 13px 16px;
   text-align: left;
   font-size: 13.5px;
+  font-weight: 700;
+  color: #000;
 }
 
 .tickets-table tbody tr {
@@ -2406,7 +2408,7 @@ button {
   position: sticky;
   top: 0;
   background: var(--sunken);
-  color: var(--text-muted);
+  color: #000;
   font-family: var(--font-sans);
   font-weight: 700;
   font-size: 11px;
@@ -2456,8 +2458,8 @@ button {
 }
 
 .cell-primary {
-  font-weight: 600;
-  color: var(--text);
+  font-weight: 700;
+  color: #000;
   max-width: 260px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2468,7 +2470,8 @@ button {
 }
 
 .cell-muted {
-  color: var(--text-muted);
+  color: #000;
+  font-weight: 700;
 }
 
 /* ==========================================================================
