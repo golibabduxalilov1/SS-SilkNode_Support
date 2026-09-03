@@ -120,7 +120,17 @@
   --shadow-lg: 0 16px 40px rgba(15, 23, 42, 0.12);
   --glow-accent: 0 0 0 3px rgba(30, 154, 247, 0.18);
   --bg-hover: rgba(0, 0, 0, 0.06);
+  --row-hover: #eff6ff;
   --skeleton-shine: rgba(255, 255, 255, 0.8);
+
+  /* Button variants that flip shape (not just hue) between themes */
+  --btn-secondary-bg: var(--panel);
+  --btn-secondary-text: var(--text-secondary);
+  --btn-danger-bg: var(--error);
+  --btn-danger-text: #ffffff;
+  --btn-danger-hover-bg: var(--error-text);
+  --btn-danger-hover-border: var(--error-text);
+  --success-hover: color-mix(in srgb, var(--success) 82%, black);
 
   /* Motion */
   --ease: cubic-bezier(0.2, 0, 0, 1);
@@ -152,41 +162,59 @@
     color-scheme: dark;
 
     --canvas: #0e1d47;
-    --panel: #485373;
-    --sunken: #394668;
-    --veil: #0e1d47;
+    --panel: #16265a;
+    --sunken: #1c2f6b;
+    --veil: #203677;
 
     --text: #ffffff;
-    --text-secondary: #bcc0cb;
-    --text-muted: #878ea3;
+    --text-secondary: #a8b3d1;
+    --text-muted: #6b7aa8;
 
-    --border: rgba(255, 255, 255, 0.08);
-    --border-strong: rgba(255, 255, 255, 0.14);
+    --border: #2a3d7a;
+    --border-strong: #2a3d7a;
 
-    --indigo-50: rgba(52, 152, 219, 0.16);
+    --indigo-50: rgba(52, 152, 219, 0.15);
     --indigo-500: #3498db;
     --indigo-600: #3498db;
     --indigo-700: #85c1e9;
+    --primary-hover: #2980b9;
 
-    --success-tint: rgba(46, 204, 113, 0.16);
-    --success-text: #77dea3;
+    --success: #2ecc71;
+    --success-tint: rgba(46, 204, 113, 0.15);
+    --success-text: #2ecc71;
 
-    --warning-tint: rgba(245, 158, 11, 0.16);
-    --warning-text: #f8bb54;
+    --warning: #3498db;
+    --warning-tint: rgba(52, 152, 219, 0.15);
+    --warning-text: #3498db;
 
-    --error-tint: rgba(239, 68, 68, 0.16);
-    --error-text: #f47c7c;
+    --error: #e74c3c;
+    --error-tint: rgba(231, 76, 60, 0.15);
+    --error-text: #e74c3c;
 
     --neutral-tint: rgba(107, 114, 128, 0.2);
     --neutral-text: #9095a0;
 
-    --info-tint: rgba(59, 130, 246, 0.16);
-    --info-text: #80aef9;
+    --info: #3498db;
+    --info-tint: rgba(52, 152, 219, 0.15);
+    --info-text: #3498db;
 
     --status-waiting_user-soft: rgba(249, 115, 22, 0.16);
+    --status-closed: #2ecc71;
+    --status-closed-soft: rgba(46, 204, 113, 0.15);
 
-    --bg-hover: rgba(255, 255, 255, 0.08);
+    --priority-high: #f39c12;
+
+    --bg-hover: #203677;
+    --row-hover: #203677;
     --skeleton-shine: rgba(255, 255, 255, 0.12);
+
+    --btn-secondary-bg: var(--sunken);
+    --btn-secondary-text: var(--text);
+    --btn-danger-bg: transparent;
+    --btn-danger-text: var(--error);
+    --btn-danger-hover-bg: color-mix(in srgb, var(--error) 10%, transparent);
+    --btn-danger-hover-border: var(--error);
+    --success-hover: #27ae60;
 
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
@@ -198,41 +226,59 @@
   color-scheme: dark;
 
   --canvas: #0e1d47;
-  --panel: #485373;
-  --sunken: #394668;
-  --veil: #0e1d47;
+  --panel: #16265a;
+  --sunken: #1c2f6b;
+  --veil: #203677;
 
   --text: #ffffff;
-  --text-secondary: #bcc0cb;
-  --text-muted: #878ea3;
+  --text-secondary: #a8b3d1;
+  --text-muted: #6b7aa8;
 
-  --border: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.14);
+  --border: #2a3d7a;
+  --border-strong: #2a3d7a;
 
-  --indigo-50: rgba(52, 152, 219, 0.16);
+  --indigo-50: rgba(52, 152, 219, 0.15);
   --indigo-500: #3498db;
   --indigo-600: #3498db;
   --indigo-700: #85c1e9;
+  --primary-hover: #2980b9;
 
-  --success-tint: rgba(46, 204, 113, 0.16);
-  --success-text: #77dea3;
+  --success: #2ecc71;
+  --success-tint: rgba(46, 204, 113, 0.15);
+  --success-text: #2ecc71;
 
-  --warning-tint: rgba(245, 158, 11, 0.16);
-  --warning-text: #f8bb54;
+  --warning: #3498db;
+  --warning-tint: rgba(52, 152, 219, 0.15);
+  --warning-text: #3498db;
 
-  --error-tint: rgba(239, 68, 68, 0.16);
-  --error-text: #f47c7c;
+  --error: #e74c3c;
+  --error-tint: rgba(231, 76, 60, 0.15);
+  --error-text: #e74c3c;
 
   --neutral-tint: rgba(107, 114, 128, 0.2);
   --neutral-text: #9095a0;
 
-  --info-tint: rgba(59, 130, 246, 0.16);
-  --info-text: #80aef9;
+  --info: #3498db;
+  --info-tint: rgba(52, 152, 219, 0.15);
+  --info-text: #3498db;
 
   --status-waiting_user-soft: rgba(249, 115, 22, 0.16);
+  --status-closed: #2ecc71;
+  --status-closed-soft: rgba(46, 204, 113, 0.15);
 
-  --bg-hover: rgba(255, 255, 255, 0.08);
+  --priority-high: #f39c12;
+
+  --bg-hover: #203677;
+  --row-hover: #203677;
   --skeleton-shine: rgba(255, 255, 255, 0.12);
+
+  --btn-secondary-bg: var(--sunken);
+  --btn-secondary-text: var(--text);
+  --btn-danger-bg: transparent;
+  --btn-danger-text: var(--error);
+  --btn-danger-hover-bg: color-mix(in srgb, var(--error) 10%, transparent);
+  --btn-danger-hover-border: var(--error);
+  --success-hover: #27ae60;
 
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
@@ -381,9 +427,9 @@ button {
 
 /* Secondary — white with border */
 .btn-secondary {
-  background: var(--panel);
+  background: var(--btn-secondary-bg);
   border-color: var(--border-strong);
-  color: var(--text-secondary);
+  color: var(--btn-secondary-text);
 }
 
 .btn-secondary:hover:not(:disabled) {
@@ -416,16 +462,29 @@ button {
   border-color: var(--dark-hover);
 }
 
-/* Destructive — solid red */
+/* Destructive — solid red in light, transparent outline in dark */
 .btn-danger {
-  background: var(--error);
+  background: var(--btn-danger-bg);
   border-color: var(--error);
-  color: #ffffff;
+  color: var(--btn-danger-text);
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: var(--error-text);
-  border-color: var(--error-text);
+  background: var(--btn-danger-hover-bg);
+  border-color: var(--btn-danger-hover-border);
+  color: var(--btn-danger-text);
+}
+
+/* Success — solid green */
+.btn-success {
+  background: var(--success);
+  border-color: var(--success);
+  color: #ffffff;
+}
+
+.btn-success:hover:not(:disabled) {
+  background: var(--success-hover);
+  border-color: var(--success-hover);
 }
 
 .btn-sm {
@@ -2340,7 +2399,7 @@ button {
 }
 
 .tickets-table tbody tr:hover {
-  background: var(--indigo-50);
+  background: var(--row-hover);
 }
 
 .tickets-table th {
@@ -2362,7 +2421,7 @@ button {
 }
 
 .clickable-row:hover {
-  background: var(--indigo-50) !important;
+  background: var(--row-hover) !important;
 }
 
 .tickets-table--equal {
@@ -3393,7 +3452,7 @@ button {
 
 .table-wrap--pin-actions .tickets-table tbody tr:hover td.table-actions,
 .table-wrap--pin-actions .tickets-table tbody tr.clickable-row:hover td.table-actions {
-  background: var(--indigo-50);
+  background: var(--row-hover);
 }
 
 .table-wrap--pin-actions .tickets-table th:empty {
