@@ -25,6 +25,7 @@
   --border: #f3f4f6;
   --border-strong: #f3f4f6;
   --filter-border: #000000;
+  --filter-border-width: 1px;
 
   /* Dark chrome accents (rarely used solid dark chip) */
   --dark-surface: #0e1d47;
@@ -174,6 +175,7 @@
     --border: #2a3d7a;
     --border-strong: #2a3d7a;
     --filter-border: #9ca3af;
+    --filter-border-width: 2px;
 
     --indigo-50: rgba(52, 152, 219, 0.15);
     --indigo-500: #3498db;
@@ -239,6 +241,7 @@
   --border: #2a3d7a;
   --border-strong: #2a3d7a;
   --filter-border: #9ca3af;
+  --filter-border-width: 2px;
 
   --indigo-50: rgba(52, 152, 219, 0.15);
   --indigo-500: #3498db;
@@ -1616,12 +1619,12 @@ button {
 
 .filters select {
   min-width: 180px;
-  border: 2px solid var(--filter-border);
+  border: var(--filter-border-width) solid var(--filter-border);
 }
 
 .filters input[type='date'] {
   min-width: 150px;
-  border: 2px solid var(--filter-border);
+  border: var(--filter-border-width) solid var(--filter-border);
 }
 
 .filters-actions {
@@ -1629,7 +1632,7 @@ button {
 }
 
 .filters-actions .btn {
-  border-width: 2px;
+  border-width: var(--filter-border-width);
   border-color: var(--filter-border);
 }
 
