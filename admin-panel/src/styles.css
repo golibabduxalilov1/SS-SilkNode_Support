@@ -1579,6 +1579,7 @@ button {
 .toolbar-search input {
   width: 100%;
   padding-left: 38px;
+  background: #fff;
 }
 
 .toolbar select {
@@ -1604,7 +1605,7 @@ button {
   gap: 6px;
   font-size: 12px;
   font-family: var(--font-sans);
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-secondary);
@@ -1612,6 +1613,7 @@ button {
 
 .filters select {
   min-width: 180px;
+  border-color: #d1d5db;
 }
 
 .filters input[type='date'] {
