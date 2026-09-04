@@ -1608,20 +1608,26 @@ button {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #000;
+  color: var(--text);
 }
 
 .filters select {
   min-width: 180px;
-  border-color: #d1d5db;
+  border: 2px solid #4b5563;
 }
 
 .filters input[type='date'] {
   min-width: 150px;
+  border: 2px solid #4b5563;
 }
 
 .filters-actions {
   margin-left: auto;
+}
+
+.filters-actions .btn {
+  border-width: 2px;
+  border-color: #4b5563;
 }
 
 .filter-results {
@@ -2390,7 +2396,7 @@ button {
   text-align: left;
   font-size: 13.5px;
   font-weight: 700;
-  color: #000;
+  color: var(--text);
 }
 
 .tickets-table tbody tr {
@@ -2410,7 +2416,7 @@ button {
   position: sticky;
   top: 0;
   background: var(--sunken);
-  color: #000;
+  color: var(--text);
   font-family: var(--font-sans);
   font-weight: 700;
   font-size: 11px;
@@ -2461,7 +2467,7 @@ button {
 
 .cell-primary {
   font-weight: 700;
-  color: #000;
+  color: var(--text);
   max-width: 260px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2472,7 +2478,7 @@ button {
 }
 
 .cell-muted {
-  color: #000;
+  color: var(--text);
   font-weight: 700;
 }
 
