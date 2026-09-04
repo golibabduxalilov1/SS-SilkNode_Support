@@ -139,7 +139,7 @@
   --duration-slow: 250ms;
 
   /* Layout */
-  --topbar-height: 68px;
+  --topbar-height: 84px;
   --sidebar-width: 260px;
   --sidebar-width-collapsed: 76px;
 
@@ -1251,18 +1251,18 @@ button {
 .topbar-titles {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 8px;
   min-width: 0;
 }
 
 .topbar-breadcrumb {
-  font-size: 12px;
+  font-size: 14px;
   font-family: var(--font-sans);
   color: var(--text-muted);
 }
 
 .topbar-title {
-  font-size: 17px;
+  font-size: 24px;
   font-weight: 700;
   letter-spacing: -0.01em;
   white-space: nowrap;
@@ -3500,6 +3500,17 @@ button {
   border-color: var(--error);
 }
 
+.table-actions button.ticket-delete-btn {
+  color: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.table-actions button.ticket-delete-btn:hover {
+  background: #1d4ed8;
+  color: #ffffff;
+  border-color: #1d4ed8;
+}
+
 .assign-select {
   min-height: 32px;
   padding: 4px 8px;
@@ -3901,7 +3912,7 @@ button {
   }
 
   :root {
-    --topbar-height: 60px;
+    --topbar-height: 72px;
   }
 
   .topbar {
@@ -3986,7 +3997,7 @@ button {
   }
 
   :root {
-    --topbar-height: 56px;
+    --topbar-height: 66px;
   }
 
   .topbar {
@@ -3995,7 +4006,7 @@ button {
   }
 
   .topbar-title {
-    font-size: 15px;
+    font-size: 18px;
   }
 
   .topbar-breadcrumb {

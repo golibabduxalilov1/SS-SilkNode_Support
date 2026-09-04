@@ -1388,7 +1388,7 @@ export function TicketsPage() {
                       </td>
                       {isSuperadmin && (
                         <td className="table-actions" onClick={(e) => e.stopPropagation()}>
-                          <button className="danger" onClick={() => setTicketToDelete(t)}>
+                          <button className="danger ticket-delete-btn" onClick={() => setTicketToDelete(t)}>
                             <IconTrash width={13} height={13} />
                             O'chirish
                           </button>
