@@ -139,7 +139,7 @@
   --duration-slow: 250ms;
 
   /* Layout */
-  --topbar-height: 80px;
+  --topbar-height: 68px;
   --sidebar-width: 260px;
   --sidebar-width-collapsed: 76px;
 
@@ -1608,7 +1608,7 @@ button {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--text-secondary);
+  color: #000;
 }
 
 .filters select {
@@ -1731,7 +1731,7 @@ button {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--text-muted);
+  color: #000;
 }
 
 .filter-field select,
@@ -3900,6 +3900,10 @@ button {
     padding: 20px 20px 32px;
   }
 
+  :root {
+    --topbar-height: 60px;
+  }
+
   .topbar {
     padding: 0 20px;
     gap: 12px;
@@ -3979,6 +3983,10 @@ button {
 @media (max-width: 640px) {
   .app-content {
     padding: 16px 16px 28px;
+  }
+
+  :root {
+    --topbar-height: 56px;
   }
 
   .topbar {
