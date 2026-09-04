@@ -15,6 +15,8 @@
   --panel: #ffffff;
   --sunken: #f9fafb;
   --veil: #f3f4f6;
+  --search-input-bg: #ffffff;
+  --search-input-placeholder: var(--text-muted);
 
   /* Text hierarchy */
   --text: #111827;
@@ -167,6 +169,8 @@
     --panel: #16265a;
     --sunken: #1c2f6b;
     --veil: #203677;
+    --search-input-bg: #0e1d47;
+    --search-input-placeholder: #cbd5e1;
 
     --text: #ffffff;
     --text-secondary: #a8b3d1;
@@ -233,6 +237,8 @@
   --panel: #16265a;
   --sunken: #1c2f6b;
   --veil: #203677;
+  --search-input-bg: #0e1d47;
+  --search-input-placeholder: #cbd5e1;
 
   --text: #ffffff;
   --text-secondary: #a8b3d1;
@@ -1585,7 +1591,11 @@ button {
 .toolbar-search input {
   width: 100%;
   padding-left: 38px;
-  background: #fff;
+  background: var(--search-input-bg);
+}
+
+.toolbar-search input::placeholder {
+  color: var(--search-input-placeholder);
 }
 
 .toolbar select {
@@ -3515,6 +3525,16 @@ button {
 .table-actions button.ticket-delete-btn {
   color: #1d4ed8;
   border-color: #1d4ed8;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .table-actions button.ticket-delete-btn {
+    color: #ffffff;
+  }
+}
+
+:root[data-theme='dark'] .table-actions button.ticket-delete-btn {
+  color: #ffffff;
 }
 
 .table-actions button.ticket-delete-btn:hover {
