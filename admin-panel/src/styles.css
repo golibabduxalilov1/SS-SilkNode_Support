@@ -1740,7 +1740,7 @@ button {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #000;
+  color: var(--text);
 }
 
 .filter-field select,
