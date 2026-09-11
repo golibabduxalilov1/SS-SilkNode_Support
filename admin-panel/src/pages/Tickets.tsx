@@ -950,12 +950,9 @@ function closingDuration(ticket: Ticket): string {
     Math.round((new Date(ticket.closedAt).getTime() - new Date(ticket.createdAt).getTime()) / 60000),
   );
   if (minutes < 60) return `${minutes} daqiqa`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours} soat`;
-  const days = Math.round(hours / 24);
-  if (days < 7) return `${days} kun`;
-  if (days < 30) return `${Math.round(days / 7)} hafta`;
-  return `${Math.round(days / 30)} oy`;
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return mins > 0 ? `${hours} soat ${mins} daqiqa` : `${hours} soat`;
 }
 
 /** Asosiy TZ bo'lim 6 dagi murojaatlar jadvali — endi Dashboard'dan ajratilgan alohida bo'lim. */
