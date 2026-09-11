@@ -4,6 +4,8 @@ import { api } from '../api/client';
 import { AppShell } from '../components/AppShell';
 import { IconChevronLeft, IconInbox, IconUser } from '../components/icons';
 import { Avatar, EmptyState, TableSkeleton } from '../components/ui';
+import { formatDurationMinutes } from '../utils/formatDuration';
+import { LIST_POLL_INTERVAL_MS } from '../utils/pollInterval';
 
 interface RequesterTicket {
   id: string;
@@ -16,6 +18,7 @@ interface RequesterTicket {
   createdAt: string;
   closedAt: string | null;
   resolutionMinutes: number | null;
+  processingResolutionMinutes: number | null;
   assignedTo?: { id: string; fullname: string | null } | null;
 }
 
@@ -49,13 +52,6 @@ const PRIORITY_OPTIONS = [
   { value: 'critical', label: 'Kritik' },
 ];
 
-function formatDuration(minutes: number): string {
-  if (minutes < 60) return `${minutes} daq.`;
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return mins > 0 ? `${hours} soat ${mins} daq.` : `${hours} soat`;
-}
-
 export function RequesterDetailPage() {
   const { key } = useParams<{ key: string }>();
   const navigate = useNavigate();
@@ -66,13 +62,28 @@ export function RequesterDetailPage() {
 
   useEffect(() => {
     if (!key) return;
-    setIsLoading(true);
-    setError(null);
-    api
-      .get(`/admin/requesters/${encodeURIComponent(key)}`)
-      .then((res) => setDetail(res.data.data))
-      .catch(() => setError("Murojaatchi ma'lumotini yuklab bo'lmadi."))
-      .finally(() => setIsLoading(false));
+
+    // background=true — bu murojaatchining murojaatlar tarixi yangi murojaat qo'shilganda yoki
+    // holati o'zgarganda ekranni qo'lda yangilamasdan ham yangilanib tursin.
+    function load(background = false) {
+      if (!background) setIsLoading(true);
+      setError(null);
+      api
+        .get(`/admin/requesters/${encodeURIComponent(key!)}`)
+        .then((res) => setDetail(res.data.data))
+        .catch(() => {
+          if (!background) setError("Murojaatchi ma'lumotini yuklab bo'lmadi.");
+        })
+        .finally(() => {
+          if (!background) setIsLoading(false);
+        });
+    }
+
+    load();
+    const intervalId = window.setInterval(() => {
+      if (!document.hidden) load(true);
+    }, LIST_POLL_INTERVAL_MS);
+    return () => window.clearInterval(intervalId);
   }, [key]);
 
   if (isLoading) {
@@ -155,7 +166,7 @@ export function RequesterDetailPage() {
                   <th>Mas'ul</th>
                   <th>Tushgan sana</th>
                   <th>Yopilgan sana</th>
-                  <th>Tushish vaqti</th>
+                  <th>Qayta ishlash vaqti</th>
                 </tr>
               </thead>
               <tbody>
@@ -201,7 +212,7 @@ export function RequesterDetailPage() {
                       )}
                     </td>
                     <td className="cell-muted">
-                      {t.resolutionMinutes != null ? formatDuration(t.resolutionMinutes) : '—'}
+                      {formatDurationMinutes(t.processingResolutionMinutes ?? t.resolutionMinutes, '—')}
                     </td>
                   </tr>
                 ))}

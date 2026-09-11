@@ -40,6 +40,7 @@ import { TrendChart, type DailyTrendPoint } from '../components/dashboard/TrendC
 import { ResolutionFlowChart, type ResolutionFlowPoint } from '../components/dashboard/ResolutionFlowChart';
 import { exportTableToExcel } from '../utils/tableExport';
 import { formatDurationMinutes } from '../utils/formatDuration';
+import { LIST_POLL_INTERVAL_MS } from '../utils/pollInterval';
 
 interface ClosedByPriority {
   low: number;
@@ -720,6 +721,7 @@ export function DashboardPage() {
   const [hasProcessedError, setHasProcessedError] = useState(false);
 
   const hasLoadedOnce = useRef(false);
+  const hasLoadedProcessedOnce = useRef(false);
 
   useEffect(() => {
     api
@@ -751,54 +753,81 @@ export function DashboardPage() {
 
   useEffect(() => {
     let cancelled = false;
-    if (hasLoadedOnce.current) {
-      setIsRefreshing(true);
-    } else {
-      setIsLoading(true);
-    }
-    setHasError(false);
 
-    api
-      .get('/admin/dashboard/stats', { params: Object.keys(filterParams).length > 0 ? filterParams : undefined })
-      .then((res) => {
-        if (!cancelled) setStats(res.data.data);
-      })
-      .catch(() => {
-        if (!cancelled) setHasError(true);
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setIsLoading(false);
-          setIsRefreshing(false);
-          hasLoadedOnce.current = true;
-        }
-      });
+    function loadStats() {
+      if (hasLoadedOnce.current) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoading(true);
+      }
+      setHasError(false);
+
+      api
+        .get('/admin/dashboard/stats', { params: Object.keys(filterParams).length > 0 ? filterParams : undefined })
+        .then((res) => {
+          if (!cancelled) setStats(res.data.data);
+        })
+        .catch(() => {
+          if (!cancelled) setHasError(true);
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setIsLoading(false);
+            setIsRefreshing(false);
+            hasLoadedOnce.current = true;
+          }
+        });
+    }
+
+    loadStats();
+    // Yangi murojaatlar kelganda (masalan tashkilotlar bo'yicha ulush/reyting) sahifani qo'lda
+    // yangilamasdan ham ma'lumot yangi holatga ega bo'lib tursin — fonda davriy so'rov.
+    const intervalId = window.setInterval(() => {
+      if (!document.hidden) loadStats();
+    }, LIST_POLL_INTERVAL_MS);
+
     return () => {
       cancelled = true;
+      window.clearInterval(intervalId);
     };
   }, [filterParams]);
 
   // Alohida so'rov va holat — bu bo'lim yuklanmasa ham asosiy Dashboard funksionalligi buzilmaydi.
   useEffect(() => {
     let cancelled = false;
-    setIsProcessedLoading(true);
-    setHasProcessedError(false);
 
-    api
-      .get('/admin/dashboard/processed-tickets', {
-        params: Object.keys(filterParams).length > 0 ? filterParams : undefined,
-      })
-      .then((res) => {
-        if (!cancelled) setProcessedReport(res.data.data);
-      })
-      .catch(() => {
-        if (!cancelled) setHasProcessedError(true);
-      })
-      .finally(() => {
-        if (!cancelled) setIsProcessedLoading(false);
-      });
+    function loadProcessed() {
+      if (!hasLoadedProcessedOnce.current) {
+        setIsProcessedLoading(true);
+      }
+      setHasProcessedError(false);
+
+      api
+        .get('/admin/dashboard/processed-tickets', {
+          params: Object.keys(filterParams).length > 0 ? filterParams : undefined,
+        })
+        .then((res) => {
+          if (!cancelled) setProcessedReport(res.data.data);
+        })
+        .catch(() => {
+          if (!cancelled) setHasProcessedError(true);
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setIsProcessedLoading(false);
+            hasLoadedProcessedOnce.current = true;
+          }
+        });
+    }
+
+    loadProcessed();
+    const intervalId = window.setInterval(() => {
+      if (!document.hidden) loadProcessed();
+    }, LIST_POLL_INTERVAL_MS);
+
     return () => {
       cancelled = true;
+      window.clearInterval(intervalId);
     };
   }, [filterParams]);
 

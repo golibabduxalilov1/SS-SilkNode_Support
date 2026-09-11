@@ -20,6 +20,7 @@ import {
   IconUser,
   IconUsers,
 } from './icons';
+import { LIST_POLL_INTERVAL_MS } from '../utils/pollInterval';
 
 const SIDEBAR_COLLAPSED_KEY = 'sidebarCollapsed';
 
@@ -117,10 +118,20 @@ export function AppShell({ title, breadcrumb, actions, children, contentClassNam
   const bellRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    api
-      .get('/admin/dashboard/stats')
-      .then((res) => setNewTicketsCount(res.data.data?.statusCounts?.new ?? 0))
-      .catch(() => {});
+    function loadNewTicketsCount() {
+      api
+        .get('/admin/dashboard/stats')
+        .then((res) => setNewTicketsCount(res.data.data?.statusCounts?.new ?? 0))
+        .catch(() => {});
+    }
+
+    loadNewTicketsCount();
+    // Yangi murojaat kelganda qo'ng'iroq belgisi qo'lda sahifani yangilamasdan ham yangilanib
+    // tursin — barcha sahifalarda ko'rinadigan yagona doimiy indikator (ТЗ band 8).
+    const intervalId = window.setInterval(() => {
+      if (!document.hidden) loadNewTicketsCount();
+    }, LIST_POLL_INTERVAL_MS);
+    return () => window.clearInterval(intervalId);
   }, [location.pathname === '/dashboard']);
 
   useEffect(() => {

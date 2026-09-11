@@ -20,6 +20,7 @@ import {
 import { Avatar, EmptyState, Pagination, TableSkeleton } from '../components/ui';
 import { exportTableToExcel, exportTableToPdf } from '../utils/tableExport';
 import { formatDurationMinutes } from '../utils/formatDuration';
+import { LIST_POLL_INTERVAL_MS } from '../utils/pollInterval';
 
 interface Message {
   id: string;
@@ -36,6 +37,8 @@ interface Ticket {
   status: string;
   createdAt: string;
   closedAt?: string | null;
+  resolutionMinutes?: number | null;
+  processingResolutionMinutes?: number | null;
   organization?: { id: string; name: string } | null;
   createdBy?: { fullname: string | null; phoneNumber: string | null } | null;
   requesterName?: string | null;
@@ -944,10 +947,10 @@ function truncateWords(text: string, limit: number): string {
   return `${words.slice(0, limit).join(' ')}...`;
 }
 
+/** "Yopilish vaqti" — qayta ishlash boshlanishidan yakunlanishigacha bo'lgan sof vaqt (ТЗ band 7), createdAt->closedAt emas. */
 function closingDuration(ticket: Ticket): string {
   if (!ticket.closedAt) return '-';
-  const minutes = (new Date(ticket.closedAt).getTime() - new Date(ticket.createdAt).getTime()) / 60000;
-  return formatDurationMinutes(minutes);
+  return formatDurationMinutes(ticket.processingResolutionMinutes ?? ticket.resolutionMinutes);
 }
 
 /** Asosiy TZ bo'lim 6 dagi murojaatlar jadvali — endi Dashboard'dan ajratilgan alohida bo'lim. */
@@ -979,8 +982,10 @@ export function TicketsPage() {
   const [legacyModalOpen, setLegacyModalOpen] = useState(false);
   const [isCreatingLegacy, setIsCreatingLegacy] = useState(false);
   const [legacyError, setLegacyError] = useState<string | null>(null);
-  const load = () => {
-    setIsLoading(true);
+  // background=true — fonda avtomatik yangilanish uchun (yangi murojaat kelganda jadval qo'lda
+  // yangilamasdan ham yangilanadi): joriy filtr/sahifa/tanlovlarga tegmasdan, skeletonsiz.
+  const load = (background = false) => {
+    if (!background) setIsLoading(true);
     Promise.all([
       api.get('/admin/tickets'),
       api.get('/admin/organizations'),
@@ -993,7 +998,9 @@ export function TicketsPage() {
         setAdmins(adminsRes.data.data);
         setCategories(categoriesRes.data.data);
       })
-      .finally(() => setIsLoading(false));
+      .finally(() => {
+        if (!background) setIsLoading(false);
+      });
   };
 
   const clearFilters = () => {
@@ -1008,6 +1015,13 @@ export function TicketsPage() {
   };
 
   useEffect(load, []);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      if (!document.hidden) load(true);
+    }, LIST_POLL_INTERVAL_MS);
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   const handleAssign = async (ticket: Ticket, assignedToId: string) => {
     try {

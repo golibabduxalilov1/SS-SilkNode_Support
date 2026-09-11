@@ -5,6 +5,7 @@ import { AppShell } from '../components/AppShell';
 import { IconChevronLeft, IconEdit, IconFileText, IconInbox, IconPaperclip, IconSend } from '../components/icons';
 import { Avatar, EmptyState } from '../components/ui';
 import { formatFileSize } from '../utils/formatFileSize';
+import { formatDurationMinutes } from '../utils/formatDuration';
 
 interface Attachment {
   id: string;
@@ -41,6 +42,7 @@ interface Ticket {
   createdAt: string;
   closedAt: string | null;
   resolutionMinutes: number | null;
+  processingResolutionMinutes: number | null;
   organization?: { name: string } | null;
   createdBy?: { fullname: string | null; phoneNumber: string | null } | null;
   requesterName?: string | null;
@@ -60,13 +62,6 @@ const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/
   /\/api\/v1\/?$/,
   '',
 );
-
-function formatDuration(minutes: number): string {
-  if (minutes < 60) return `${minutes} daq.`;
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return mins > 0 ? `${hours} soat ${mins} daq.` : `${hours} soat`;
-}
 
 function toDateTimeLocalValue(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -339,7 +334,7 @@ export function TicketDetailPage() {
               </div>
             ) : (
               <span className="ticket-summary-meta-value">
-                {ticket.resolutionMinutes != null ? formatDuration(ticket.resolutionMinutes) : '—'}
+                {formatDurationMinutes(ticket.processingResolutionMinutes ?? ticket.resolutionMinutes, '—')}
               </span>
             )}
           </div>

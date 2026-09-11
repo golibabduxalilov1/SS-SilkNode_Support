@@ -7,6 +7,7 @@ import { Ticket } from '../tickets/entities/ticket.entity';
 import { Message } from '../messages/entities/message.entity';
 import { Attachment } from '../attachments/entities/attachment.entity';
 import { Category } from '../categories/entities/category.entity';
+import { AuditLog } from '../audit-log/entities/audit-log.entity';
 
 dotenv.config();
 
@@ -17,7 +18,7 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USERNAME || 'silknode',
   password: process.env.DB_PASSWORD || 'silknode',
   database: process.env.DB_DATABASE || 'silknode_support',
-  entities: [User, Organization, Ticket, Message, Attachment, Category],
+  entities: [User, Organization, Ticket, Message, Attachment, Category, AuditLog],
   migrations: ['src/database/migrations/*.ts'],
   synchronize: false,
 });

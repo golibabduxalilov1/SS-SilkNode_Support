@@ -4,6 +4,7 @@ import { api } from '../api/client';
 import { AppShell } from '../components/AppShell';
 import { IconSearch, IconUser } from '../components/icons';
 import { Avatar, EmptyState, Pagination, TableSkeleton } from '../components/ui';
+import { LIST_POLL_INTERVAL_MS } from '../utils/pollInterval';
 
 interface Requester {
   key: string;
@@ -100,16 +101,31 @@ export function RequestersPage() {
   const [sort, setSort] = useState<RequesterSortState>({ key: 'lastTicketAt', dir: 'desc' });
   const [page, setPage] = useState(1);
 
-  useEffect(() => {
-    setIsLoading(true);
+  // background=true — yangi murojaat kelganda ro'yxat qo'lda yangilamasdan ham yangilanadi;
+  // joriy filtr/sahifaga tegmasdan, skeletonsiz fonda yangilanadi.
+  const load = (background = false) => {
+    if (!background) setIsLoading(true);
     setError(null);
     Promise.all([api.get('/admin/requesters'), api.get('/admin/organizations')])
       .then(([requestersRes, orgsRes]) => {
         setRequesters(requestersRes.data.data);
         setOrganizations(orgsRes.data.data);
       })
-      .catch(() => setError("Murojaatchilar ro'yxatini yuklab bo'lmadi."))
-      .finally(() => setIsLoading(false));
+      .catch(() => {
+        if (!background) setError("Murojaatchilar ro'yxatini yuklab bo'lmadi.");
+      })
+      .finally(() => {
+        if (!background) setIsLoading(false);
+      });
+  };
+
+  useEffect(load, []);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      if (!document.hidden) load(true);
+    }, LIST_POLL_INTERVAL_MS);
+    return () => window.clearInterval(intervalId);
   }, []);
 
   const clearFilters = () => {
