@@ -18,6 +18,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt.guard';
 import { User, UserRole } from '../users/entities/user.entity';
+import { TicketStatus } from './entities/ticket.entity';
 
 @Controller()
 export class TicketsController {
@@ -119,7 +120,7 @@ export class TicketsController {
 
   /**
    * GET /api/v1/admin/dashboard/stats — bo'lim 6, 8: status kartochkalari + Time Tracking.
-   * Filtrlar ixtiyoriy: organizationId/categoryId/dateFrom/dateTo hisobot doirasini torlashtiradi,
+   * Filtrlar ixtiyoriy: organizationId/categoryId/status/dateFrom/dateTo hisobot doirasini torlashtiradi,
    * assignedToId esa faqat boshqa statistikalarni filtrlaydi — byAssignee doim to'liq ro'yxat qaytaradi.
    */
   @Get('admin/dashboard/stats')
@@ -128,6 +129,7 @@ export class TicketsController {
     @Query('organizationId') organizationId?: string,
     @Query('assignedToId') assignedToId?: string,
     @Query('categoryId') categoryId?: string,
+    @Query('status') status?: TicketStatus,
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
   ) {
@@ -135,10 +137,36 @@ export class TicketsController {
       organizationId: organizationId || undefined,
       assignedToId: assignedToId || undefined,
       categoryId: categoryId || undefined,
+      status: Object.values(TicketStatus).includes(status as TicketStatus) ? status : undefined,
       dateFrom: dateFrom ? new Date(dateFrom) : undefined,
       dateTo: dateTo ? new Date(dateTo) : undefined,
     });
     return { success: true, data: stats };
+  }
+
+  /**
+   * GET /api/v1/admin/dashboard/processed-tickets — rahbar uchun batafsil jadval: qaysi xodim
+   * qaysi murojaatni qaysi tashkilotdan qancha vaqtda bajargani. Filtrlar getDashboardStats bilan bir xil.
+   */
+  @Get('admin/dashboard/processed-tickets')
+  @UseGuards(AdminJwtAuthGuard)
+  async getProcessedTickets(
+    @Query('organizationId') organizationId?: string,
+    @Query('assignedToId') assignedToId?: string,
+    @Query('categoryId') categoryId?: string,
+    @Query('status') status?: TicketStatus,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+  ) {
+    const report = await this.ticketsService.getProcessedTicketsReport({
+      organizationId: organizationId || undefined,
+      assignedToId: assignedToId || undefined,
+      categoryId: categoryId || undefined,
+      status: Object.values(TicketStatus).includes(status as TicketStatus) ? status : undefined,
+      dateFrom: dateFrom ? new Date(dateFrom) : undefined,
+      dateTo: dateTo ? new Date(dateTo) : undefined,
+    });
+    return { success: true, data: report };
   }
 
   /** GET /api/v1/admin/users — ijrochi tayinlash uchun admin/superadmin ro'yxati. */

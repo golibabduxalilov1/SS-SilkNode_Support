@@ -6,6 +6,8 @@ import { LoginPage } from './pages/Login';
 import { DashboardPage } from './pages/Dashboard';
 import { TicketsPage } from './pages/Tickets';
 import { TicketDetailPage } from './pages/TicketDetail';
+import { RequestersPage } from './pages/Requesters';
+import { RequesterDetailPage } from './pages/RequesterDetail';
 import { OrganizationsPage } from './pages/Organizations';
 import { CategoriesPage } from './pages/Categories';
 import { EmployeesPage } from './pages/Employees';
@@ -22,6 +24,8 @@ export function App() {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/tickets" element={<TicketsPage />} />
               <Route path="/dashboard/tickets/:id" element={<TicketDetailPage />} />
+              <Route path="/requesters" element={<RequestersPage />} />
+              <Route path="/requesters/:key" element={<RequesterDetailPage />} />
               <Route path="/organizations" element={<OrganizationsPage />} />
               <Route path="/employees" element={<EmployeesPage />} />
               <Route path="/categories" element={<CategoriesPage />} />

@@ -19,6 +19,7 @@ import {
 } from '../components/icons';
 import { Avatar, EmptyState, Pagination, TableSkeleton } from '../components/ui';
 import { exportTableToExcel, exportTableToPdf } from '../utils/tableExport';
+import { formatDurationMinutes } from '../utils/formatDuration';
 
 interface Message {
   id: string;
@@ -76,7 +77,7 @@ const PRIORITY_OPTIONS = [
 
 const PAGE_SIZE = 15;
 
-const TICKET_COLUMN_WIDTHS = [260, 140, 210, 120, 100, 120, 190, 110, 160];
+const TICKET_COLUMN_WIDTHS = [56, 260, 140, 210, 120, 100, 120, 190, 110, 160];
 const TICKET_COLUMN_WIDTHS_WITH_ACTIONS = [...TICKET_COLUMN_WIDTHS, 140];
 
 function TicketTableColgroup({ isSuperadmin }: { isSuperadmin: boolean }) {
@@ -945,14 +946,8 @@ function truncateWords(text: string, limit: number): string {
 
 function closingDuration(ticket: Ticket): string {
   if (!ticket.closedAt) return '-';
-  const minutes = Math.max(
-    0,
-    Math.round((new Date(ticket.closedAt).getTime() - new Date(ticket.createdAt).getTime()) / 60000),
-  );
-  if (minutes < 60) return `${minutes} daqiqa`;
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return mins > 0 ? `${hours} soat ${mins} daqiqa` : `${hours} soat`;
+  const minutes = (new Date(ticket.closedAt).getTime() - new Date(ticket.createdAt).getTime()) / 60000;
+  return formatDurationMinutes(minutes);
 }
 
 /** Asosiy TZ bo'lim 6 dagi murojaatlar jadvali — endi Dashboard'dan ajratilgan alohida bo'lim. */
@@ -1319,6 +1314,7 @@ export function TicketsPage() {
                 <TicketTableColgroup isSuperadmin={isSuperadmin} />
                 <thead>
                   <tr>
+                    <th>№</th>
                     <th>Mavzu</th>
                     <th>Tashkilot</th>
                     <th>Foydalanuvchi</th>
@@ -1332,12 +1328,13 @@ export function TicketsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedTickets.map((t) => (
+                  {paginatedTickets.map((t, idx) => (
                     <tr
                       key={t.id}
                       className="clickable-row"
                       onClick={() => navigate(`/dashboard/tickets/${t.id}`)}
                     >
+                      <td className="cell-muted">{(currentPage - 1) * PAGE_SIZE + idx + 1}</td>
                       <td className="cell-primary">{truncateWords(t.title, 7)}</td>
                       <td className="cell-nowrap">{t.organization?.name ?? '—'}</td>
                       <td>

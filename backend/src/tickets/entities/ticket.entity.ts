@@ -89,8 +89,22 @@ export class Ticket {
   @Column({ name: 'closed_at', type: 'timestamptz', nullable: true })
   closedAt: Date | null;
 
+  /** Umumiy vaqt: createdAt -> closedAt (orqaga moslik uchun saqlanadi, ТЗ "sof qayta ishlash vaqti" emas). */
   @Column({ name: 'resolution_minutes', type: 'int', nullable: true })
   resolutionMinutes: number | null;
+
+  /**
+   * Ticket birinchi marta IN_PROGRESS holatiga o'tgan vaqt — TICKET_STATUS_CHANGED audit
+   * yozuvidan olinib, shu ustunga bir marta yoziladi (keyingi qayta ochilishlarda o'zgarmaydi).
+   * Audit tarixi bo'lmagan eski (legacy) murojaatlarda null qoladi — hisoblashda createdAt'ga
+   * fallback qilinadi.
+   */
+  @Column({ name: 'processing_started_at', type: 'timestamptz', nullable: true })
+  processingStartedAt: Date | null;
+
+  /** Sof qayta ishlash vaqti: (processingStartedAt ?? createdAt) -> closedAt, daqiqada — ТЗ band 7 "Yopilish vaqti". */
+  @Column({ name: 'processing_resolution_minutes', type: 'int', nullable: true })
+  processingResolutionMinutes: number | null;
 
   /** closed/resolved holatidan orqaga (masalan in_progress) qaytgan sonini hisoblaydi — dashboard "reopened %" uchun. */
   @Column({ name: 'reopened_count', type: 'int', default: 0 })

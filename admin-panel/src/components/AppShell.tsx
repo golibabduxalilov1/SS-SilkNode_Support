@@ -17,6 +17,7 @@ import {
   IconPanelLeftClose,
   IconPanelLeftOpen,
   IconSun,
+  IconUser,
   IconUsers,
 } from './icons';
 
@@ -66,6 +67,7 @@ const NAV_GROUPS = [
     items: [
       { to: '/dashboard', label: 'Dashboard', icon: IconGrid },
       { to: '/tickets', label: 'Murojaatlar', icon: IconInbox },
+      { to: '/requesters', label: 'Murojaatchilar', icon: IconUser },
     ],
   },
   {

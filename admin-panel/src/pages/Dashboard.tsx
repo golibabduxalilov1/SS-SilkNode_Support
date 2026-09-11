@@ -21,6 +21,7 @@ import {
   IconAlert,
   IconCheck,
   IconClose,
+  IconDownload,
   IconInbox,
   IconLock,
   IconSearch,
@@ -37,6 +38,8 @@ import { AssigneeTrendChart, type AssigneeResolutionTrendPoint } from '../compon
 import { ProductivityBadge } from '../components/dashboard/ProductivityBadge';
 import { TrendChart, type DailyTrendPoint } from '../components/dashboard/TrendChart';
 import { ResolutionFlowChart, type ResolutionFlowPoint } from '../components/dashboard/ResolutionFlowChart';
+import { exportTableToExcel } from '../utils/tableExport';
+import { formatDurationMinutes } from '../utils/formatDuration';
 
 interface ClosedByPriority {
   low: number;
@@ -60,6 +63,7 @@ interface AssigneeStats {
   closedByPriority: ClosedByPriority;
   statusBreakdown: AssigneeStatusBreakdown;
   avgResolutionMinutes: number | null;
+  totalResolutionMinutes: number;
   slaResolutionBreachCount: number;
   slaComplianceRate: number;
   productivityScore: number;
@@ -78,6 +82,7 @@ interface OrganizationStats {
   closedCount: number;
   openCount: number;
   avgResolutionMinutes: number | null;
+  sharePercent: number;
 }
 
 interface CategoryStats {
@@ -125,6 +130,41 @@ interface DashboardStats {
   };
 }
 
+/** "Kim, qaysi murojaatni, qaysi tashkilotdan, qancha vaqtda bajardi" — rahbar hisobot jadvali qatori. */
+interface ProcessedTicketRow {
+  ticketId: string;
+  number: string;
+  title: string;
+  employeeId: string | null;
+  employeeName: string | null;
+  organizationId: string | null;
+  organizationName: string | null;
+  requesterName: string | null;
+  categoryId: string | null;
+  categoryName: string | null;
+  priority: string;
+  status: string;
+  receivedAt: string;
+  processingStartedAt: string;
+  /** true bo'lsa — audit tarixida "ishga olingan" yozuvi topilmagan, tushgan vaqt taxminiy sifatida qo'yilgan. */
+  processingStartedAtIsFallback: boolean;
+  completedAt: string | null;
+  durationMinutes: number | null;
+}
+
+interface EmployeeProcessingSummary {
+  employeeId: string;
+  employeeName: string | null;
+  ticketsCompleted: number;
+  avgDurationMinutes: number | null;
+  totalDurationMinutes: number;
+}
+
+interface ProcessedTicketsReport {
+  rows: ProcessedTicketRow[];
+  byEmployee: EmployeeProcessingSummary[];
+}
+
 interface Organization {
   id: string;
   name: string;
@@ -148,6 +188,13 @@ const STATUS_LABELS: Record<string, string> = {
   closed: 'Yopilgan',
 };
 
+const PRIORITY_LABELS: Record<string, string> = {
+  low: 'Past',
+  medium: "O'rta",
+  high: 'Yuqori',
+  critical: 'Kritik',
+};
+
 const STATUS_ORDER: Array<keyof DashboardStats['statusCounts']> = [
   'new',
   'in_progress',
@@ -155,6 +202,8 @@ const STATUS_ORDER: Array<keyof DashboardStats['statusCounts']> = [
   'resolved',
   'closed',
 ];
+
+const STATUS_OPTIONS = STATUS_ORDER.map((value) => ({ value, label: STATUS_LABELS[value] }));
 
 const TIER_COLOR: Record<'good' | 'warn' | 'bad', string> = {
   good: 'var(--success)',
@@ -212,6 +261,49 @@ export function formatDayLabel(dateStr: string): string {
 function percentDelta(curr: number, prev: number): number {
   if (prev === 0) return curr === 0 ? 0 : 100;
   return Math.round(((curr - prev) / prev) * 100);
+}
+
+function formatProcessingDuration(minutes: number | null): string {
+  return formatDurationMinutes(minutes, '—');
+}
+
+function formatDateTime(value: string | null): string {
+  if (!value) return '—';
+  return new Date(value).toLocaleString('uz-UZ');
+}
+
+const PROCESSED_TICKETS_EXPORT_HEADERS = [
+  '№',
+  'Murojaat raqami',
+  'Xodim',
+  'Tashkilot',
+  'Murojaatchi',
+  'Murojaat mavzusi',
+  'Kategoriya',
+  'Muhimlik',
+  'Holat',
+  'Tushgan sana/vaqt',
+  'Ishga olingan sana/vaqt',
+  'Yakunlangan sana/vaqt',
+  'Qayta ishlash vaqti',
+];
+
+function processedTicketsToExportRows(rows: ProcessedTicketRow[]): (string | number)[][] {
+  return rows.map((row, index) => [
+    index + 1,
+    row.number,
+    row.employeeName ?? row.employeeId ?? '—',
+    row.organizationName ?? '—',
+    row.requesterName ?? '—',
+    row.title,
+    row.categoryName ?? '—',
+    PRIORITY_LABELS[row.priority] ?? row.priority,
+    STATUS_LABELS[row.status] ?? row.status,
+    formatDateTime(row.receivedAt),
+    formatDateTime(row.processingStartedAt) + (row.processingStartedAtIsFallback ? ' *' : ''),
+    formatDateTime(row.completedAt),
+    formatProcessingDuration(row.durationMinutes),
+  ]);
 }
 
 export function ChartTooltip({ active, payload, label, labelFormatter }: any) {
@@ -378,6 +470,32 @@ function KpiCard({ icon, value, suffix, label, accent, accentSoft, trend }: Omit
   );
 }
 
+function OrgHighlightCard({
+  icon,
+  accent,
+  accentSoft,
+  organizationName,
+  detail,
+}: {
+  icon: ReactNode;
+  accent: string;
+  accentSoft: string;
+  organizationName: string;
+  detail: string;
+}) {
+  return (
+    <div className="stat-card stat-card--mini">
+      <div className="stat-card-top">
+        <span className="stat-card-icon" style={{ '--accent': accent, '--accent-soft': accentSoft } as AccentStyle}>
+          {icon}
+        </span>
+      </div>
+      <span className="stat-value">{organizationName}</span>
+      <span className="stat-label">{detail}</span>
+    </div>
+  );
+}
+
 interface FilterChipData {
   key: string;
   label: string;
@@ -389,6 +507,8 @@ type AssigneeSortKey =
   | 'ticketsOpenNow'
   | 'ticketsClosed'
   | 'ticketsAssignedTotal'
+  | 'avgResolutionMinutes'
+  | 'totalResolutionMinutes'
   | 'slaComplianceRate'
   | 'productivityScore'
   | 'closeRate'
@@ -399,16 +519,30 @@ interface AssigneeSortState {
   dir: 'asc' | 'desc';
 }
 
-function SortableTh({
+type EmployeeSummarySortKey = 'name' | 'ticketsCompleted' | 'avgDurationMinutes' | 'totalDurationMinutes';
+
+interface EmployeeSummarySortState {
+  key: EmployeeSummarySortKey;
+  dir: 'asc' | 'desc';
+}
+
+type ProcessedRowSortKey = 'employeeName' | 'organizationName' | 'durationMinutes';
+
+interface ProcessedRowSortState {
+  key: ProcessedRowSortKey;
+  dir: 'asc' | 'desc';
+}
+
+function SortableTh<K extends string>({
   label,
   sortKey,
   current,
   onSort,
 }: {
   label: string;
-  sortKey: AssigneeSortKey;
-  current: AssigneeSortState;
-  onSort: (key: AssigneeSortKey) => void;
+  sortKey: K;
+  current: { key: K; dir: 'asc' | 'desc' };
+  onSort: (key: K) => void;
 }) {
   const active = current.key === sortKey;
   return (
@@ -442,6 +576,8 @@ function FilterBar({
   onOrganizationChange,
   categoryFilter,
   onCategoryChange,
+  statusFilter,
+  onStatusChange,
   dateFrom,
   onDateFromChange,
   dateTo,
@@ -460,6 +596,8 @@ function FilterBar({
   onOrganizationChange: (value: string) => void;
   categoryFilter: string;
   onCategoryChange: (value: string) => void;
+  statusFilter: string;
+  onStatusChange: (value: string) => void;
   dateFrom: string;
   onDateFromChange: (value: string) => void;
   dateTo: string;
@@ -503,6 +641,18 @@ function FilterBar({
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="filter-field">
+          <span className="filter-field-label">Holat</span>
+          <select value={statusFilter} onChange={(e) => onStatusChange(e.target.value)}>
+            <option value="">Barchasi</option>
+            {STATUS_OPTIONS.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
               </option>
             ))}
           </select>
@@ -552,14 +702,22 @@ export function DashboardPage() {
   const [activeSlice, setActiveSlice] = useState<number | undefined>(undefined);
   const [selectedAssigneeId, setSelectedAssigneeId] = useState<string | null>(null);
   const [assigneeSort, setAssigneeSort] = useState<AssigneeSortState>({ key: 'name', dir: 'asc' });
+  const [employeeSummarySort, setEmployeeSummarySort] = useState<EmployeeSummarySortState>({ key: 'name', dir: 'asc' });
+  const [processedRowSort, setProcessedRowSort] = useState<ProcessedRowSortState>({ key: 'employeeName', dir: 'asc' });
+  const [isExportingProcessed, setIsExportingProcessed] = useState(false);
 
   const [assignees, setAssignees] = useState<Assignee[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [organizationFilter, setOrganizationFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+
+  const [processedReport, setProcessedReport] = useState<ProcessedTicketsReport | null>(null);
+  const [isProcessedLoading, setIsProcessedLoading] = useState(true);
+  const [hasProcessedError, setHasProcessedError] = useState(false);
 
   const hasLoadedOnce = useRef(false);
 
@@ -578,6 +736,19 @@ export function DashboardPage() {
       .catch(() => {});
   }, []);
 
+  // Dashboard stats va "xodimlar bo'yicha bajarilgan murojaatlar" hisobotining ikkalasi ham
+  // bir xil filtrlardan foydalanadi — shu sababli params bitta joyda quriladi.
+  const filterParams = useMemo(() => {
+    const params: Record<string, string> = {};
+    if (organizationFilter) params.organizationId = organizationFilter;
+    if (categoryFilter) params.categoryId = categoryFilter;
+    if (statusFilter) params.status = statusFilter;
+    if (dateFrom) params.dateFrom = dateFrom;
+    if (dateTo) params.dateTo = dateTo;
+    if (selectedAssigneeId) params.assignedToId = selectedAssigneeId;
+    return params;
+  }, [organizationFilter, categoryFilter, statusFilter, dateFrom, dateTo, selectedAssigneeId]);
+
   useEffect(() => {
     let cancelled = false;
     if (hasLoadedOnce.current) {
@@ -587,15 +758,8 @@ export function DashboardPage() {
     }
     setHasError(false);
 
-    const params: Record<string, string> = {};
-    if (organizationFilter) params.organizationId = organizationFilter;
-    if (categoryFilter) params.categoryId = categoryFilter;
-    if (dateFrom) params.dateFrom = dateFrom;
-    if (dateTo) params.dateTo = dateTo;
-    if (selectedAssigneeId) params.assignedToId = selectedAssigneeId;
-
     api
-      .get('/admin/dashboard/stats', { params: Object.keys(params).length > 0 ? params : undefined })
+      .get('/admin/dashboard/stats', { params: Object.keys(filterParams).length > 0 ? filterParams : undefined })
       .then((res) => {
         if (!cancelled) setStats(res.data.data);
       })
@@ -612,9 +776,35 @@ export function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [organizationFilter, categoryFilter, dateFrom, dateTo, selectedAssigneeId]);
+  }, [filterParams]);
 
-  const hasPanelFilters = Boolean(selectedAssigneeId || organizationFilter || categoryFilter || dateFrom || dateTo);
+  // Alohida so'rov va holat — bu bo'lim yuklanmasa ham asosiy Dashboard funksionalligi buzilmaydi.
+  useEffect(() => {
+    let cancelled = false;
+    setIsProcessedLoading(true);
+    setHasProcessedError(false);
+
+    api
+      .get('/admin/dashboard/processed-tickets', {
+        params: Object.keys(filterParams).length > 0 ? filterParams : undefined,
+      })
+      .then((res) => {
+        if (!cancelled) setProcessedReport(res.data.data);
+      })
+      .catch(() => {
+        if (!cancelled) setHasProcessedError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setIsProcessedLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [filterParams]);
+
+  const hasPanelFilters = Boolean(
+    selectedAssigneeId || organizationFilter || categoryFilter || statusFilter || dateFrom || dateTo,
+  );
 
   // Dropdown va jadval qatoriga bosish BITTA state'ni (selectedAssigneeId) o'qib-yozadi,
   // shuning uchun ikkalasi har doim to'liq sinxron.
@@ -650,6 +840,13 @@ export function DashboardPage() {
         onClear: () => setCategoryFilter(''),
       });
     }
+    if (statusFilter) {
+      chips.push({
+        key: 'status',
+        label: `Holat: ${STATUS_LABELS[statusFilter] ?? statusFilter}`,
+        onClear: () => setStatusFilter(''),
+      });
+    }
     if (dateFrom || dateTo) {
       const label = dateFrom && dateTo ? `Sana: ${dateFrom} — ${dateTo}` : dateFrom ? `Sana: ${dateFrom} dan` : `Sana: ${dateTo} gacha`;
       chips.push({
@@ -662,12 +859,23 @@ export function DashboardPage() {
       });
     }
     return chips;
-  }, [selectedAssigneeId, selectedAssigneeName, organizationFilter, categoryFilter, dateFrom, dateTo, organizations, categories]);
+  }, [
+    selectedAssigneeId,
+    selectedAssigneeName,
+    organizationFilter,
+    categoryFilter,
+    statusFilter,
+    dateFrom,
+    dateTo,
+    organizations,
+    categories,
+  ]);
 
   const clearAllFilters = () => {
     setSelectedAssigneeId(null);
     setOrganizationFilter('');
     setCategoryFilter('');
+    setStatusFilter('');
     setDateFrom('');
     setDateTo('');
   };
@@ -716,12 +924,49 @@ export function DashboardPage() {
     const factor = dir === 'asc' ? 1 : -1;
     return [...stats.byAssignee].sort((a, b) => {
       if (key === 'name') return factor * (a.fullname ?? a.userId).localeCompare(b.fullname ?? b.userId);
+      if (key === 'avgResolutionMinutes') return factor * ((a.avgResolutionMinutes ?? -1) - (b.avgResolutionMinutes ?? -1));
       return factor * (a[key] - b[key]);
     });
   }, [stats, assigneeSort]);
 
   function handleAssigneeSort(key: AssigneeSortKey) {
     setAssigneeSort((curr) => (curr.key === key ? { key, dir: curr.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: key === 'name' ? 'asc' : 'desc' }));
+  }
+
+  const sortedByEmployee = useMemo(() => {
+    if (!processedReport) return [];
+    const { key, dir } = employeeSummarySort;
+    const factor = dir === 'asc' ? 1 : -1;
+    return [...processedReport.byEmployee].sort((a, b) => {
+      if (key === 'name') return factor * (a.employeeName ?? a.employeeId).localeCompare(b.employeeName ?? b.employeeId);
+      if (key === 'avgDurationMinutes') return factor * ((a.avgDurationMinutes ?? -1) - (b.avgDurationMinutes ?? -1));
+      return factor * (a[key] - b[key]);
+    });
+  }, [processedReport, employeeSummarySort]);
+
+  function handleEmployeeSummarySort(key: EmployeeSummarySortKey) {
+    setEmployeeSummarySort((curr) =>
+      curr.key === key ? { key, dir: curr.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: key === 'name' ? 'asc' : 'desc' },
+    );
+  }
+
+  const sortedProcessedRows = useMemo(() => {
+    if (!processedReport) return [];
+    const { key, dir } = processedRowSort;
+    const factor = dir === 'asc' ? 1 : -1;
+    return [...processedReport.rows].sort((a, b) => {
+      if (key === 'employeeName') {
+        return factor * (a.employeeName ?? a.employeeId ?? '').localeCompare(b.employeeName ?? b.employeeId ?? '');
+      }
+      if (key === 'organizationName') {
+        return factor * (a.organizationName ?? '').localeCompare(b.organizationName ?? '');
+      }
+      return factor * ((a.durationMinutes ?? -1) - (b.durationMinutes ?? -1));
+    });
+  }, [processedReport, processedRowSort]);
+
+  function handleProcessedRowSort(key: ProcessedRowSortKey) {
+    setProcessedRowSort((curr) => (curr.key === key ? { key, dir: curr.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }));
   }
 
   const assigneeSlaChartData = useMemo(() => {
@@ -775,13 +1020,42 @@ export function DashboardPage() {
       const category = categories.find((c) => c.id === categoryFilter);
       parts.push(category?.name ?? categoryFilter);
     }
+    if (statusFilter) {
+      parts.push(STATUS_LABELS[statusFilter] ?? statusFilter);
+    }
     if (dateFrom || dateTo) {
       parts.push(dateFrom && dateTo ? `${dateFrom}–${dateTo}` : dateFrom ? `${dateFrom} dan` : `${dateTo} gacha`);
     }
     return parts.length > 0 ? parts.join(', ') : null;
-  }, [selectedAssigneeId, selectedAssigneeName, organizationFilter, categoryFilter, dateFrom, dateTo, organizations, categories]);
+  }, [
+    selectedAssigneeId,
+    selectedAssigneeName,
+    organizationFilter,
+    categoryFilter,
+    statusFilter,
+    dateFrom,
+    dateTo,
+    organizations,
+    categories,
+  ]);
 
   const periodLabel = dateFrom || dateTo ? 'Tanlangan davrda' : 'Oxirgi 30 kunda';
+
+  async function handleExportProcessedTickets() {
+    setIsExportingProcessed(true);
+    try {
+      const filterSummary = scopeLabel ? `Kesim: ${scopeLabel}` : "Umumiy ko'rinish";
+      await exportTableToExcel({
+        title: 'Xodimlar va bajarilgan murojaatlar',
+        subtitle: `Yaratildi: ${new Date().toLocaleString('uz-UZ')} • Jami: ${sortedProcessedRows.length} ta • ${filterSummary}`,
+        headers: PROCESSED_TICKETS_EXPORT_HEADERS,
+        rows: processedTicketsToExportRows(sortedProcessedRows),
+        fileName: `obrabotannye_zayavki_${new Date().toISOString().slice(0, 10)}.xlsx`,
+      });
+    } finally {
+      setIsExportingProcessed(false);
+    }
+  }
 
   const assigneeSectionRef = useRef<HTMLDivElement | null>(null);
 
@@ -799,6 +1073,18 @@ export function DashboardPage() {
       .slice(0, 5)
       .map((o) => ({ name: o.organizationName, value: o.ticketsCount }))
       .reverse();
+  }, [stats]);
+
+  // Ikkitadan ko'p tashkilot bo'lgandagina "eng faol / eng kam faol" ajratib ko'rsatiladi —
+  // aks holda ikkalasi bir xil (yoki yagona) tashkilotni ko'rsatib, karta ma'nosiz bo'ladi.
+  const mostActiveOrganization = useMemo(() => {
+    if (!stats || stats.byOrganization.length < 2) return null;
+    return stats.byOrganization.reduce((max, o) => (o.ticketsCount > max.ticketsCount ? o : max));
+  }, [stats]);
+
+  const leastActiveOrganization = useMemo(() => {
+    if (!stats || stats.byOrganization.length < 2) return null;
+    return stats.byOrganization.reduce((min, o) => (o.ticketsCount < min.ticketsCount ? o : min));
   }, [stats]);
 
   const categoryChartData = useMemo(() => {
@@ -909,6 +1195,8 @@ export function DashboardPage() {
         onOrganizationChange={setOrganizationFilter}
         categoryFilter={categoryFilter}
         onCategoryChange={setCategoryFilter}
+        statusFilter={statusFilter}
+        onStatusChange={setStatusFilter}
         dateFrom={dateFrom}
         onDateFromChange={setDateFrom}
         dateTo={dateTo}
@@ -961,7 +1249,7 @@ export function DashboardPage() {
           <EmptyState
             icon={<IconSearch width={24} height={24} />}
             title="Ushbu filtr bo'yicha ma'lumot topilmadi"
-            description="Tanlangan ijrochi, tashkilot, kategoriya yoki sana oralig'ida murojaatlar mavjud emas. Filtrlarni tozalab ko'ring."
+            description="Tanlangan ijrochi, tashkilot, kategoriya, holat yoki sana oralig'ida murojaatlar mavjud emas. Filtrlarni tozalab ko'ring."
           />
         ) : (
           <div className={`dashboard-content${isRefreshing ? ' is-refreshing' : ''}`}>
@@ -1148,6 +1436,18 @@ export function DashboardPage() {
                             onSort={handleAssigneeSort}
                           />
                           <SortableTh
+                            label="O'rtacha qayta ishlash vaqti"
+                            sortKey="avgResolutionMinutes"
+                            current={assigneeSort}
+                            onSort={handleAssigneeSort}
+                          />
+                          <SortableTh
+                            label="Umumiy qayta ishlash vaqti"
+                            sortKey="totalResolutionMinutes"
+                            current={assigneeSort}
+                            onSort={handleAssigneeSort}
+                          />
+                          <SortableTh
                             label="Muddat muvofiqligi"
                             sortKey="slaComplianceRate"
                             current={assigneeSort}
@@ -1202,6 +1502,8 @@ export function DashboardPage() {
                                 <PriorityStackedBar data={a.closedByPriority} />
                               </td>
                               <td>{a.ticketsAssignedTotal}</td>
+                              <td>{formatProcessingDuration(a.avgResolutionMinutes)}</td>
+                              <td>{formatProcessingDuration(a.totalResolutionMinutes)}</td>
                               <td>
                                 <SlaBadge complianceRate={a.slaComplianceRate} />
                               </td>
@@ -1379,6 +1681,24 @@ export function DashboardPage() {
                   subtitle="Eng ko'p murojaat tushirgan top 5 tashkilot"
                   filterContext={scopeLabel}
                 />
+                {mostActiveOrganization && leastActiveOrganization && (
+                  <div className="stat-cards">
+                    <OrgHighlightCard
+                      icon={<IconTrendUp width={15} height={15} />}
+                      accent="var(--success)"
+                      accentSoft="var(--success-tint)"
+                      organizationName={mostActiveOrganization.organizationName}
+                      detail={`Eng faol tashkilot — ${mostActiveOrganization.ticketsCount} ta murojaat (${mostActiveOrganization.sharePercent}%)`}
+                    />
+                    <OrgHighlightCard
+                      icon={<IconTrendDown width={15} height={15} />}
+                      accent="var(--text-tertiary)"
+                      accentSoft="var(--veil)"
+                      organizationName={leastActiveOrganization.organizationName}
+                      detail={`Eng kam faol tashkilot — ${leastActiveOrganization.ticketsCount} ta murojaat (${leastActiveOrganization.sharePercent}%)`}
+                    />
+                  </div>
+                )}
                 <div className="split-panel">
                   <ResponsiveContainer width="100%" height={Math.max(160, topOrganizations.length * 42)}>
                     <BarChart data={topOrganizations} layout="vertical" margin={{ left: 8, right: 40 }}>
@@ -1413,6 +1733,7 @@ export function DashboardPage() {
                         <tr>
                           <th>Tashkilot</th>
                           <th>Murojaatlar soni</th>
+                          <th>Ulush</th>
                           <th>Yopilgan / Ochiq</th>
                         </tr>
                       </thead>
@@ -1424,6 +1745,7 @@ export function DashboardPage() {
                           >
                             <td className="cell-primary">{o.organizationName}</td>
                             <td>{o.ticketsCount}</td>
+                            <td>{o.sharePercent}%</td>
                             <td>
                               <OrganizationRatioBar closedCount={o.closedCount} openCount={o.openCount} />
                             </td>
@@ -1435,6 +1757,149 @@ export function DashboardPage() {
                 </div>
               </div>
             )}
+
+            <div className="section-card">
+              <SectionHeader
+                title="Xodimlar va bajarilgan murojaatlar"
+                subtitle="Har bir murojaat: qaysi xodim, qaysi tashkilotdan, qachon oldi va qancha vaqtda yakunladi"
+                filterContext={scopeLabel}
+                action={
+                  !isProcessedLoading && !hasProcessedError && sortedProcessedRows.length > 0 ? (
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={handleExportProcessedTickets}
+                      disabled={isExportingProcessed}
+                    >
+                      <IconDownload width={14} height={14} />
+                      {isExportingProcessed ? 'Tayyorlanmoqda...' : "Excel'ga yuklab olish"}
+                    </button>
+                  ) : undefined
+                }
+              />
+
+              {isProcessedLoading ? (
+                <TableSkeleton rows={6} cols={9} />
+              ) : hasProcessedError ? (
+                <EmptyState
+                  icon={<IconAlert width={24} height={24} />}
+                  title="Ma'lumotni yuklab bo'lmadi"
+                  description="Server bilan bog'lanishda xatolik yuz berdi. Sahifani qayta yuklab ko'ring."
+                />
+              ) : !processedReport || processedReport.rows.length === 0 ? (
+                <EmptyState
+                  icon={<IconUsers width={24} height={24} />}
+                  title="Hozircha bajarilgan yoki jarayondagi murojaatlar yo'q"
+                  description="Murojaat ijrochiga tayinlanib ishga olingach, shu yerda ko'rinadi."
+                />
+              ) : (
+                <>
+                  {processedReport.byEmployee.length > 0 && (
+                    <div className="table-wrap">
+                      <table className="tickets-table">
+                        <thead>
+                          <tr>
+                            <SortableTh label="Xodim" sortKey="name" current={employeeSummarySort} onSort={handleEmployeeSummarySort} />
+                            <SortableTh
+                              label="Jami bajarilgan"
+                              sortKey="ticketsCompleted"
+                              current={employeeSummarySort}
+                              onSort={handleEmployeeSummarySort}
+                            />
+                            <SortableTh
+                              label="O'rtacha qayta ishlash vaqti"
+                              sortKey="avgDurationMinutes"
+                              current={employeeSummarySort}
+                              onSort={handleEmployeeSummarySort}
+                            />
+                            <SortableTh
+                              label="Umumiy sarflangan vaqt"
+                              sortKey="totalDurationMinutes"
+                              current={employeeSummarySort}
+                              onSort={handleEmployeeSummarySort}
+                            />
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sortedByEmployee.map((e) => (
+                            <tr key={e.employeeId}>
+                              <td className="cell-primary">{e.employeeName ?? e.employeeId}</td>
+                              <td>{e.ticketsCompleted}</td>
+                              <td>{formatProcessingDuration(e.avgDurationMinutes)}</td>
+                              <td>{formatProcessingDuration(e.totalDurationMinutes)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  <div className="table-wrap" style={{ marginTop: 20 }}>
+                    <table className="tickets-table">
+                      <thead>
+                        <tr>
+                          <th>№</th>
+                          <SortableTh
+                            label="Xodim"
+                            sortKey="employeeName"
+                            current={processedRowSort}
+                            onSort={handleProcessedRowSort}
+                          />
+                          <SortableTh
+                            label="Tashkilot"
+                            sortKey="organizationName"
+                            current={processedRowSort}
+                            onSort={handleProcessedRowSort}
+                          />
+                          <th>Murojaat</th>
+                          <th>Holat</th>
+                          <th>Tushgan sana/vaqt</th>
+                          <th>Ishga olingan sana/vaqt</th>
+                          <th>Yakunlangan sana/vaqt</th>
+                          <SortableTh
+                            label="Qayta ishlash vaqti"
+                            sortKey="durationMinutes"
+                            current={processedRowSort}
+                            onSort={handleProcessedRowSort}
+                          />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sortedProcessedRows.map((row, index) => (
+                          <tr key={row.ticketId}>
+                            <td className="cell-muted">{index + 1}</td>
+                            <td className="cell-primary">{row.employeeName ?? row.employeeId ?? '—'}</td>
+                            <td>{row.organizationName ?? '—'}</td>
+                            <td>
+                              <span className="cell-primary">{row.number}</span>
+                              <br />
+                              <span className="cell-muted">{row.title}</span>
+                            </td>
+                            <td>{STATUS_LABELS[row.status] ?? row.status}</td>
+                            <td>{formatDateTime(row.receivedAt)}</td>
+                            <td
+                              title={
+                                row.processingStartedAtIsFallback
+                                  ? "Audit tarixida \"ishga olingan\" belgisi topilmadi — tushgan vaqt asosida taxminiy ko'rsatilgan"
+                                  : undefined
+                              }
+                            >
+                              {formatDateTime(row.processingStartedAt)}
+                              {row.processingStartedAtIsFallback && ' *'}
+                            </td>
+                            <td>{formatDateTime(row.completedAt)}</td>
+                            <td>{formatProcessingDuration(row.durationMinutes)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="chart-summary-note">
+                    * — audit tarixida "ishga olingan" belgisi topilmagan murojaatlar uchun tushgan vaqt taxminiy sifatida ko'rsatilgan.
+                  </p>
+                </>
+              )}
+            </div>
           </div>
         ))
       )}

@@ -33,6 +33,8 @@ export interface AssigneeStats {
   closedByPriority: ClosedByPriority;
   statusBreakdown: AssigneeStatusBreakdown;
   avgResolutionMinutes: number | null;
+  /** Yopilgan tiketlar bo'yicha resolutionMinutes'lar yig'indisi — avgResolutionMinutes'dan farqli, o'rtacha emas, umumiy sarflangan vaqt. */
+  totalResolutionMinutes: number;
   slaResolutionBreachCount: number;
   slaComplianceRate: number;
   /** Foydali ish koeffitsienti (%) — calculateProductivityScore() natijasi. */
@@ -55,6 +57,8 @@ export interface OrganizationStats {
   closedCount: number;
   openCount: number;
   avgResolutionMinutes: number | null;
+  /** Ushbu tashkilotning barcha tashkilotlar bo'yicha murojaatlar sonidagi ulushi, foizda (0-100). */
+  sharePercent: number;
 }
 
 export interface CategoryStats {
@@ -134,8 +138,46 @@ export interface DashboardStatsFilter {
   organizationId?: string;
   assignedToId?: string;
   categoryId?: string;
+  status?: TicketStatus;
   dateFrom?: Date;
   dateTo?: Date;
+}
+
+/** "Kim, qaysi murojaatni, qaysi tashkilotdan, qancha vaqtda bajardi" — rahbar hisobot jadvali uchun bitta qator. */
+export interface ProcessedTicketRow {
+  ticketId: string;
+  number: string;
+  title: string;
+  employeeId: string | null;
+  employeeName: string | null;
+  organizationId: string | null;
+  organizationName: string | null;
+  requesterName: string | null;
+  categoryId: string | null;
+  categoryName: string | null;
+  priority: TicketPriority;
+  status: TicketStatus;
+  receivedAt: Date;
+  /** TICKET_STATUS_CHANGED audit yozuvidan (metadata.to === 'in_progress') olingan birinchi vaqt. */
+  processingStartedAt: Date;
+  /** true bo'lsa — audit yozuvi topilmagan, receivedAt bilan bir xil qiymat qo'yilgan (taxminiy). */
+  processingStartedAtIsFallback: boolean;
+  completedAt: Date | null;
+  /** processingStartedAt'dan completedAt'gacha, daqiqada. Hali yakunlanmagan bo'lsa — null. */
+  durationMinutes: number | null;
+}
+
+export interface EmployeeProcessingSummary {
+  employeeId: string;
+  employeeName: string | null;
+  ticketsCompleted: number;
+  avgDurationMinutes: number | null;
+  totalDurationMinutes: number;
+}
+
+export interface ProcessedTicketsReport {
+  rows: ProcessedTicketRow[];
+  byEmployee: EmployeeProcessingSummary[];
 }
 
 // TimeGauge komponentida (admin-panel) ishlatiladigan goodMax/warnMax'ga mos —
@@ -159,6 +201,11 @@ const MIN_RESOLUTION_MINUTES = 5;
 function diffMinutes(from: Date, to: Date): number {
   const minutes = Math.round((to.getTime() - from.getTime()) / 60000);
   return Math.max(minutes, MIN_RESOLUTION_MINUTES);
+}
+
+/** ТЗ band 7 "Yopilish vaqti" — sof qayta ishlash vaqti, audit tarixi bo'lmagan eski tiketlarda umumiy vaqtga fallback. */
+function effectiveResolutionMinutes(ticket: Ticket): number | null {
+  return ticket.processingResolutionMinutes ?? ticket.resolutionMinutes;
 }
 
 function average(values: number[]): number | null {
@@ -211,6 +258,7 @@ function calculateProductivityScore(closedCount: number, assignedTotal: number):
 function matchesOrgCategory(ticket: Ticket, filter: DashboardStatsFilter): boolean {
   if (filter.organizationId && ticket.organizationId !== filter.organizationId) return false;
   if (filter.categoryId && ticket.categoryId !== filter.categoryId) return false;
+  if (filter.status && ticket.status !== filter.status) return false;
   return true;
 }
 
@@ -442,6 +490,9 @@ export class TicketsService {
       status,
       closedAt,
       resolutionMinutes: closedAt ? diffMinutes(createdAt, closedAt) : null,
+      // Eski (arxiv) murojaatlarda "ishga olingan vaqt" haqida audit tarixi yo'q —
+      // sof qayta ishlash vaqti createdAt'ga fallback qilinadi.
+      processingResolutionMinutes: closedAt ? diffMinutes(createdAt, closedAt) : null,
     });
     const saved = await this.ticketsRepository.save(ticket);
 
@@ -510,15 +561,23 @@ export class TicketsService {
 
     ticket.status = status;
 
+    // Birinchi marta IN_PROGRESS'ga o'tgan vaqt — bir marta yoziladi, qayta ochilishlarda o'zgarmaydi
+    // (ТЗ band 7: "Yopilish vaqti" shu vaqtdan hisoblanadi, murojaat kelib tushgan vaqtdan emas).
+    if (status === TicketStatus.IN_PROGRESS && !ticket.processingStartedAt) {
+      ticket.processingStartedAt = new Date();
+    }
+
     // Har safar 'closed' yoki 'resolved'ga o'tganda yangilanadi — murojaat qayta ochilib
     // qayta yakunlansa, closed_at/resolution_minutes so'nggi yakunlanishni aks ettiradi.
     if (status === TicketStatus.CLOSED || status === TicketStatus.RESOLVED) {
       const now = new Date();
       ticket.closedAt = now;
       ticket.resolutionMinutes = diffMinutes(ticket.createdAt, now);
+      ticket.processingResolutionMinutes = diffMinutes(ticket.processingStartedAt ?? ticket.createdAt, now);
     } else if (reopening) {
       ticket.closedAt = null;
       ticket.resolutionMinutes = null;
+      ticket.processingResolutionMinutes = null;
     }
 
     await this.ticketsRepository.save(ticket);
@@ -567,13 +626,19 @@ export class TicketsService {
 
     ticket.status = nextStatus;
 
+    if (nextStatus === TicketStatus.IN_PROGRESS && !ticket.processingStartedAt) {
+      ticket.processingStartedAt = new Date();
+    }
+
     if (nextStatus === TicketStatus.CLOSED || nextStatus === TicketStatus.RESOLVED) {
       const now = new Date();
       ticket.closedAt = now;
       ticket.resolutionMinutes = diffMinutes(ticket.createdAt, now);
+      ticket.processingResolutionMinutes = diffMinutes(ticket.processingStartedAt ?? ticket.createdAt, now);
     } else {
       ticket.closedAt = null;
       ticket.resolutionMinutes = null;
+      ticket.processingResolutionMinutes = null;
     }
 
     await this.ticketsRepository.save(ticket);
@@ -635,6 +700,7 @@ export class TicketsService {
     const previousClosedAt = ticket.closedAt;
     ticket.closedAt = closedAt;
     ticket.resolutionMinutes = diffMinutes(ticket.createdAt, closedAt);
+    ticket.processingResolutionMinutes = diffMinutes(ticket.processingStartedAt ?? ticket.createdAt, closedAt);
     await this.ticketsRepository.save(ticket);
 
     await this.auditLogService.log(
@@ -691,7 +757,7 @@ export class TicketsService {
     const closedThisMonth = closedTickets.filter((t) => t.closedAt! >= monthStart).length;
 
     const avgResolutionMinutes = average(
-      closedTickets.filter((t) => t.resolutionMinutes != null).map((t) => t.resolutionMinutes!),
+      closedTickets.map((t) => effectiveResolutionMinutes(t)).filter((m): m is number => m != null),
     );
 
     const openStatuses = [
@@ -757,9 +823,10 @@ export class TicketsService {
           high: closed.filter((t) => t.priority === TicketPriority.HIGH).length,
           critical: closed.filter((t) => t.priority === TicketPriority.CRITICAL).length,
         };
-        const slaResolutionBreachCount = closed.filter(
-          (t) => t.resolutionMinutes != null && t.resolutionMinutes > SLA_RESOLUTION_MINUTES,
-        ).length;
+        const slaResolutionBreachCount = closed.filter((t) => {
+          const minutes = effectiveResolutionMinutes(t);
+          return minutes != null && minutes > SLA_RESOLUTION_MINUTES;
+        }).length;
         const slaComplianceRate =
           closed.length > 0
             ? Math.round(((closed.length - slaResolutionBreachCount) / closed.length) * 100)
@@ -785,8 +852,12 @@ export class TicketsService {
           closedByPriority,
           statusBreakdown,
           avgResolutionMinutes: average(
-            closed.filter((t) => t.resolutionMinutes != null).map((t) => t.resolutionMinutes!),
+            closed.map((t) => effectiveResolutionMinutes(t)).filter((m): m is number => m != null),
           ),
+          totalResolutionMinutes: closed
+            .map((t) => effectiveResolutionMinutes(t))
+            .filter((m): m is number => m != null)
+            .reduce((sum, m) => sum + m, 0),
           slaResolutionBreachCount,
           slaComplianceRate,
           productivityScore: calculateProductivityScore(closed.length, group.tickets.length),
@@ -816,6 +887,10 @@ export class TicketsService {
       }
       organizationGroups.get(t.organizationId)!.tickets.push(t);
     }
+    const totalOrganizationTickets = Array.from(organizationGroups.values()).reduce(
+      (sum, group) => sum + group.tickets.length,
+      0,
+    );
     const byOrganization: OrganizationStats[] = Array.from(organizationGroups.entries())
       .map(([organizationId, group]) => {
         const closed = group.tickets.filter((t) => t.status === TicketStatus.CLOSED);
@@ -826,8 +901,12 @@ export class TicketsService {
           closedCount: closed.length,
           openCount: group.tickets.length - closed.length,
           avgResolutionMinutes: average(
-            closed.filter((t) => t.resolutionMinutes != null).map((t) => t.resolutionMinutes!),
+            closed.map((t) => effectiveResolutionMinutes(t)).filter((m): m is number => m != null),
           ),
+          sharePercent:
+            totalOrganizationTickets > 0
+              ? Math.round((group.tickets.length / totalOrganizationTickets) * 100)
+              : 0,
         };
       })
       .sort((a, b) => b.ticketsCount - a.ticketsCount);
@@ -892,5 +971,90 @@ export class TicketsService {
         resolution: SLA_RESOLUTION_MINUTES,
       },
     };
+  }
+
+  /**
+   * GET /admin/dashboard/processed-tickets uchun — "qaysi xodim qaysi murojaatni qaysi
+   * tashkilotdan qancha vaqtda bajargani" batafsil jadvali. getDashboardStats bilan bir xil
+   * filtr semantikasidan (matchesOrgCategory/matchesDateRange/assignedToId) foydalanadi.
+   */
+  async getProcessedTicketsReport(filter: DashboardStatsFilter = {}): Promise<ProcessedTicketsReport> {
+    const tickets = await this.ticketsRepository.find({
+      relations: ['assignedTo', 'organization', 'categoryEntity', 'createdBy'],
+      order: { createdAt: 'DESC' },
+    });
+
+    const orgCategoryTickets = tickets.filter((t) => matchesOrgCategory(t, filter));
+    const periodTickets = orgCategoryTickets.filter((t) =>
+      matchesDateRange(t, filter.dateFrom, filter.dateTo),
+    );
+    // Faqat ijrochiga tayinlangan va kamida ishga olingan murojaatlar — hali hech kim qo'l
+    // urmagan (status = NEW) murojaatlar bu "bajarilgan/jarayondagi" hisobotga kirmaydi.
+    const relevant = periodTickets.filter(
+      (t) =>
+        t.assignedToId &&
+        t.status !== TicketStatus.NEW &&
+        (!filter.assignedToId || t.assignedToId === filter.assignedToId),
+    );
+
+    const processingStartedMap = await this.auditLogService.findFirstInProgressTimestamps(
+      relevant.map((t) => t.id),
+    );
+
+    const rows: ProcessedTicketRow[] = relevant.map((t) => {
+      const auditStartedAt = processingStartedMap.get(t.id) ?? null;
+      const processingStartedAt = auditStartedAt ?? t.createdAt;
+      const isCompleted = t.status === TicketStatus.CLOSED || t.status === TicketStatus.RESOLVED;
+      const completedAt = isCompleted ? t.closedAt : null;
+      const durationMinutes = completedAt ? diffMinutes(processingStartedAt, completedAt) : null;
+
+      return {
+        ticketId: t.id,
+        number: t.number,
+        title: t.title,
+        employeeId: t.assignedToId,
+        employeeName: t.assignedTo?.fullname ?? null,
+        organizationId: t.organizationId,
+        organizationName: t.organization?.name ?? null,
+        requesterName: t.requesterName ?? t.createdBy?.fullname ?? null,
+        categoryId: t.categoryId,
+        categoryName: t.categoryEntity?.name ?? null,
+        priority: t.priority,
+        status: t.status,
+        receivedAt: t.createdAt,
+        processingStartedAt,
+        processingStartedAtIsFallback: auditStartedAt === null,
+        completedAt,
+        durationMinutes,
+      };
+    });
+
+    const employeeGroups = new Map<
+      string,
+      { name: string | null; durations: number[]; completedCount: number }
+    >();
+    for (const row of rows) {
+      if (!row.employeeId) continue;
+      if (!employeeGroups.has(row.employeeId)) {
+        employeeGroups.set(row.employeeId, { name: row.employeeName, durations: [], completedCount: 0 });
+      }
+      const group = employeeGroups.get(row.employeeId)!;
+      if (row.durationMinutes != null) {
+        group.durations.push(row.durationMinutes);
+        group.completedCount += 1;
+      }
+    }
+
+    const byEmployee: EmployeeProcessingSummary[] = Array.from(employeeGroups.entries())
+      .map(([employeeId, group]) => ({
+        employeeId,
+        employeeName: group.name,
+        ticketsCompleted: group.completedCount,
+        avgDurationMinutes: average(group.durations),
+        totalDurationMinutes: group.durations.reduce((sum, m) => sum + m, 0),
+      }))
+      .sort((a, b) => (a.employeeName ?? '').localeCompare(b.employeeName ?? ''));
+
+    return { rows, byEmployee };
   }
 }

@@ -62,6 +62,34 @@ export class AuditLogService {
     }
   }
 
+  /**
+   * Ticket entity'da alohida "ishga olingan vaqt" ustuni saqlanmaydi — shu sababli har bir
+   * ticketId uchun TICKET_STATUS_CHANGED audit yozuvlari orasidan metadata.to === 'in_progress'
+   * bo'lgan birinchisining vaqti "ishga olingan vaqt" sifatida olinadi (Dashboard hisobot jadvali uchun).
+   * Literal 'in_progress' TicketStatus.IN_PROGRESS'ning jsonb'ga yozilgan qiymatiga mos keladi —
+   * cross-module import'dan qochish uchun enum o'rniga literal ishlatilgan.
+   */
+  async findFirstInProgressTimestamps(ticketIds: string[]): Promise<Map<string, Date>> {
+    if (ticketIds.length === 0) return new Map();
+
+    const rows = await this.auditLogRepository
+      .createQueryBuilder('log')
+      .select('log.entityId', 'entityId')
+      .addSelect('MIN(log.createdAt)', 'firstAt')
+      .where('log.entityType = :entityType', { entityType: 'ticket' })
+      .andWhere('log.action = :action', { action: AuditAction.TICKET_STATUS_CHANGED })
+      .andWhere("log.metadata ->> 'to' = :to", { to: 'in_progress' })
+      .andWhere('log.entityId IN (:...ticketIds)', { ticketIds })
+      .groupBy('log.entityId')
+      .getRawMany<{ entityId: string; firstAt: Date }>();
+
+    const map = new Map<string, Date>();
+    for (const row of rows) {
+      map.set(row.entityId, new Date(row.firstAt));
+    }
+    return map;
+  }
+
   async findAll(filter: FindAuditLogsFilter): Promise<PaginatedAuditLogs> {
     const page = filter.page && filter.page > 0 ? filter.page : 1;
     const limit =

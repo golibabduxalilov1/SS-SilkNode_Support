@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { CategoriesModule } from './categories/categories.module';
 import { TicketsModule } from './tickets/tickets.module';
+import { RequestersModule } from './requesters/requesters.module';
 import { MessagesModule } from './messages/messages.module';
 import { AttachmentsModule } from './attachments/attachments.module';
 import { AuthModule } from './auth/auth.module';
@@ -21,6 +22,7 @@ import { AuditLogModule } from './audit-log/audit-log.module';
     OrganizationsModule,
     CategoriesModule,
     TicketsModule,
+    RequestersModule,
     MessagesModule,
     AttachmentsModule,
     AuthModule,
