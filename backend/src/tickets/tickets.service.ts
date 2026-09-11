@@ -239,9 +239,9 @@ function diffMinutes(from: Date, to: Date): number {
   return Math.max(minutes, MIN_RESOLUTION_MINUTES);
 }
 
-/** ТЗ band 7 "Yopilish vaqti" — sof qayta ishlash vaqti, audit tarixi bo'lmagan eski tiketlarda umumiy vaqtga fallback. */
+/** "Yopilish vaqti" — har doim created_at'dan closed_at'gacha hisoblanadi (processingStartedAt'ga qarab o'zgarmaydi). */
 function effectiveResolutionMinutes(ticket: Ticket): number | null {
-  return ticket.processingResolutionMinutes ?? ticket.resolutionMinutes;
+  return ticket.resolutionMinutes;
 }
 
 function average(values: number[]): number | null {
@@ -597,8 +597,8 @@ export class TicketsService {
 
     ticket.status = status;
 
-    // Birinchi marta IN_PROGRESS'ga o'tgan vaqt — bir marta yoziladi, qayta ochilishlarda o'zgarmaydi
-    // (ТЗ band 7: "Yopilish vaqti" shu vaqtdan hisoblanadi, murojaat kelib tushgan vaqtdan emas).
+    // Birinchi marta IN_PROGRESS'ga o'tgan vaqt — bir marta yoziladi, qayta ochilishlarda o'zgarmaydi.
+    // Eslatma: "Yopilish vaqti" (resolutionMinutes) bundan qat'iy nazar created_at'dan hisoblanadi.
     if (status === TicketStatus.IN_PROGRESS && !ticket.processingStartedAt) {
       ticket.processingStartedAt = new Date();
     }

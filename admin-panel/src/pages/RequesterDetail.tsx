@@ -212,7 +212,7 @@ export function RequesterDetailPage() {
                       )}
                     </td>
                     <td className="cell-muted">
-                      {formatDurationMinutes(t.processingResolutionMinutes ?? t.resolutionMinutes, '—')}
+                      {formatDurationMinutes(t.resolutionMinutes, '—')}
                     </td>
                   </tr>
                 ))}

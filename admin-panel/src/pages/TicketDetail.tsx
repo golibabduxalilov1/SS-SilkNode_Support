@@ -334,7 +334,7 @@ export function TicketDetailPage() {
               </div>
             ) : (
               <span className="ticket-summary-meta-value">
-                {formatDurationMinutes(ticket.processingResolutionMinutes ?? ticket.resolutionMinutes, '—')}
+                {formatDurationMinutes(ticket.resolutionMinutes, '—')}
               </span>
             )}
           </div>

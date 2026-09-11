@@ -947,10 +947,10 @@ function truncateWords(text: string, limit: number): string {
   return `${words.slice(0, limit).join(' ')}...`;
 }
 
-/** "Yopilish vaqti" — qayta ishlash boshlanishidan yakunlanishigacha bo'lgan sof vaqt (ТЗ band 7), createdAt->closedAt emas. */
+/** "Yopilish vaqti" — createdAt'dan closedAt'gacha bo'lgan vaqt. */
 function closingDuration(ticket: Ticket): string {
   if (!ticket.closedAt) return '-';
-  return formatDurationMinutes(ticket.processingResolutionMinutes ?? ticket.resolutionMinutes);
+  return formatDurationMinutes(ticket.resolutionMinutes);
 }
 
 /** Asosiy TZ bo'lim 6 dagi murojaatlar jadvali — endi Dashboard'dan ajratilgan alohida bo'lim. */
