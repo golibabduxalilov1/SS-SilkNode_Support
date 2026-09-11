@@ -198,8 +198,44 @@ const TREND_DAYS = 14;
 
 const MIN_RESOLUTION_MINUTES = 5;
 
+// Ish vaqti: Dushanba-Shanba, 10:00-18:00 (8 soat/kun). Yakshanba va shu oynadan
+// tashqaridagi vaqt "yopilish vaqti"ga qo'shilmaydi.
+const WORK_START_HOUR = 10;
+const WORK_END_HOUR = 18;
+const WORKING_WEEKDAYS = new Set([1, 2, 3, 4, 5, 6]); // 0 = yakshanba (dam olish kuni)
+
+function isWorkingDay(date: Date): boolean {
+  return WORKING_WEEKDAYS.has(date.getDay());
+}
+
+// from/to orasida faqat ish kunlari + ish soatlari (10:00-18:00) ichiga tushgan
+// daqiqalarni yig'adi — tungi va dam olish kunidagi vaqt hisobga kirmaydi.
 function diffMinutes(from: Date, to: Date): number {
-  const minutes = Math.round((to.getTime() - from.getTime()) / 60000);
+  if (to.getTime() <= from.getTime()) return MIN_RESOLUTION_MINUTES;
+
+  let totalMs = 0;
+  const cursor = new Date(from);
+  cursor.setHours(0, 0, 0, 0);
+  const lastDay = new Date(to);
+  lastDay.setHours(0, 0, 0, 0);
+
+  while (cursor.getTime() <= lastDay.getTime()) {
+    if (isWorkingDay(cursor)) {
+      const windowStart = new Date(cursor);
+      windowStart.setHours(WORK_START_HOUR, 0, 0, 0);
+      const windowEnd = new Date(cursor);
+      windowEnd.setHours(WORK_END_HOUR, 0, 0, 0);
+
+      const segmentStart = Math.max(windowStart.getTime(), from.getTime());
+      const segmentEnd = Math.min(windowEnd.getTime(), to.getTime());
+      if (segmentEnd > segmentStart) {
+        totalMs += segmentEnd - segmentStart;
+      }
+    }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  const minutes = Math.round(totalMs / 60000);
   return Math.max(minutes, MIN_RESOLUTION_MINUTES);
 }
 
