@@ -39,6 +39,7 @@ import {
   PanelLeftOpen,
   Sun,
   Moon,
+  SlidersHorizontal,
 } from 'lucide-react';
 
 type IconProps = SVGProps<SVGSVGElement>;
@@ -84,3 +85,4 @@ export const IconPanelLeftClose = (props: IconProps) => <PanelLeftClose strokeWi
 export const IconPanelLeftOpen = (props: IconProps) => <PanelLeftOpen strokeWidth={STROKE} {...props} />;
 export const IconSun = (props: IconProps) => <Sun strokeWidth={STROKE} {...props} />;
 export const IconMoon = (props: IconProps) => <Moon strokeWidth={STROKE} {...props} />;
+export const IconFilter = (props: IconProps) => <SlidersHorizontal strokeWidth={STROKE} {...props} />;

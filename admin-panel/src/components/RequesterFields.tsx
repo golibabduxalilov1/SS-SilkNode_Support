@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../api/client';
+import { IconClose, IconPlus } from './icons';
 
 export interface RequesterSuggestion {
   key: string;
@@ -54,6 +55,18 @@ export function RequesterFields({
   const [applied, setApplied] = useState(false);
   const debounceRef = useRef<number | null>(null);
 
+  // T20 (minimal versiya) — "+ Yana bir kontakt": bitta telefon uchun bir nechta ism, joriy
+  // sodda F.I.O. matn maydoniga ", " bilan qo'shib yuboriladi (to'liq ma'lumot modeli/migratsiya
+  // TZ doirasidan tashqarida — shu sababli alohida jadval emas, mavjud bitta maydon ishlatiladi).
+  const [baseName, setBaseName] = useState(name);
+  const [extraContacts, setExtraContacts] = useState<string[]>([]);
+
+  useEffect(() => {
+    const combined = [baseName, ...extraContacts.map((c) => c.trim()).filter(Boolean)].join(', ');
+    onNameChange(combined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseName, extraContacts]);
+
   useEffect(() => {
     setDismissed(false);
     setApplied(false);
@@ -77,7 +90,7 @@ export function RequesterFields({
 
   const handleApply = () => {
     if (!suggestion) return;
-    if (suggestion.name) onNameChange(suggestion.name);
+    if (suggestion.name) setBaseName(suggestion.name);
     onApplySuggestion?.(suggestion);
     setApplied(true);
   };
@@ -89,12 +102,42 @@ export function RequesterFields({
       <label className="modal-field">
         <span>Murojaatchi F.I.O.</span>
         <input
-          value={name}
-          onChange={(e) => onNameChange(e.target.value)}
+          value={baseName}
+          onChange={(e) => setBaseName(e.target.value)}
           placeholder="Murojaatchining to'liq ismi"
           required
         />
       </label>
+      {extraContacts.map((contact, i) => (
+        <label className="modal-field" key={i}>
+          <span>Yana bir kontakt</span>
+          <div className="requester-extra-contact-row">
+            <input
+              value={contact}
+              onChange={(e) =>
+                setExtraContacts((prev) => prev.map((c, idx) => (idx === i ? e.target.value : c)))
+              }
+              placeholder="Masalan, Aziz aka"
+            />
+            <button
+              type="button"
+              className="requester-extra-contact-remove"
+              aria-label="Kontaktni o'chirish"
+              onClick={() => setExtraContacts((prev) => prev.filter((_, idx) => idx !== i))}
+            >
+              <IconClose width={13} height={13} />
+            </button>
+          </div>
+        </label>
+      ))}
+      <button
+        type="button"
+        className="btn btn-secondary btn-sm requester-add-contact"
+        onClick={() => setExtraContacts((prev) => [...prev, ''])}
+      >
+        <IconPlus width={13} height={13} />
+        Yana bir kontakt
+      </button>
       <label className="modal-field">
         <span>Murojaatchi telefon raqami</span>
         <input

@@ -1,4 +1,5 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
+import { IconClose, IconFilter } from './icons';
 
 /** T16 — kategoriya select'larida ikki klaster ("Yo'nalish" / "Mahsulot/tizim") bo'yicha optgroup. */
 const CATEGORY_CLUSTER_LABELS: Record<string, string> = {
@@ -183,5 +184,44 @@ export function TableSkeleton({ rows = 5, cols = 6 }: { rows?: number; cols?: nu
         </div>
       ))}
     </div>
+  );
+}
+
+/**
+ * T19 — mobilda (<768px) filtrlarni "Filtrlar (N)" tugmasi ortidagi pastki shtorkaga yig'adi.
+ * `children` bitta marta render qilinadi — CSS uni desktopda oddiy oqimda, mobilda esa
+ * (ochiq bo'lganda) fixed bottom-sheet sifatida ko'rsatadi, shu bilan filtr state'i ikkilanmaydi.
+ */
+export function MobileFilterDrawer({ activeCount, children }: { activeCount: number; children: ReactNode }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    document.body.classList.add('mobile-filter-drawer-lock');
+    return () => document.body.classList.remove('mobile-filter-drawer-lock');
+  }, [isOpen]);
+
+  return (
+    <>
+      <button type="button" className="mobile-filter-toggle" onClick={() => setIsOpen(true)}>
+        <IconFilter width={14} height={14} />
+        Filtrlar{activeCount > 0 ? ` (${activeCount})` : ''}
+      </button>
+      {isOpen && <div className="mobile-filter-backdrop" onClick={() => setIsOpen(false)} />}
+      <div className={`mobile-filter-drawer${isOpen ? ' mobile-filter-drawer--open' : ''}`}>
+        <div className="mobile-filter-drawer-head">
+          <span>Filtrlar</span>
+          <button
+            type="button"
+            className="mobile-filter-drawer-close"
+            aria-label="Filtrlarni yopish"
+            onClick={() => setIsOpen(false)}
+          >
+            <IconClose width={16} height={16} />
+          </button>
+        </div>
+        {children}
+      </div>
+    </>
   );
 }

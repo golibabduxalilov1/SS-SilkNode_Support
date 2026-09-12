@@ -18,7 +18,14 @@ import {
   IconTrash,
 } from '../components/icons';
 import { RequesterFields, isPhoneComplete } from '../components/RequesterFields';
-import { Avatar, CategoryOptionGroups, EmptyState, Pagination, TableSkeleton } from '../components/ui';
+import {
+  Avatar,
+  CategoryOptionGroups,
+  EmptyState,
+  MobileFilterDrawer,
+  Pagination,
+  TableSkeleton,
+} from '../components/ui';
 import { usePageSize } from '../utils/usePageSize';
 import { exportTableToExcel, exportTableToPdf } from '../utils/tableExport';
 import { formatDurationMinutes } from '../utils/formatDuration';
@@ -1407,6 +1414,7 @@ export function TicketsPage() {
             </button>
           </div>
 
+          <MobileFilterDrawer activeCount={activeFilterCount}>
           <div className="filters">
             <label>
               Tashkilot
@@ -1476,6 +1484,7 @@ export function TicketsPage() {
               </button>
             </div>
           </div>
+          </MobileFilterDrawer>
 
           {/* T13 — saqlangan filtrlar: bir klikda qo'llash + joriy kombinatsiyani nom bilan saqlash. */}
           {(savedFilters.length > 0 || activeFilterCount > 0) && (

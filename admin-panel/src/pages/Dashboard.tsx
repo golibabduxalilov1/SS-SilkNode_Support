@@ -1,4 +1,5 @@
 import { CSSProperties, ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Bar,
   BarChart,
@@ -38,6 +39,7 @@ import {
   CategoryOptionGroups,
   ChartSkeleton,
   EmptyState,
+  MobileFilterDrawer,
   StatCardSkeleton,
   TableSkeleton,
 } from '../components/ui';
@@ -215,6 +217,38 @@ const STATUS_ORDER: Array<keyof DashboardStats['statusCounts']> = [
 ];
 
 const STATUS_OPTIONS = STATUS_ORDER.map((value) => ({ value, label: STATUS_LABELS[value] }));
+
+/** T18 — Dashboard'ni 3 tabga bo'lish. Tanlangan tab ?tab= orqali URL'da saqlanadi. */
+type DashboardTab = 'overview' | 'team' | 'orgs';
+
+const DASHBOARD_TABS: { key: DashboardTab; label: string }[] = [
+  { key: 'overview', label: "Umumiy ko'rinish" },
+  { key: 'team', label: 'Jamoa samaradorligi' },
+  { key: 'orgs', label: 'Tashkilotlar kesimi' },
+];
+
+function parseDashboardTab(value: string | null): DashboardTab {
+  return value === 'team' || value === 'orgs' ? value : 'overview';
+}
+
+function DashboardTabs({ active, onChange }: { active: DashboardTab; onChange: (tab: DashboardTab) => void }) {
+  return (
+    <div className="dashboard-tabs" role="tablist">
+      {DASHBOARD_TABS.map((t) => (
+        <button
+          key={t.key}
+          type="button"
+          role="tab"
+          aria-selected={active === t.key}
+          className={`dashboard-tab${active === t.key ? ' dashboard-tab--active' : ''}`}
+          onClick={() => onChange(t.key)}
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 const TIER_COLOR: Record<'good' | 'warn' | 'bad', string> = {
   good: 'var(--success)',
@@ -575,6 +609,96 @@ function SortableTh<K extends string>({
   );
 }
 
+/**
+ * T19 — mobilda (<768px) 11-ustunli xodimlar jadvali o'rniga ko'rsatiladigan kartochka.
+ * 4 ta asosiy metrika doim ko'rinadi; qolgan 6 tasi "Batafsil" bosilgach ochiladi — hech qanday
+ * metrika mobilda butunlay yo'qolmaydi.
+ */
+function AssigneeMobileCard({
+  a,
+  isSelected,
+  isExpanded,
+  onSelect,
+  onToggleExpand,
+}: {
+  a: AssigneeStats;
+  isSelected: boolean;
+  isExpanded: boolean;
+  onSelect: () => void;
+  onToggleExpand: () => void;
+}) {
+  const hasClosedTrendSignal = !(a.ticketsClosed === 0 && a.trendVsPreviousPeriod.ticketsClosedDelta === 0);
+  return (
+    <div className={`assignee-card${isSelected ? ' assignee-card--selected' : ''}`}>
+      <button type="button" className="assignee-card-head" onClick={onSelect}>
+        <Avatar name={a.fullname} />
+        <span className="cell-primary">{a.fullname ?? a.userId}</span>
+      </button>
+
+      <div className="assignee-card-metrics">
+        <div className="assignee-card-metric">
+          <span className="assignee-card-metric-label">Joriy yuklama</span>
+          <WorkloadBadge openCount={a.ticketsOpenNow} />
+        </div>
+        <div className="assignee-card-metric">
+          <span className="assignee-card-metric-label">Yopilgan</span>
+          <span className="assignee-closed-cell">
+            {a.ticketsClosed}
+            {hasClosedTrendSignal && (
+              <TrendBadge
+                curr={a.trendVsPreviousPeriod.ticketsClosedCurr}
+                prev={a.trendVsPreviousPeriod.ticketsClosedPrev}
+                title="Oldingi teng davrga nisbatan yopilgan murojaatlar"
+              />
+            )}
+          </span>
+        </div>
+        <div className="assignee-card-metric">
+          <span className="assignee-card-metric-label">Muddat muvofiqligi</span>
+          <SlaBadge complianceRate={a.slaComplianceRate} />
+        </div>
+        <div className="assignee-card-metric">
+          <span className="assignee-card-metric-label">Samaradorlik</span>
+          <ProductivityBadge score={a.productivityScore} />
+        </div>
+
+        {isExpanded && (
+          <>
+            <div className="assignee-card-metric">
+              <span className="assignee-card-metric-label">Muhimlik taqsimoti</span>
+              <PriorityStackedBar data={a.closedByPriority} />
+            </div>
+            <div className="assignee-card-metric">
+              <span className="assignee-card-metric-label">Jami tayinlangan</span>
+              <span>{a.ticketsAssignedTotal}</span>
+            </div>
+            <div className="assignee-card-metric">
+              <span className="assignee-card-metric-label">O'rtacha qayta ishlash vaqti</span>
+              <span>{formatProcessingDuration(a.avgResolutionMinutes)}</span>
+            </div>
+            <div className="assignee-card-metric">
+              <span className="assignee-card-metric-label">Umumiy qayta ishlash vaqti</span>
+              <span>{formatProcessingDuration(a.totalResolutionMinutes)}</span>
+            </div>
+            <div className="assignee-card-metric">
+              <span className="assignee-card-metric-label">Foydali ish %</span>
+              <ProductivityBadge score={a.closeRate} />
+            </div>
+            <div className="assignee-card-metric">
+              <span className="assignee-card-metric-label">Qayta ochilgan %</span>
+              <ReopenedBadge reopenedRate={a.reopenedRate} />
+            </div>
+          </>
+        )}
+      </div>
+
+      <button type="button" className="assignee-card-toggle" onClick={onToggleExpand}>
+        {isExpanded ? 'Yashirish' : 'Batafsil'}
+      </button>
+    </div>
+  );
+}
+
 function FilterChip({ label, onClear }: { label: string; onClear: () => void }) {
   return (
     <button type="button" className="filter-chip" onClick={onClear}>
@@ -709,6 +833,12 @@ function FilterBar({
 }
 
 export function DashboardPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = parseDashboardTab(searchParams.get('tab'));
+  const handleTabChange = (tab: DashboardTab) => {
+    setSearchParams(tab === 'overview' ? {} : { tab }, { replace: true });
+  };
+
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -716,6 +846,17 @@ export function DashboardPage() {
   const [activeSlice, setActiveSlice] = useState<number | undefined>(undefined);
   const [selectedAssigneeId, setSelectedAssigneeId] = useState<string | null>(null);
   const [assigneeSort, setAssigneeSort] = useState<AssigneeSortState>({ key: 'name', dir: 'asc' });
+  // T19 — mobilda xodimlar jadvali kartochkalarga aylanadi; har bir kartochka mustaqil ravishda
+  // "Batafsil" orqali qolgan metrikalarni ochadi/yopadi.
+  const [expandedAssigneeCards, setExpandedAssigneeCards] = useState<Set<string>>(new Set());
+  const toggleAssigneeCard = (userId: string) => {
+    setExpandedAssigneeCards((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
+  };
   const [employeeSummarySort, setEmployeeSummarySort] = useState<EmployeeSummarySortState>({ key: 'name', dir: 'asc' });
   const [processedRowSort, setProcessedRowSort] = useState<ProcessedRowSortState>({ key: 'employeeName', dir: 'asc' });
   const [isExportingProcessed, setIsExportingProcessed] = useState(false);
@@ -1237,27 +1378,29 @@ export function DashboardPage() {
 
   return (
     <AppShell title="Dashboard" breadcrumb={scopeLabel ? `Kesim: ${scopeLabel}` : "Umumiy ko'rinish — barcha vaqt"}>
-      <FilterBar
-        assignees={assignees}
-        assigneeFilter={selectedAssigneeId ?? ''}
-        onAssigneeChange={(value) => setSelectedAssigneeId(value || null)}
-        organizations={organizations}
-        categories={categories}
-        organizationFilter={organizationFilter}
-        onOrganizationChange={setOrganizationFilter}
-        categoryFilter={categoryFilter}
-        onCategoryChange={setCategoryFilter}
-        statusFilter={statusFilter}
-        onStatusChange={setStatusFilter}
-        dateFrom={dateFrom}
-        onDateFromChange={setDateFrom}
-        dateTo={dateTo}
-        onDateToChange={setDateTo}
-        chips={filterChips}
-        hasActiveFilters={hasPanelFilters}
-        onClearAll={clearAllFilters}
-        isRefreshing={isRefreshing}
-      />
+      <MobileFilterDrawer activeCount={filterChips.length}>
+        <FilterBar
+          assignees={assignees}
+          assigneeFilter={selectedAssigneeId ?? ''}
+          onAssigneeChange={(value) => setSelectedAssigneeId(value || null)}
+          organizations={organizations}
+          categories={categories}
+          organizationFilter={organizationFilter}
+          onOrganizationChange={setOrganizationFilter}
+          categoryFilter={categoryFilter}
+          onCategoryChange={setCategoryFilter}
+          statusFilter={statusFilter}
+          onStatusChange={setStatusFilter}
+          dateFrom={dateFrom}
+          onDateFromChange={setDateFrom}
+          dateTo={dateTo}
+          onDateToChange={setDateTo}
+          chips={filterChips}
+          hasActiveFilters={hasPanelFilters}
+          onClearAll={clearAllFilters}
+          isRefreshing={isRefreshing}
+        />
+      </MobileFilterDrawer>
 
       <div className={`scope-banner ${scopeLabel ? 'scope-banner--active' : 'scope-banner--neutral'}`}>
         {scopeLabel ? (
@@ -1305,6 +1448,10 @@ export function DashboardPage() {
           />
         ) : (
           <div className={`dashboard-content${isRefreshing ? ' is-refreshing' : ''}`}>
+            <DashboardTabs active={activeTab} onChange={handleTabChange} />
+
+            {activeTab === 'overview' && (
+              <>
             <div className="stat-cards">
               {kpiCards.map((card) => (
                 <KpiCard
@@ -1420,7 +1567,12 @@ export function DashboardPage() {
                 />
                 <ResolutionFlowChart data={stats.resolutionFlow} />
               </div>
+            </div>
+              </>
+            )}
 
+            {activeTab === 'team' && (
+              <div className="bento-grid">
               <div className="chart-card span-12">
                 <SectionHeader
                   title="Ijrochilar bo'yicha hal qilish dinamikasi"
@@ -1438,7 +1590,9 @@ export function DashboardPage() {
                 />
               </div>
             </div>
+            )}
 
+            {activeTab === 'team' && (
             <div className="section-card assignee-analytics" ref={assigneeSectionRef}>
               <SectionHeader
                 title="Ijrochilar bo'yicha"
@@ -1588,6 +1742,19 @@ export function DashboardPage() {
                     </table>
                   </div>
 
+                  <div className="assignee-cards">
+                    {sortedByAssignee.map((a) => (
+                      <AssigneeMobileCard
+                        key={a.userId}
+                        a={a}
+                        isSelected={a.userId === selectedAssigneeId}
+                        isExpanded={expandedAssigneeCards.has(a.userId)}
+                        onSelect={() => handleSelectAssignee(a.userId)}
+                        onToggleExpand={() => toggleAssigneeCard(a.userId)}
+                      />
+                    ))}
+                  </div>
+
                   <div className="bento-grid assignee-charts">
                     <div className="chart-card span-6">
                       <SectionHeader title="Muddat muvofiqligi reytingi" subtitle="Yopilgan tiketlar nisbatida, pastdan yuqoriga saralangan" />
@@ -1726,8 +1893,17 @@ export function DashboardPage() {
                 </>
               )}
             </div>
+            )}
 
-            {stats.byOrganization.length > 0 && (
+            {activeTab === 'orgs' && stats.byOrganization.length === 0 && (
+              <EmptyState
+                icon={<IconUsers width={24} height={24} />}
+                title="Tashkilotlar bo'yicha ma'lumot yo'q"
+                description="Murojaatlar tashkilotga bog'langach, shu yerda taqsimot ko'rinadi."
+              />
+            )}
+
+            {activeTab === 'orgs' && stats.byOrganization.length > 0 && (
               <div className="section-card">
                 <SectionHeader
                   title="Tashkilotlar bo'yicha"
@@ -1811,6 +1987,7 @@ export function DashboardPage() {
               </div>
             )}
 
+            {activeTab === 'team' && (
             <div className="section-card">
               <SectionHeader
                 title="Xodimlar va bajarilgan murojaatlar"
@@ -1953,6 +2130,7 @@ export function DashboardPage() {
                 </>
               )}
             </div>
+            )}
           </div>
         ))
       )}

@@ -1615,6 +1615,108 @@ button {
   border: 1px solid var(--border-strong);
 }
 
+/*
+ * T19 — mobilda (<768px) filtrlarni "Filtrlar (N)" tugmasi ortidagi pastki shtorkaga yig'ish.
+ * Desktopda .mobile-filter-drawer "display:contents" bo'lgani uchun ichidagi haqiqiy filtr
+ * bloki (.filters yoki .filter-panel) parentning to'g'ridan-to'g'ri farzandi sifatida, avvalgidek
+ * ko'rinadi — filtr state'i faqat bitta joyda render qilinadi, ikkilanmaydi.
+ */
+.mobile-filter-toggle {
+  display: none;
+}
+
+.mobile-filter-drawer-head {
+  display: none;
+}
+
+.mobile-filter-drawer {
+  display: contents;
+}
+
+.mobile-filter-backdrop {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-filter-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 14px;
+    padding: 9px 16px;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--border-strong);
+    background: var(--panel);
+    color: var(--text);
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .mobile-filter-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    z-index: 60;
+  }
+
+  .mobile-filter-drawer {
+    display: none;
+  }
+
+  .mobile-filter-drawer--open {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 61;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 4px 16px 20px;
+    background: var(--panel);
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -8px 30px rgba(15, 23, 42, 0.25);
+  }
+
+  .mobile-filter-drawer--open .mobile-filter-drawer-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 4px 10px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    position: sticky;
+    top: 0;
+    background: var(--panel);
+  }
+
+  .mobile-filter-drawer-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: var(--radius-full);
+    border: none;
+    background: var(--sunken);
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+
+  .mobile-filter-drawer--open .filters,
+  .mobile-filter-drawer--open .filter-panel {
+    flex-direction: column;
+    align-items: stretch;
+    margin-bottom: 0;
+  }
+
+  body.mobile-filter-drawer-lock {
+    overflow: hidden;
+  }
+}
+
 .filters label {
   display: flex;
   flex-direction: column;
@@ -2965,6 +3067,84 @@ select.priority-select--low {
   margin-bottom: 20px;
 }
 
+/* T19 — mobilda 11-ustunli jadval o'rniga kartochka ro'yxati. */
+.assignee-cards {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .assignee-table-wrap {
+    display: none;
+  }
+
+  .assignee-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+}
+
+.assignee-card {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--panel);
+  padding: 14px;
+}
+
+.assignee-card--selected {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.assignee-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 0 0 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-sans);
+  cursor: pointer;
+  text-align: left;
+}
+
+.assignee-card-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 10px;
+}
+
+.assignee-card-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.assignee-card-metric-label {
+  font-size: 10.8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+}
+
+.assignee-card-toggle {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--sunken);
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .assignee-row--selected {
   background: var(--primary-soft) !important;
 }
@@ -3694,6 +3874,50 @@ select.priority-select--low {
   letter-spacing: 0.03em;
 }
 
+/* T18 — Dashboard tab switcher (Umumiy ko'rinish / Jamoa samaradorligi / Tashkilotlar kesimi). */
+.dashboard-tabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  margin-bottom: 18px;
+  border-radius: var(--radius-full);
+  background: var(--sunken);
+  border: 1px solid var(--border-strong);
+}
+
+.dashboard-tab {
+  padding: 7px 16px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--duration-fast) var(--ease), color var(--duration-fast) var(--ease);
+}
+
+.dashboard-tab--active {
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+}
+
+@media (max-width: 768px) {
+  .dashboard-tabs {
+    display: flex;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .dashboard-tab {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+}
+
 /* ==========================================================================
    Organizations / categories / employees page
    ========================================================================== */
@@ -4019,6 +4243,34 @@ select.priority-select--low {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+/* T20 (minimal) — "+ Yana bir kontakt": bitta telefonga bir nechta ism qo'shish. */
+.requester-extra-contact-row {
+  display: flex;
+  gap: 8px;
+}
+
+.requester-extra-contact-row input {
+  flex: 1 1 auto;
+}
+
+.requester-extra-contact-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--sunken);
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.requester-add-contact {
+  align-self: flex-start;
+  margin: -6px 0 4px;
 }
 
 .modal-footer {
