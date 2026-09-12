@@ -238,7 +238,7 @@ export function CategoriesPage() {
     setCategoryToDelete(null);
     try {
       await api.delete(`/admin/categories/${category.id}`);
-      load();
+      setCategories((prev) => prev.filter((c) => c.id !== category.id));
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error

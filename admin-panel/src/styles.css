@@ -2705,6 +2705,18 @@ button {
   font-size: 12px;
 }
 
+/* T27 — guruh-murojaatchi (bitta telefon raqamiga bog'langan bir nechta ism) belgisi. */
+.requester-group-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--sunken);
+  border-radius: var(--radius-full);
+  padding: 1px 7px;
+  white-space: nowrap;
+  cursor: help;
+}
+
 /* T16 — kategoriyalar klasterlari (Yo'nalish / Mahsulot-tizim). */
 .category-cluster-group {
   margin-bottom: 28px;
@@ -3561,6 +3573,32 @@ select.priority-select--low {
 .ticket-summary-meta-sub {
   color: var(--text-muted);
   font-weight: 400;
+}
+
+/* T27 — guruh-murojaatchilar: shu telefon raqamiga bog'langan barcha ismlar. */
+.requester-contact-names {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-strong);
+}
+
+.requester-contact-names-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.requester-contact-name-chip {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--sunken);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  padding: 4px 12px;
 }
 
 .ticket-summary-meta-label--editable {

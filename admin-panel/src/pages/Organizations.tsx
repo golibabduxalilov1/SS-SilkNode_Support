@@ -213,7 +213,7 @@ export function OrganizationsPage() {
     setOrgToDelete(null);
     try {
       await api.delete(`/admin/organizations/${org.id}`);
-      load();
+      setOrganizations((prev) => prev.filter((o) => o.id !== org.id));
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error

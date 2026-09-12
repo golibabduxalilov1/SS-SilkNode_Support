@@ -20,6 +20,8 @@ interface RequesterTicket {
   resolutionMinutes: number | null;
   processingResolutionMinutes: number | null;
   assignedTo?: { id: string; fullname: string | null } | null;
+  requesterName: string | null;
+  createdBy?: { fullname: string | null } | null;
 }
 
 interface RequesterSummary {
@@ -30,6 +32,13 @@ interface RequesterSummary {
   organizationName: string | null;
   ticketsCount: number;
   lastTicketAt: string;
+  /** T27 — shu telefon raqami bo'yicha qayd etilgan barcha turli ismlar (guruh-murojaatchilar). */
+  contactNames: string[];
+}
+
+/** Har bir murojaat qaysi ism bilan yozilganini ko'rsatish uchun — requesterName yo'q bo'lsa, uni yozgan xodim (createdBy) ismiga tushadi. */
+function ticketRequesterName(t: RequesterTicket): string | null {
+  return t.requesterName ?? t.createdBy?.fullname ?? null;
 }
 
 interface RequesterDetailResponse {
@@ -144,6 +153,21 @@ export function RequesterDetailPage() {
               </span>
             </div>
           </div>
+
+          {requester.contactNames.length > 1 && (
+            <div className="requester-contact-names">
+              <span className="ticket-summary-meta-label">
+                Bog'liq kontakt nomlari — bu telefon raqamidan qo'ng'iroq qilgan kishilar
+              </span>
+              <div className="requester-contact-names-list">
+                {requester.contactNames.map((name) => (
+                  <span key={name} className="requester-contact-name-chip">
+                    {name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {tickets.length === 0 ? (
@@ -159,6 +183,7 @@ export function RequesterDetailPage() {
                 <tr>
                   <th>№</th>
                   <th>Mavzu</th>
+                  {requester.contactNames.length > 1 && <th>Murojaatchi</th>}
                   <th>Tashkilot</th>
                   <th>Kategoriya</th>
                   <th>Muhimlik</th>
@@ -178,6 +203,9 @@ export function RequesterDetailPage() {
                   >
                     <td className="cell-primary">{t.number}</td>
                     <td>{t.title}</td>
+                    {requester.contactNames.length > 1 && (
+                      <td className="cell-nowrap">{ticketRequesterName(t) ?? '—'}</td>
+                    )}
                     <td className="cell-nowrap">{t.organization?.name ?? '—'}</td>
                     <td className="cell-muted">{t.categoryEntity?.name ?? '—'}</td>
                     <td>

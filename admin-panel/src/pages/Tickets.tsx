@@ -1006,6 +1006,7 @@ export function TicketsPage() {
   const [createdTo, setCreatedTo] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [savedFilters, setSavedFilters] = useState<SavedFilter[]>([]);
+  const [savedFiltersError, setSavedFiltersError] = useState<string | null>(null);
   const [isSavingFilter, setIsSavingFilter] = useState(false);
   const [savingFilterName, setSavingFilterName] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -1071,8 +1072,11 @@ export function TicketsPage() {
   const loadSavedFilters = () => {
     api
       .get('/admin/saved-filters')
-      .then((res) => setSavedFilters(res.data.data))
-      .catch(() => {});
+      .then((res) => {
+        setSavedFilters(res.data.data);
+        setSavedFiltersError(null);
+      })
+      .catch(() => setSavedFiltersError("Saqlangan filtrlarni yuklab bo'lmadi"));
   };
 
   // T13 — saqlangan filtrni bir klikda qo'llash.
@@ -1540,6 +1544,8 @@ export function TicketsPage() {
                 ))}
             </div>
           )}
+
+          {savedFiltersError && <p className="form-error">{savedFiltersError}</p>}
 
           {error && <p className="form-error">{error}</p>}
 

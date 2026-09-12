@@ -12,6 +12,15 @@ export interface RequesterSummary {
   organizationName: string | null;
   ticketsCount: number;
   lastTicketAt: Date;
+  /**
+   * T27 — guruh-murojaatchilar (bitta telefon raqamidan bir nechta kishi qo'ng'iroq qiladigan
+   * holatlar, masalan tashkilot qabulxonasi) uchun: shu telefon raqami bo'yicha tickets jadvalida
+   * qayd etilgan barcha turli xil ismlar, eng so'nggisidan boshlab. Alohida "requester" jadvali
+   * qo'shilmadi (ТЗ band 8 — dublikatsiyaga yo'l qo'ymaslik prinsipi saqlanadi); ismlar mavjud
+   * requesterName/createdBy.fullname ustunlaridan hosil qilinadi. `name` — shulardan birinchisi
+   * (eng so'nggi murojaatdagi ism), orqaga moslik uchun saqlanadi.
+   */
+  contactNames: string[];
 }
 
 export interface RequesterDetail {
@@ -27,6 +36,25 @@ function keyForTicket(ticket: Ticket): string {
   return ticket.requesterPhone
     ? `phone:${normalizePhone(ticket.requesterPhone)}`
     : `user:${ticket.createdById}`;
+}
+
+function nameForTicket(ticket: Ticket): string | null {
+  const name = ticket.requesterName ?? ticket.createdBy?.fullname ?? null;
+  const trimmed = name?.trim();
+  return trimmed ? trimmed : null;
+}
+
+/** tickets — createdAt bo'yicha DESC tartiblangan, shu sababli natija ham "eng so'nggidan" boshlanadi. */
+function distinctContactNames(tickets: Ticket[]): string[] {
+  const seen = new Set<string>();
+  const names: string[] = [];
+  for (const ticket of tickets) {
+    const name = nameForTicket(ticket);
+    if (!name || seen.has(name)) continue;
+    seen.add(name);
+    names.push(name);
+  }
+  return names;
 }
 
 /**
@@ -108,14 +136,16 @@ export class RequestersService {
   private summarize(key: string, tickets: Ticket[]): RequesterSummary {
     // tickets ichida createdAt bo'yicha DESC tartiblangan — birinchi element eng so'nggi murojaat.
     const latest = tickets[0];
+    const contactNames = distinctContactNames(tickets);
     return {
       key,
-      name: latest.requesterName ?? latest.createdBy?.fullname ?? null,
+      name: contactNames[0] ?? null,
       phone: latest.requesterPhone ?? latest.createdBy?.phoneNumber ?? null,
       organizationId: latest.organizationId,
       organizationName: latest.organization?.name ?? null,
       ticketsCount: tickets.length,
       lastTicketAt: latest.createdAt,
+      contactNames,
     };
   }
 }

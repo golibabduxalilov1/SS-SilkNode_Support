@@ -15,6 +15,8 @@ interface Requester {
   organizationName: string | null;
   ticketsCount: number;
   lastTicketAt: string;
+  /** T27 — shu telefon raqami bo'yicha qayd etilgan barcha turli ismlar (guruh-murojaatchilar). */
+  contactNames: string[];
 }
 
 interface Organization {
@@ -36,7 +38,8 @@ function filterRequesters(requesters: Requester[], filters: RequesterFilters): R
   const min = filters.minTickets ? Number(filters.minTickets) : null;
   const max = filters.maxTickets ? Number(filters.maxTickets) : null;
   return requesters.filter((r) => {
-    const matchesName = !nameTerm || (r.name ?? '').toLowerCase().includes(nameTerm);
+    const matchesName =
+      !nameTerm || r.contactNames.some((name) => name.toLowerCase().includes(nameTerm));
     const matchesPhone = !phoneTerm || (r.phone ?? '').toLowerCase().includes(phoneTerm);
     const matchesOrg = !filters.organizationFilter || r.organizationId === filters.organizationFilter;
     const matchesMin = min === null || r.ticketsCount >= min;
@@ -274,6 +277,14 @@ export function RequestersPage() {
                         <div className="cell-user">
                           <Avatar name={r.name} />
                           <span className="cell-primary">{r.name ?? '—'}</span>
+                          {r.contactNames.length > 1 && (
+                            <span
+                              className="requester-group-badge"
+                              title={`Guruh-murojaatchi — shu raqamdan qo'ng'iroq qilgan boshqa ismlar: ${r.contactNames.slice(1).join(', ')}`}
+                            >
+                              +{r.contactNames.length - 1}
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td className="cell-nowrap">{r.phone ?? '—'}</td>
