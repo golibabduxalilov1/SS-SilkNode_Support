@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Controller,
   Get,
+  Logger,
   NotFoundException,
   Param,
   Post,
@@ -36,6 +37,8 @@ const storage = diskStorage({
 /** Fayl biriktirish (bo'lim 4.4 / audit topilma #4, #5) — ticket_id orqali to'g'ridan-to'g'ri bog'lanadi. */
 @Controller()
 export class AttachmentsController {
+  private readonly logger = new Logger(AttachmentsController.name);
+
   constructor(
     private readonly attachmentsService: AttachmentsService,
     private readonly ticketsService: TicketsService,
@@ -92,10 +95,15 @@ export class AttachmentsController {
       sizeBytes: String(file.size),
     });
 
-    const ticketForNotification = await this.messagesService.findTicketForNotification(ticketId);
-    if (ticketForNotification) {
-      await this.notifyUserService.notifyNewMessage(ticketForNotification, `📎 ${file.originalname}`);
-    }
+    // Telegram chaqiruvi javobni bloklamasin — xato bo'lsa faqat log qilinadi.
+    void this.messagesService
+      .findTicketForNotification(ticketId)
+      .then((ticketForNotification) => {
+        if (ticketForNotification) {
+          return this.notifyUserService.notifyNewMessage(ticketForNotification, `📎 ${file.originalname}`);
+        }
+      })
+      .catch((err) => this.logger.error(`Foydalanuvchi bildirishnomasi yuborilmadi: ${err.message}`));
 
     return { success: true, data: attachment };
   }

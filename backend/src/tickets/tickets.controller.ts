@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Logger, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { TicketsService } from './tickets.service';
 import { OrganizationsService } from '../organizations/organizations.service';
 import { CategoriesService } from '../categories/categories.service';
@@ -24,6 +24,8 @@ import { TicketStatus } from './entities/ticket.entity';
 
 @Controller()
 export class TicketsController {
+  private readonly logger = new Logger(TicketsController.name);
+
   constructor(
     private readonly ticketsService: TicketsService,
     private readonly organizationsService: OrganizationsService,
@@ -49,11 +51,12 @@ export class TicketsController {
     const category = ticket.categoryId
       ? await this.categoriesService.findById(ticket.categoryId)
       : null;
-    await this.notifyAdminsService.notifyNewTicket(
-      ticket,
-      organization?.name ?? '—',
-      category?.name ?? '—',
-    );
+    // Telegram bildirishnomasi javobni bloklamasin (bot API sekinlashsa/javob bermasa,
+    // ticket yaratish so'rovi baribir darhol muvaffaqiyatli qaytishi kerak). Xato bo'lsa
+    // faqat log qilinadi — botService.sendMessage o'zi ham xatoni ichida ushlaydi.
+    void this.notifyAdminsService
+      .notifyNewTicket(ticket, organization?.name ?? '—', category?.name ?? '—')
+      .catch((err) => this.logger.error(`Admin bildirishnomasi yuborilmadi: ${err.message}`));
 
     return { success: true, data: ticket };
   }

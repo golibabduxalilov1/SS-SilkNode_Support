@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   OneToMany,
@@ -80,12 +81,14 @@ export class Ticket {
   @JoinColumn({ name: 'assigned_to_id' })
   assignedTo: User | null;
 
+  @Index('idx_tickets_assigned_to_id')
   @Column({ name: 'assigned_to_id', type: 'bigint', nullable: true })
   assignedToId: string | null;
 
   @OneToMany(() => Message, (message) => message.ticket)
   messages: Message[];
 
+  @Index('idx_tickets_closed_at')
   @Column({ name: 'closed_at', type: 'timestamptz', nullable: true })
   closedAt: Date | null;
 
@@ -110,6 +113,7 @@ export class Ticket {
   @Column({ name: 'reopened_count', type: 'int', default: 0 })
   reopenedCount: number;
 
+  @Index('idx_tickets_created_at')
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

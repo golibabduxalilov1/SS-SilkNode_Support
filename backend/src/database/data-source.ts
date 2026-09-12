@@ -22,4 +22,10 @@ export const AppDataSource = new DataSource({
   entities: [User, Organization, Ticket, Message, Attachment, Category, AuditLog, SavedFilter],
   migrations: ['src/database/migrations/*.ts'],
   synchronize: false,
+  // Pool sozlanmagan bo'lsa pg default (10) ishlatiladi — og'ir so'rovlar bilan birga
+  // ulanishlar tez tugab, yangi so'rovlar navbatda "qotib qolgandek" ko'rinishi mumkin edi.
+  extra: {
+    max: process.env.DB_POOL_MAX ? Number(process.env.DB_POOL_MAX) : 20,
+    connectionTimeoutMillis: 10_000,
+  },
 });

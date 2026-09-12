@@ -3,6 +3,7 @@ import {
   Controller,
   ForbiddenException,
   Get,
+  Logger,
   Param,
   Post,
   UseGuards,
@@ -20,6 +21,8 @@ import { NotifyUserService } from '../bot/notify-user.service';
 
 @Controller()
 export class MessagesController {
+  private readonly logger = new Logger(MessagesController.name);
+
   constructor(
     private readonly messagesService: MessagesService,
     private readonly notifyUserService: NotifyUserService,
@@ -63,11 +66,14 @@ export class MessagesController {
     const message = await this.messagesService.create(ticketId, admin.id, dto.text, visibility);
 
     // Ichki eslatma mijozga hech qanday bildirishnoma kanali orqali yuborilmaydi (T04).
+    // Telegram chaqiruvi javobni bloklamasin — xato bo'lsa faqat log qilinadi.
     if (visibility === MessageVisibility.PUBLIC) {
-      const ticket = await this.messagesService.findTicketForNotification(ticketId);
-      if (ticket) {
-        await this.notifyUserService.notifyNewMessage(ticket, dto.text);
-      }
+      void this.messagesService
+        .findTicketForNotification(ticketId)
+        .then((ticket) => {
+          if (ticket) return this.notifyUserService.notifyNewMessage(ticket, dto.text);
+        })
+        .catch((err) => this.logger.error(`Foydalanuvchi bildirishnomasi yuborilmadi: ${err.message}`));
     }
 
     return { success: true, data: message };

@@ -576,7 +576,10 @@ export class TicketsService {
       .addSelect(['createdBy.id', 'createdBy.fullname', 'createdBy.role'])
       .leftJoin('ticket.assignedTo', 'assignedTo')
       .addSelect(['assignedTo.id', 'assignedTo.fullname', 'assignedTo.role'])
-      .leftJoinAndSelect('ticket.messages', 'messages')
+      // computeHasNewCustomerReply faqat visibility/createdAt/sender.role'ga muhtoj — "text"
+      // (xabar matni, katta bo'lishi mumkin) barcha tiketlar uchun yuklanmasin (T03 sekinlashish fixi).
+      .leftJoin('ticket.messages', 'messages')
+      .addSelect(['messages.id', 'messages.visibility', 'messages.createdAt'])
       .leftJoin('messages.sender', 'messageSender')
       .addSelect(['messageSender.id', 'messageSender.role'])
       .addSelect(`CASE WHEN ticket.status = 'new' THEN 0 ELSE 1 END`, 'status_rank')
@@ -614,7 +617,8 @@ export class TicketsService {
       .createQueryBuilder('ticket')
       .where('ticket.assignedToId = :assigneeId', { assigneeId })
       .andWhere('ticket.status != :closed', { closed: TicketStatus.CLOSED })
-      .leftJoinAndSelect('ticket.messages', 'messages')
+      .leftJoin('ticket.messages', 'messages')
+      .addSelect(['messages.id', 'messages.visibility', 'messages.createdAt'])
       .leftJoin('messages.sender', 'messageSender')
       .addSelect(['messageSender.id', 'messageSender.role'])
       .getMany();
@@ -763,23 +767,35 @@ export class TicketsService {
    * T09 — jadvalda bir nechta murojaatni bitta amal bilan o'zgartirish. Har bir tiket uchun
    * mavjud assign()/updateStatus() qayta ishlatiladi — shu bilan audit-log va biznes-qoidalar
    * (reopenedCount, resolutionMinutes va h.k.) bitta-bitta o'zgartirgandagi bilan bir xil ishlaydi.
+   * Tiketlar bir-biridan mustaqil bo'lgani uchun kichik guruhlarda parallel bajariladi (ketma-ket
+   * emas) — DB connection pool'ni to'ldirib yubormaslik uchun guruh hajmi cheklangan.
    */
+  private static readonly BULK_UPDATE_BATCH_SIZE = 10;
+
   async bulkUpdate(
     ids: string[],
     patch: { assignedToId?: string | null; status?: TicketStatus },
     actor: User,
   ): Promise<Ticket[]> {
-    const results: Ticket[] = [];
-    for (const id of ids) {
+    const processOne = async (id: string): Promise<Ticket | null> => {
       let ticket = await this.findById(id);
-      if (!ticket) continue;
+      if (!ticket) return null;
       if (patch.assignedToId !== undefined) {
         ticket = await this.assign(id, patch.assignedToId || null, actor);
       }
       if (patch.status) {
         ticket = await this.updateStatus(id, patch.status, actor);
       }
-      results.push(ticket);
+      return ticket;
+    };
+
+    const results: Ticket[] = [];
+    for (let i = 0; i < ids.length; i += TicketsService.BULK_UPDATE_BATCH_SIZE) {
+      const batch = ids.slice(i, i + TicketsService.BULK_UPDATE_BATCH_SIZE);
+      const batchResults = await Promise.all(batch.map(processOne));
+      for (const ticket of batchResults) {
+        if (ticket) results.push(ticket);
+      }
     }
     return results;
   }

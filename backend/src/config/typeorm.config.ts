@@ -21,5 +21,11 @@ export function typeOrmConfig(): TypeOrmModuleOptions {
     // synchronize faqat lokal ishlab chiqish uchun.
     synchronize: process.env.NODE_ENV !== 'production',
     logging: process.env.NODE_ENV === 'development',
+    // Pool sozlanmagan bo'lsa pg default (10) ishlatiladi — og'ir so'rovlar bilan birga
+    // ulanishlar tez tugab, yangi so'rovlar navbatda "qotib qolgandek" ko'rinishi mumkin edi.
+    extra: {
+      max: process.env.DB_POOL_MAX ? Number(process.env.DB_POOL_MAX) : 20,
+      connectionTimeoutMillis: 10_000,
+    },
   };
 }

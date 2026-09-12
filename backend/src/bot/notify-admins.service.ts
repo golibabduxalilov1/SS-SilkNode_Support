@@ -30,10 +30,14 @@ export class NotifyAdminsService {
       `Muhimlik: ${ticket.priority}\n\n` +
       `Batafsil: Web Admin Panel orqali ko'ring.`;
 
-    for (const admin of admins) {
-      if (!admin.telegramId) continue;
-      // Faqat oddiy matn xabar — tugma yoki webApp havolasi YO'Q (bo'lim 5.2, 5.3).
-      await this.botService.sendMessage(admin.telegramId, text);
-    }
+    // Faqat oddiy matn xabar — tugma yoki webApp havolasi YO'Q (bo'lim 5.2, 5.3).
+    // Adminlar soni ko'p bo'lsa ketma-ket yuborish umumiy kutish vaqtini cho'zib yuboradi —
+    // botService.sendMessage xatoni allaqachon o'z ichida ushlaydi, shuning uchun parallel
+    // yuborish xavfsiz (bittasi muvaffaqiyatsiz bo'lsa, boshqalarga ta'sir qilmaydi).
+    await Promise.all(
+      admins
+        .filter((admin) => admin.telegramId)
+        .map((admin) => this.botService.sendMessage(admin.telegramId!, text)),
+    );
   }
 }
