@@ -33,7 +33,14 @@ import {
   IconUsers,
   IconWait,
 } from '../components/icons';
-import { Avatar, ChartSkeleton, EmptyState, StatCardSkeleton, TableSkeleton } from '../components/ui';
+import {
+  Avatar,
+  CategoryOptionGroups,
+  ChartSkeleton,
+  EmptyState,
+  StatCardSkeleton,
+  TableSkeleton,
+} from '../components/ui';
 import { AssigneeTrendChart, type AssigneeResolutionTrendPoint } from '../components/dashboard/AssigneeTrendChart';
 import { ProductivityBadge } from '../components/dashboard/ProductivityBadge';
 import { TrendChart, type DailyTrendPoint } from '../components/dashboard/TrendChart';
@@ -72,6 +79,8 @@ interface AssigneeStats {
   reopenedCount: number;
   reopenedRate: number;
   trendVsPreviousPeriod: {
+    ticketsClosedCurr: number;
+    ticketsClosedPrev: number;
     ticketsClosedDelta: number;
   };
 }
@@ -174,6 +183,7 @@ interface Organization {
 interface Category {
   id: string;
   name: string;
+  cluster?: string;
 }
 
 interface Assignee {
@@ -264,6 +274,12 @@ function percentDelta(curr: number, prev: number): number {
   return Math.round(((curr - prev) / prev) * 100);
 }
 
+/**
+ * T07 — kichik bazada (masalan 1 -> 2) foiz o'zgarishi ("+100%") chalg'ituvchi bo'lgani uchun,
+ * bazaviy son shu chegaradan kichik bo'lsa, xom farq ko'rsatiladi ("+1 ta").
+ */
+const KPI_RAW_COUNT_THRESHOLD = 10;
+
 function formatProcessingDuration(minutes: number | null): string {
   return formatDurationMinutes(minutes, '—');
 }
@@ -324,15 +340,16 @@ export function ChartTooltip({ active, payload, label, labelFormatter }: any) {
   );
 }
 
-function TrendBadge({ delta, title }: { delta: number; title: string }) {
-  const tone = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat';
+function TrendBadge({ curr, prev, title }: { curr: number; prev: number; title: string }) {
+  const diff = curr - prev;
+  const tone = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat';
   const Icon = tone === 'up' ? IconTrendUp : tone === 'down' ? IconTrendDown : IconTrendFlat;
-  const sign = delta > 0 ? '+' : '';
+  const sign = diff > 0 ? '+' : '';
+  const useRawCount = prev < KPI_RAW_COUNT_THRESHOLD;
   return (
     <span className={`stat-card-trend stat-card-trend--${tone}`} title={title}>
       <Icon width={11} height={11} />
-      {sign}
-      {delta}%
+      {useRawCount ? `${sign}${diff} ta` : `${sign}${percentDelta(curr, prev)}%`}
     </span>
   );
 }
@@ -450,7 +467,7 @@ interface KpiCardData {
   label: string;
   accent?: string | null;
   accentSoft?: string | null;
-  trend?: { delta: number; title: string } | null;
+  trend?: { curr: number; prev: number; title: string } | null;
 }
 
 function KpiCard({ icon, value, suffix, label, accent, accentSoft, trend }: Omit<KpiCardData, 'key'>) {
@@ -460,7 +477,7 @@ function KpiCard({ icon, value, suffix, label, accent, accentSoft, trend }: Omit
         <span className="stat-card-icon" style={accent ? ({ '--accent': accent, '--accent-soft': accentSoft ?? undefined } as AccentStyle) : undefined}>
           {icon}
         </span>
-        {trend && <TrendBadge delta={trend.delta} title={trend.title} />}
+        {trend && <TrendBadge curr={trend.curr} prev={trend.prev} title={trend.title} />}
       </div>
       <span className="stat-value">
         {value}
@@ -639,11 +656,7 @@ function FilterBar({
           <span className="filter-field-label">Kategoriya</span>
           <select value={categoryFilter} onChange={(e) => onCategoryChange(e.target.value)}>
             <option value="">Barchasi</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
+            <CategoryOptionGroups categories={categories} />
           </select>
         </label>
 
@@ -1130,9 +1143,11 @@ export function DashboardPage() {
     const today = stats.dailyTrend[stats.dailyTrend.length - 1];
     const yesterday = stats.dailyTrend[stats.dailyTrend.length - 2];
     return {
-      created: percentDelta(today.created, yesterday.created),
-      closed: percentDelta(today.closed, yesterday.closed),
-      // Ikkala kun ham 0 bo'lsa, foizli o'zgarish ma'nosiz — badge butunlay yashiriladi.
+      createdCurr: today.created,
+      createdPrev: yesterday.created,
+      closedCurr: today.closed,
+      closedPrev: yesterday.closed,
+      // Ikkala kun ham 0 bo'lsa, o'zgarish ma'nosiz — badge butunlay yashiriladi.
       hasCreatedData: today.created !== 0 || yesterday.created !== 0,
       hasClosedData: today.closed !== 0 || yesterday.closed !== 0,
     };
@@ -1185,7 +1200,11 @@ export function DashboardPage() {
           accentSoft: 'var(--status-new-soft)',
           trend:
             trendDelta && trendDelta.hasCreatedData
-              ? { delta: trendDelta.created, title: 'Bugun yasalgan murojaatlar, kechaga nisbatan' }
+              ? {
+                  curr: trendDelta.createdCurr,
+                  prev: trendDelta.createdPrev,
+                  title: 'Bugun yasalgan murojaatlar, kechaga nisbatan',
+                }
               : null,
         },
         {
@@ -1206,14 +1225,18 @@ export function DashboardPage() {
           accentSoft: 'var(--status-closed-soft)',
           trend:
             trendDelta && trendDelta.hasClosedData
-              ? { delta: trendDelta.closed, title: 'Bugun yopilgan murojaatlar, kechaga nisbatan' }
+              ? {
+                  curr: trendDelta.closedCurr,
+                  prev: trendDelta.closedPrev,
+                  title: 'Bugun yopilgan murojaatlar, kechaga nisbatan',
+                }
               : null,
         },
       ]
     : [];
 
   return (
-    <AppShell title="Dashboard" breadcrumb={scopeLabel ? `Kesim: ${scopeLabel}` : "Umumiy ko'rinish — oxirgi 30 kun"}>
+    <AppShell title="Dashboard" breadcrumb={scopeLabel ? `Kesim: ${scopeLabel}` : "Umumiy ko'rinish — barcha vaqt"}>
       <FilterBar
         assignees={assignees}
         assigneeFilter={selectedAssigneeId ?? ''}
@@ -1242,7 +1265,7 @@ export function DashboardPage() {
             Kesim: <strong>{scopeLabel}</strong>
           </>
         ) : (
-          "Umumiy ko'rinish — barcha tashkilot, kategoriya va ijrochilar, oxirgi 30 kun"
+          "Umumiy ko'rinish — barcha tashkilot, kategoriya va ijrochilar, barcha vaqt"
         )}
       </div>
 
@@ -1392,7 +1415,7 @@ export function DashboardPage() {
               <div className="chart-card span-12 trend-chart-card">
                 <SectionHeader
                   title="Murojaatlarni ochilishi va hal qilinishi"
-                  subtitle="Oxirgi 14 kunlik oyna — ochilgan va hal qilingan (resolved/closed) tiketlar"
+                  subtitle="Doim so'nggi 14 kunlik oyna — sana filtridagi boshlanish sanasiga bog'liq emas, faqat 'gacha' sanasi hisobga olinadi"
                   filterContext={scopeLabel}
                 />
                 <ResolutionFlowChart data={stats.resolutionFlow} />
@@ -1521,7 +1544,8 @@ export function DashboardPage() {
                                   {a.ticketsClosed}
                                   {hasClosedTrendSignal && (
                                     <TrendBadge
-                                      delta={a.trendVsPreviousPeriod.ticketsClosedDelta}
+                                      curr={a.trendVsPreviousPeriod.ticketsClosedCurr}
+                                      prev={a.trendVsPreviousPeriod.ticketsClosedPrev}
                                       title="Oldingi teng davrga nisbatan yopilgan murojaatlar"
                                     />
                                   )}

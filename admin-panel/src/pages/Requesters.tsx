@@ -4,6 +4,7 @@ import { api } from '../api/client';
 import { AppShell } from '../components/AppShell';
 import { IconSearch, IconUser } from '../components/icons';
 import { Avatar, EmptyState, Pagination, TableSkeleton } from '../components/ui';
+import { usePageSize } from '../utils/usePageSize';
 import { LIST_POLL_INTERVAL_MS } from '../utils/pollInterval';
 
 interface Requester {
@@ -20,8 +21,6 @@ interface Organization {
   id: string;
   name: string;
 }
-
-const PAGE_SIZE = 15;
 
 interface RequesterFilters {
   nameSearch: string;
@@ -100,6 +99,7 @@ export function RequestersPage() {
   const [maxTickets, setMaxTickets] = useState('');
   const [sort, setSort] = useState<RequesterSortState>({ key: 'lastTicketAt', dir: 'desc' });
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = usePageSize();
 
   // background=true — yangi murojaat kelganda ro'yxat qo'lda yangilamasdan ham yangilanadi;
   // joriy filtr/sahifaga tegmasdan, skeletonsiz fonda yangilanadi.
@@ -152,7 +152,7 @@ export function RequestersPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [nameSearch, phoneSearch, organizationFilter, minTickets, maxTickets]);
+  }, [nameSearch, phoneSearch, organizationFilter, minTickets, maxTickets, pageSize]);
 
   function handleSort(key: RequesterSortKey) {
     setSort((curr) => (curr.key === key ? { key, dir: curr.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: key === 'name' ? 'asc' : 'desc' }));
@@ -162,11 +162,11 @@ export function RequestersPage() {
     navigate(`/requesters/${encodeURIComponent(requester.key)}`);
   }
 
-  const totalPages = Math.max(1, Math.ceil(sortedRequesters.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(sortedRequesters.length / pageSize));
   const currentPage = Math.min(page, totalPages);
   const paginatedRequesters = sortedRequesters.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE,
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
   );
 
   const hasActiveFilters = Boolean(nameSearch || phoneSearch || organizationFilter || minTickets || maxTickets);
@@ -244,8 +244,14 @@ export function RequestersPage() {
           {sortedRequesters.length === 0 ? (
             <EmptyState
               icon={<IconUser width={24} height={24} />}
-              title="Hozircha murojaatchilar yo'q"
-              description="Murojaat kelib tushgach, murojaatchilar shu yerda ko'rinadi."
+              title="Hech narsa topilmadi"
+              description={
+                hasActiveFilters
+                  ? 'Filtrlarni o\'zgartirib ko\'ring.'
+                  : 'Murojaat kelib tushgach, murojaatchilar shu yerda ko\'rinadi.'
+              }
+              actionLabel={hasActiveFilters ? 'Filterlarni tozalash' : undefined}
+              onAction={hasActiveFilters ? clearFilters : undefined}
             />
           ) : (
             <div className="table-wrap">
@@ -263,7 +269,7 @@ export function RequestersPage() {
                 <tbody>
                   {paginatedRequesters.map((r, i) => (
                     <tr key={r.key} className="clickable-row" onClick={() => handleRowClick(r)}>
-                      <td className="cell-muted">{(currentPage - 1) * PAGE_SIZE + i + 1}</td>
+                      <td className="cell-muted">{(currentPage - 1) * pageSize + i + 1}</td>
                       <td>
                         <div className="cell-user">
                           <Avatar name={r.name} />
@@ -288,7 +294,14 @@ export function RequestersPage() {
             </div>
           )}
 
-          <Pagination page={currentPage} totalPages={totalPages} onChange={setPage} />
+          <Pagination
+            page={currentPage}
+            totalPages={totalPages}
+            onChange={setPage}
+            totalItems={sortedRequesters.length}
+            pageSize={pageSize}
+            onPageSizeChange={setPageSize}
+          />
         </>
       )}
     </AppShell>

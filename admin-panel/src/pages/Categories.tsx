@@ -6,10 +6,30 @@ import { ConfirmModal } from '../components/ConfirmModal';
 import { IconClose, IconEdit, IconLayers, IconPlus, IconPower, IconTrash } from '../components/icons';
 import { EmptyState, TableSkeleton } from '../components/ui';
 
+type Cluster = 'yonalish' | 'mahsulot';
+
+/** T16 — minimal klasterlash: "Yo'nalish" (umumiy soha, masalan CRM/ERP) vs "Mahsulot/tizim" (brend, masalan Silknode Adminka). */
+export const CLUSTER_LABELS: Record<Cluster, string> = {
+  yonalish: "Yo'nalish",
+  mahsulot: 'Mahsulot/tizim',
+};
+
+export const CLUSTER_ORDER: Cluster[] = ['yonalish', 'mahsulot'];
+
 interface Category {
   id: string;
   name: string;
   isActive: boolean;
+  description: string | null;
+  colorTag: string | null;
+  cluster: Cluster;
+}
+
+export interface CategoryFormValues {
+  name: string;
+  description: string;
+  colorTag: string;
+  cluster: Cluster;
 }
 
 type ModalMode = 'create' | 'edit';
@@ -17,7 +37,7 @@ type ModalMode = 'create' | 'edit';
 function CategoryModal({
   isOpen,
   mode,
-  initialName,
+  initial,
   onClose,
   onSubmit,
   isSaving,
@@ -25,17 +45,26 @@ function CategoryModal({
 }: {
   isOpen: boolean;
   mode: ModalMode;
-  initialName: string;
+  initial: CategoryFormValues;
   onClose: () => void;
-  onSubmit: (name: string) => void;
+  onSubmit: (values: CategoryFormValues) => void;
   isSaving: boolean;
   error: string | null;
 }) {
-  const [name, setName] = useState(initialName);
+  const [name, setName] = useState(initial.name);
+  const [description, setDescription] = useState(initial.description);
+  const [colorTag, setColorTag] = useState(initial.colorTag);
+  const [cluster, setCluster] = useState<Cluster>(initial.cluster);
 
   useEffect(() => {
-    if (isOpen) setName(initialName);
-  }, [isOpen, initialName]);
+    if (isOpen) {
+      setName(initial.name);
+      setDescription(initial.description);
+      setColorTag(initial.colorTag);
+      setCluster(initial.cluster);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -49,13 +78,12 @@ function CategoryModal({
   if (!isOpen) return null;
 
   const trimmed = name.trim();
-  const unchanged = mode === 'edit' && trimmed === initialName.trim();
-  const disabled = isSaving || !trimmed || unchanged;
+  const disabled = isSaving || !trimmed;
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (disabled) return;
-    onSubmit(trimmed);
+    onSubmit({ name: trimmed, description: description.trim(), colorTag, cluster });
   };
 
   return createPortal(
@@ -82,6 +110,40 @@ function CategoryModal({
                 required
                 autoFocus
               />
+            </label>
+            <label className="modal-field">
+              <span>Klaster</span>
+              <select value={cluster} onChange={(e) => setCluster(e.target.value as Cluster)}>
+                {CLUSTER_ORDER.map((c) => (
+                  <option key={c} value={c}>
+                    {CLUSTER_LABELS[c]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="modal-field">
+              <span>Tavsif (ixtiyoriy)</span>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Kategoriya haqida qisqacha izoh"
+                rows={3}
+              />
+            </label>
+            <label className="modal-field modal-field--color">
+              <span>Rangli teg (ixtiyoriy)</span>
+              <div className="color-tag-input">
+                <input
+                  type="color"
+                  value={colorTag || '#8a6a1f'}
+                  onChange={(e) => setColorTag(e.target.value)}
+                />
+                {colorTag && (
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => setColorTag('')}>
+                    Tozalash
+                  </button>
+                )}
+              </div>
             </label>
           </div>
           <div className="modal-footer">
@@ -139,14 +201,20 @@ export function CategoriesPage() {
     setModalOpen(false);
   };
 
-  const handleModalSubmit = async (name: string) => {
+  const handleModalSubmit = async (values: CategoryFormValues) => {
     setIsSaving(true);
     setModalError(null);
+    const payload = {
+      name: values.name,
+      description: values.description || null,
+      colorTag: values.colorTag || null,
+      cluster: values.cluster,
+    };
     try {
       if (modalMode === 'create') {
-        await api.post('/admin/categories', { name });
+        await api.post('/admin/categories', payload);
       } else if (editingCategory) {
-        await api.patch(`/admin/categories/${editingCategory.id}`, { name });
+        await api.patch(`/admin/categories/${editingCategory.id}`, payload);
       }
       setModalOpen(false);
       load();
@@ -179,6 +247,44 @@ export function CategoriesPage() {
     }
   };
 
+  function CategoryRow({ category: c }: { category: Category }) {
+    return (
+      <tr>
+        <td>
+          <div className="cell-user">
+            <span className="avatar avatar--sm">
+              <IconLayers width={12} height={12} />
+            </span>
+            {c.colorTag && <span className="color-tag-dot" style={{ background: c.colorTag }} title={c.colorTag} />}
+            <div className="cell-user-info">
+              <span className="cell-primary">{c.name}</span>
+              {c.description && <span className="cell-description">{c.description}</span>}
+            </div>
+          </div>
+        </td>
+        <td>
+          <span className={`status status--${c.isActive ? 'active' : 'inactive'}`}>
+            {c.isActive ? 'Faol' : 'Nofaol'}
+          </span>
+        </td>
+        <td className="table-actions">
+          <button onClick={() => openEditModal(c)}>
+            <IconEdit width={13} height={13} />
+            Tahrirlash
+          </button>
+          <button onClick={() => handleToggleActive(c)}>
+            <IconPower width={13} height={13} />
+            {c.isActive ? 'Nofaollashtirish' : 'Faollashtirish'}
+          </button>
+          <button className="danger" onClick={() => setCategoryToDelete(c)}>
+            <IconTrash width={13} height={13} />
+            O'chirish
+          </button>
+        </td>
+      </tr>
+    );
+  }
+
   return (
     <AppShell title="Kategoriyalar" breadcrumb="Dashboard / Kategoriyalar">
       <div className="toolbar">
@@ -198,56 +304,46 @@ export function CategoriesPage() {
           description="Yuqoridagi tugma orqali birinchi kategoriyani qo'shing."
         />
       ) : (
-        <div className="table-wrap">
-          <table className="tickets-table tickets-table--equal categories-table">
-            <thead>
-              <tr>
-                <th>Nomi</th>
-                <th>Holati</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {categories.map((c) => (
-                <tr key={c.id}>
-                  <td>
-                    <div className="cell-user">
-                      <span className="avatar avatar--sm">
-                        <IconLayers width={12} height={12} />
-                      </span>
-                      <span className="cell-primary">{c.name}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <span className={`status status--${c.isActive ? 'active' : 'inactive'}`}>
-                      {c.isActive ? 'Faol' : 'Nofaol'}
-                    </span>
-                  </td>
-                  <td className="table-actions">
-                    <button onClick={() => openEditModal(c)}>
-                      <IconEdit width={13} height={13} />
-                      Tahrirlash
-                    </button>
-                    <button onClick={() => handleToggleActive(c)}>
-                      <IconPower width={13} height={13} />
-                      {c.isActive ? 'Nofaollashtirish' : 'Faollashtirish'}
-                    </button>
-                    <button className="danger" onClick={() => setCategoryToDelete(c)}>
-                      <IconTrash width={13} height={13} />
-                      O'chirish
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        CLUSTER_ORDER.map((cluster) => {
+          const items = categories.filter((c) => c.cluster === cluster);
+          if (items.length === 0) return null;
+          return (
+            <div key={cluster} className="category-cluster-group">
+              <h3 className="category-cluster-title">{CLUSTER_LABELS[cluster]}</h3>
+              <div className="table-wrap">
+                <table className="tickets-table tickets-table--equal categories-table">
+                  <thead>
+                    <tr>
+                      <th>Nomi</th>
+                      <th>Holati</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((c) => (
+                      <CategoryRow key={c.id} category={c} />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        })
       )}
 
       <CategoryModal
         isOpen={modalOpen}
         mode={modalMode}
-        initialName={modalMode === 'edit' ? editingCategory?.name ?? '' : ''}
+        initial={
+          modalMode === 'edit' && editingCategory
+            ? {
+                name: editingCategory.name,
+                description: editingCategory.description ?? '',
+                colorTag: editingCategory.colorTag ?? '',
+                cluster: editingCategory.cluster,
+              }
+            : { name: '', description: '', colorTag: '', cluster: 'mahsulot' }
+        }
         onClose={closeModal}
         onSubmit={handleModalSubmit}
         isSaving={isSaving}

@@ -2,9 +2,10 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Ticket, TicketPriority, TicketStatus } from './entities/ticket.entity';
+import { MessageVisibility } from '../messages/entities/message.entity';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { CreateLegacyTicketDto } from './dto/create-legacy-ticket.dto';
-import { User } from '../users/entities/user.entity';
+import { User, UserRole } from '../users/entities/user.entity';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { AuditAction } from '../audit-log/entities/audit-log.entity';
 
@@ -46,6 +47,8 @@ export interface AssigneeStats {
   /** reopenedCount / ticketsAssignedTotal, foizda. */
   reopenedRate: number;
   trendVsPreviousPeriod: {
+    ticketsClosedCurr: number;
+    ticketsClosedPrev: number;
     ticketsClosedDelta: number;
   };
 }
@@ -523,6 +526,7 @@ export class TicketsService {
       createdById: createdBy.id,
       requesterName: dto.requesterName ?? null,
       requesterPhone: dto.requesterPhone ?? null,
+      assignedToId: dto.assignedToId ?? null,
       status,
       closedAt,
       resolutionMinutes: closedAt ? diffMinutes(createdAt, closedAt) : null,
@@ -563,18 +567,58 @@ export class TicketsService {
     return ticket;
   }
 
-  findAllForAdmin(): Promise<Ticket[]> {
-    return this.ticketsRepository
+  async findAllForAdmin(): Promise<(Ticket & { hasNewCustomerReply: boolean })[]> {
+    const tickets = await this.ticketsRepository
       .createQueryBuilder('ticket')
       .leftJoinAndSelect('ticket.organization', 'organization')
       .leftJoinAndSelect('ticket.categoryEntity', 'categoryEntity')
-      .leftJoinAndSelect('ticket.createdBy', 'createdBy')
-      .leftJoinAndSelect('ticket.assignedTo', 'assignedTo')
+      .leftJoin('ticket.createdBy', 'createdBy')
+      .addSelect(['createdBy.id', 'createdBy.fullname', 'createdBy.role'])
+      .leftJoin('ticket.assignedTo', 'assignedTo')
+      .addSelect(['assignedTo.id', 'assignedTo.fullname', 'assignedTo.role'])
       .leftJoinAndSelect('ticket.messages', 'messages')
+      .leftJoin('messages.sender', 'messageSender')
+      .addSelect(['messageSender.id', 'messageSender.role'])
       .addSelect(`CASE WHEN ticket.status = 'new' THEN 0 ELSE 1 END`, 'status_rank')
       .orderBy('status_rank', 'ASC')
       .addOrderBy('ticket.createdAt', 'DESC')
       .getMany();
+
+    return tickets.map((ticket) => ({
+      ...ticket,
+      hasNewCustomerReply: this.computeHasNewCustomerReply(ticket),
+    }));
+  }
+
+  /**
+   * T11 — "Yangi javob" bildirishnomasi uchun: oxirgi (ommaviy) xabar mijozdan (role=user) kelgan
+   * va murojaat hali yopilmagan bo'lsa, ijrochi hali javob bermagan hisoblanadi. Alohida
+   * "o'qilgan/o'qilmagan" jadvali yo'q — mavjud "yangi murojaatlar" bildirishnomasi bilan bir xil
+   * (holatga asoslangan, engil) yondashuv.
+   */
+  private computeHasNewCustomerReply(ticket: Ticket): boolean {
+    if (ticket.status === TicketStatus.CLOSED) return false;
+    const publicMessages = (ticket.messages ?? []).filter(
+      (m) => m.visibility !== MessageVisibility.INTERNAL,
+    );
+    if (publicMessages.length === 0) return false;
+    const last = [...publicMessages].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )[0];
+    return last.sender?.role === UserRole.USER;
+  }
+
+  /** T11 — joriy ijrochiga tayinlangan, javobsiz qolgan mijoz xabarlariga ega murojaatlar soni. */
+  async countNewCustomerReplies(assigneeId: string): Promise<number> {
+    const tickets = await this.ticketsRepository
+      .createQueryBuilder('ticket')
+      .where('ticket.assignedToId = :assigneeId', { assigneeId })
+      .andWhere('ticket.status != :closed', { closed: TicketStatus.CLOSED })
+      .leftJoinAndSelect('ticket.messages', 'messages')
+      .leftJoin('messages.sender', 'messageSender')
+      .addSelect(['messageSender.id', 'messageSender.role'])
+      .getMany();
+    return tickets.filter((t) => this.computeHasNewCustomerReply(t)).length;
   }
 
   findById(id: string): Promise<Ticket | null> {
@@ -716,12 +760,67 @@ export class TicketsService {
   }
 
   /**
+   * T09 — jadvalda bir nechta murojaatni bitta amal bilan o'zgartirish. Har bir tiket uchun
+   * mavjud assign()/updateStatus() qayta ishlatiladi — shu bilan audit-log va biznes-qoidalar
+   * (reopenedCount, resolutionMinutes va h.k.) bitta-bitta o'zgartirgandagi bilan bir xil ishlaydi.
+   */
+  async bulkUpdate(
+    ids: string[],
+    patch: { assignedToId?: string | null; status?: TicketStatus },
+    actor: User,
+  ): Promise<Ticket[]> {
+    const results: Ticket[] = [];
+    for (const id of ids) {
+      let ticket = await this.findById(id);
+      if (!ticket) continue;
+      if (patch.assignedToId !== undefined) {
+        ticket = await this.assign(id, patch.assignedToId || null, actor);
+      }
+      if (patch.status) {
+        ticket = await this.updateStatus(id, patch.status, actor);
+      }
+      results.push(ticket);
+    }
+    return results;
+  }
+
+  /** T06 — murojaat kartochkasidan Muhimlikni to'g'ridan-to'g'ri (saqlash tugmasisiz) o'zgartirish. */
+  async updatePriority(id: string, priority: TicketPriority, actor: User): Promise<Ticket> {
+    const ticket = await this.ticketsRepository.findOne({ where: { id } });
+    if (!ticket) throw new NotFoundException('Murojaat topilmadi.');
+
+    const previousPriority = ticket.priority;
+    ticket.priority = priority;
+    await this.ticketsRepository.save(ticket);
+
+    await this.auditLogService.log(
+      actor.id,
+      actor.fullname ?? actor.adminLogin ?? actor.id,
+      AuditAction.TICKET_PRIORITY_CHANGED,
+      'ticket',
+      id,
+      { from: previousPriority, to: priority },
+    );
+
+    const updated = await this.findById(id);
+    if (!updated) throw new NotFoundException('Murojaat topilmadi.');
+    return updated;
+  }
+
+  /**
    * "Yopilish vaqti" (resolutionMinutes) hisoblanadigan closedAt'ni admin qo'lda tuzatishi uchun —
    * masalan, avvalgi status o'zgarishi vaqti noto'g'ri qayd etilgan bo'lsa.
    */
   async updateClosedAt(id: string, closedAtInput: string, actor: User): Promise<Ticket> {
     const ticket = await this.ticketsRepository.findOne({ where: { id } });
     if (!ticket) throw new NotFoundException('Murojaat topilmadi.');
+
+    // T12 — yopilish vaqtini faqat murojaat yopilgan/hal qilingandan keyin tahrirlash mumkin.
+    if (ticket.status !== TicketStatus.CLOSED && ticket.status !== TicketStatus.RESOLVED) {
+      throw new BadRequestException(
+        "Yopish vaqtini faqat murojaat yopilgandan keyin tahrirlash mumkin.",
+      );
+    }
 
     const closedAt = new Date(closedAtInput);
     const now = new Date();
@@ -902,6 +1001,8 @@ export class TicketsService {
           reopenedCount,
           reopenedRate: group.tickets.length > 0 ? Math.round((reopenedCount / group.tickets.length) * 100) : 0,
           trendVsPreviousPeriod: {
+            ticketsClosedCurr: closedCurrentByAssignee.get(userId) ?? 0,
+            ticketsClosedPrev: closedPreviousByAssignee.get(userId) ?? 0,
             ticketsClosedDelta: percentChange(
               closedCurrentByAssignee.get(userId) ?? 0,
               closedPreviousByAssignee.get(userId) ?? 0,

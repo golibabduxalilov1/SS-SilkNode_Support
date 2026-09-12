@@ -1639,6 +1639,9 @@ button {
 
 .filters-actions {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .filters-actions .btn {
@@ -1646,10 +1649,76 @@ button {
   border-color: var(--filter-border);
 }
 
+/* T13 — nechta filtr aktivligini har bir select'ni ochmasdan ko'rsatish. */
+.filter-active-chip {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-text, var(--primary));
+  background: var(--accent-tint, var(--sunken));
+  border-radius: var(--radius-full);
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+
 .filter-results {
   margin: 0 0 12px;
   font-size: 13px;
   color: var(--text-muted);
+}
+
+/* T13 — saqlangan filtrlar qatori. */
+.saved-filters-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: -6px 0 16px;
+}
+
+.saved-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  background: var(--panel);
+  overflow: hidden;
+}
+
+.saved-filter-chip button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 12.5px;
+  color: var(--text);
+  padding: 5px 10px;
+}
+
+.saved-filter-chip button:hover {
+  background: var(--veil);
+}
+
+.saved-filter-chip-remove {
+  color: var(--text-muted);
+  padding: 5px 8px 5px 0 !important;
+  font-size: 14px !important;
+}
+
+.saved-filter-save-form {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.saved-filter-save-form input {
+  min-height: 32px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 13px;
+  width: 160px;
 }
 
 .pagination {
@@ -1693,6 +1762,31 @@ button {
   color: var(--text-muted);
   font-size: 13px;
   padding: 0 4px;
+}
+
+.pagination-range {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-right: auto;
+}
+
+.pagination-page-size {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  margin-left: auto;
+}
+
+.pagination-page-size select {
+  min-height: 30px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 13px;
 }
 
 @media (max-width: 900px) {
@@ -2400,6 +2494,44 @@ button {
   border-radius: 0;
 }
 
+.bulk-actions-bar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 10px 16px;
+  background: var(--accent-tint, var(--sunken));
+  border-bottom: 1px solid var(--border-strong);
+}
+
+.bulk-actions-count {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.bulk-actions-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.bulk-actions-field select {
+  min-height: 34px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 13px;
+}
+
 .tickets-table {
   width: 100%;
   border-collapse: collapse;
@@ -2469,6 +2601,58 @@ button {
 
 .cell-user-phone {
   font-size: 12px;
+}
+
+/* T16 — kategoriyalar klasterlari (Yo'nalish / Mahsulot-tizim). */
+.category-cluster-group {
+  margin-bottom: 28px;
+}
+
+.category-cluster-group:last-child {
+  margin-bottom: 0;
+}
+
+.category-cluster-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin: 0 0 10px;
+}
+
+/* T14 — Tashkilot/Kategoriya: rangli teg va ixtiyoriy tavsif. */
+.cell-description {
+  font-size: 12px;
+  color: var(--text-muted);
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.color-tag-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.modal-field--color .color-tag-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-field--color input[type='color'] {
+  width: 40px;
+  height: 32px;
+  padding: 2px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  cursor: pointer;
 }
 
 .cell-datetime {
@@ -2626,6 +2810,29 @@ button {
   border-color: color-mix(in srgb, var(--success-text) 22%, transparent);
 }
 
+select.priority-select {
+  font-weight: 600;
+}
+
+select.priority-select--high,
+select.priority-select--critical {
+  background: var(--error-tint);
+  color: var(--error-text);
+  border-color: color-mix(in srgb, var(--error-text) 22%, transparent);
+}
+
+select.priority-select--medium {
+  background: var(--warning-tint);
+  color: var(--warning-text);
+  border-color: color-mix(in srgb, var(--warning-text) 22%, transparent);
+}
+
+select.priority-select--low {
+  background: var(--success-tint);
+  color: var(--success-text);
+  border-color: color-mix(in srgb, var(--success-text) 22%, transparent);
+}
+
 /* ==========================================================================
    Empty state
    ========================================================================== */
@@ -2666,6 +2873,10 @@ button {
   font-size: 13px;
   color: var(--text-muted);
   max-width: 320px;
+}
+
+.empty-state-action {
+  margin-top: 8px;
 }
 
 /* ==========================================================================
@@ -3196,6 +3407,17 @@ button {
   background: var(--bg-hover, rgba(0, 0, 0, 0.06));
 }
 
+/* T12 — aria-disabled (native `disabled` bo'lsa, ba'zi brauzerlarda hover/tooltip ishlamay qoladi). */
+.ticket-summary-meta-edit-btn--disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.ticket-summary-meta-edit-btn--disabled:hover {
+  color: var(--text-muted);
+  background: transparent;
+}
+
 .ticket-summary-meta-edit {
   display: flex;
   flex-direction: column;
@@ -3421,6 +3643,55 @@ button {
 
 .chat-form button[type='submit'] {
   align-self: flex-start;
+}
+
+.chat-form--internal {
+  border-color: var(--warning-text);
+  background: var(--warning-tint);
+}
+
+.reply-mode-switch {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 3px;
+  border-radius: var(--radius-full);
+  background: var(--sunken);
+  border: 1px solid var(--border-strong);
+}
+
+.reply-mode-option {
+  padding: 6px 14px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: none;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease), color var(--duration-fast) var(--ease);
+}
+
+.reply-mode-option--active {
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+}
+
+.chat-message--internal {
+  background: var(--warning-tint);
+  border-color: color-mix(in srgb, var(--warning-text) 30%, transparent);
+}
+
+.chat-message-internal-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  background: var(--warning-text);
+  color: #fff;
+  font-size: 10px;
+  letter-spacing: 0.03em;
 }
 
 /* ==========================================================================
@@ -3696,6 +3967,58 @@ button {
   outline: none;
   border-color: var(--accent);
   box-shadow: var(--glow-accent);
+}
+
+.modal-field .field-invalid {
+  border-color: var(--error);
+}
+
+.field-error {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--error-text);
+}
+
+.field-hint {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--text-secondary);
+}
+
+.field-hint--warning {
+  color: var(--warning-text);
+}
+
+.requester-suggestion {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: -6px 0 4px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent);
+  background: var(--sunken);
+}
+
+.requester-suggestion p {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--text);
+}
+
+.requester-suggestion-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .modal-footer {

@@ -1,5 +1,7 @@
-import { IsEnum, IsISO8601, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsEnum, IsISO8601, IsNotEmpty, IsOptional, IsPhoneNumber, IsString, MaxLength } from 'class-validator';
 import { TicketPriority, TicketStatus } from '../entities/ticket.entity';
+import { normalizePhoneOrUndefined } from '../../bot/utils/phone.util';
 
 /** Admin panelda eski (arxiv) murojaatlarni qo'lda, to'liq sana/holat bilan backfill qilish uchun. */
 export class CreateLegacyTicketDto {
@@ -20,9 +22,9 @@ export class CreateLegacyTicketDto {
   @IsEnum(TicketPriority)
   priority?: TicketPriority;
 
-  @IsOptional()
   @IsString()
-  organizationId?: string;
+  @IsNotEmpty()
+  organizationId: string;
 
   @IsOptional()
   @IsString()
@@ -30,9 +32,14 @@ export class CreateLegacyTicketDto {
   requesterName?: string;
 
   @IsOptional()
-  @IsString()
+  @Transform(({ value }) => normalizePhoneOrUndefined(value))
+  @IsPhoneNumber('UZ', { message: "Telefon raqami to'liq emas yoki noto'g'ri formatda." })
   @MaxLength(20)
   requesterPhone?: string;
+
+  @IsOptional()
+  @IsString()
+  assignedToId?: string;
 
   @IsOptional()
   @IsEnum(TicketStatus)

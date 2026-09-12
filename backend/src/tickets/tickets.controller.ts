@@ -10,6 +10,8 @@ import { UpdateTicketStatusDto } from './dto/update-ticket-status.dto';
 import { UpdateTicketClosedAtDto } from './dto/update-ticket-closed-at.dto';
 import { UpdateTicketUserStatusDto } from './dto/update-ticket-user-status.dto';
 import { AssignTicketDto } from './dto/assign-ticket.dto';
+import { UpdateTicketPriorityDto } from './dto/update-ticket-priority.dto';
+import { BulkUpdateTicketsDto } from './dto/bulk-update-tickets.dto';
 import { TelegramAuthGuard } from '../auth/guards/telegram-auth.guard';
 import { UserEligibilityGuard } from '../auth/guards/user-eligibility.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -177,6 +179,30 @@ export class TicketsController {
     return { success: true, data: admins };
   }
 
+  /** PATCH /api/v1/admin/tickets/bulk — jadvalda tanlangan bir nechta murojaatni ommaviy o'zgartirish (T09). */
+  @Patch('admin/tickets/bulk')
+  @UseGuards(AdminJwtAuthGuard)
+  async bulkUpdate(@Body() dto: BulkUpdateTicketsDto, @CurrentUser() actor: User) {
+    const tickets = await this.ticketsService.bulkUpdate(
+      dto.ids,
+      { assignedToId: dto.assignedToId, status: dto.status },
+      actor,
+    );
+    return { success: true, data: tickets };
+  }
+
+  /**
+   * GET /api/v1/admin/tickets/notifications/reply-count — T11: joriy ijrochiga tayinlangan,
+   * mijoz oxirgi bo'lib javob yozgan (hali javob berilmagan) murojaatlar soni. ':id' bilan
+   * to'qnashmasligi uchun undan oldin e'lon qilingan (literal segment ustunlik qiladi).
+   */
+  @Get('admin/tickets/notifications/reply-count')
+  @UseGuards(AdminJwtAuthGuard)
+  async getNewReplyCount(@CurrentUser() actor: User) {
+    const count = await this.ticketsService.countNewCustomerReplies(actor.id);
+    return { success: true, data: { count } };
+  }
+
   @Get('admin/tickets/:id')
   @UseGuards(AdminJwtAuthGuard)
   async findOneForAdmin(@Param('id') id: string) {
@@ -201,6 +227,18 @@ export class TicketsController {
   @UseGuards(AdminJwtAuthGuard)
   async assign(@Param('id') id: string, @Body() dto: AssignTicketDto, @CurrentUser() actor: User) {
     const ticket = await this.ticketsService.assign(id, dto.assignedToId || null, actor);
+    return { success: true, data: ticket };
+  }
+
+  /** PATCH /api/v1/admin/tickets/:id/priority — Muhimlikni o'zgartirish (T06). */
+  @Patch('admin/tickets/:id/priority')
+  @UseGuards(AdminJwtAuthGuard)
+  async updatePriority(
+    @Param('id') id: string,
+    @Body() dto: UpdateTicketPriorityDto,
+    @CurrentUser() actor: User,
+  ) {
+    const ticket = await this.ticketsService.updatePriority(id, dto.priority, actor);
     return { success: true, data: ticket };
   }
 

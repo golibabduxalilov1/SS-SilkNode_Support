@@ -63,7 +63,8 @@ export function ResolutionFlowChart({ data }: { data: ResolutionFlowPoint[] }) {
         </LineChart>
       </ResponsiveContainer>
       <p className="chart-summary-note">
-        Oxirgi {data.length} kunda: <strong>{totalOpened}</strong> ta ochildi, <strong>{totalResolved}</strong> ta hal qilindi
+        {formatDayLabel(data[0].date)}–{formatDayLabel(data[data.length - 1].date)} ({data.length} kun):{' '}
+        <strong>{totalOpened}</strong> ta ochildi, <strong>{totalResolved}</strong> ta hal qilindi
       </p>
     </>
   );

@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Message } from './entities/message.entity';
+import { Message, MessageVisibility } from './entities/message.entity';
 import { Ticket } from '../tickets/entities/ticket.entity';
 
 @Injectable()
@@ -13,17 +13,26 @@ export class MessagesService {
     private readonly ticketsRepository: Repository<Ticket>,
   ) {}
 
-  async create(ticketId: string, senderId: string, text: string): Promise<Message> {
+  async create(
+    ticketId: string,
+    senderId: string,
+    text: string,
+    visibility: MessageVisibility = MessageVisibility.PUBLIC,
+  ): Promise<Message> {
     const ticket = await this.ticketsRepository.findOne({ where: { id: ticketId } });
     if (!ticket) throw new NotFoundException('Murojaat topilmadi.');
 
-    const message = this.messagesRepository.create({ ticketId, senderId, text });
+    const message = this.messagesRepository.create({ ticketId, senderId, text, visibility });
     return this.messagesRepository.save(message);
   }
 
-  findByTicket(ticketId: string): Promise<Message[]> {
+  /**
+   * publicOnly=true — Mini App (mijoz) tomoni uchun: ichki eslatmalar hech qachon
+   * mijozga ko'rinmasligi kerak (T04 qabul mezoni).
+   */
+  findByTicket(ticketId: string, options?: { publicOnly?: boolean }): Promise<Message[]> {
     return this.messagesRepository.find({
-      where: { ticketId },
+      where: options?.publicOnly ? { ticketId, visibility: MessageVisibility.PUBLIC } : { ticketId },
       relations: ['sender', 'attachments'],
       order: { createdAt: 'ASC' },
     });

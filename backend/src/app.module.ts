@@ -13,6 +13,7 @@ import { AttachmentsModule } from './attachments/attachments.module';
 import { AuthModule } from './auth/auth.module';
 import { BotModule } from './bot/bot.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
+import { SavedFiltersModule } from './saved-filters/saved-filters.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { AuditLogModule } from './audit-log/audit-log.module';
     AuthModule,
     BotModule,
     AuditLogModule,
+    SavedFiltersModule,
   ],
 })
 export class AppModule {}

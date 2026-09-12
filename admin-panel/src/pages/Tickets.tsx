@@ -17,7 +17,9 @@ import {
   IconTicketNew,
   IconTrash,
 } from '../components/icons';
-import { Avatar, EmptyState, Pagination, TableSkeleton } from '../components/ui';
+import { RequesterFields, isPhoneComplete } from '../components/RequesterFields';
+import { Avatar, CategoryOptionGroups, EmptyState, Pagination, TableSkeleton } from '../components/ui';
+import { usePageSize } from '../utils/usePageSize';
 import { exportTableToExcel, exportTableToPdf } from '../utils/tableExport';
 import { formatDurationMinutes } from '../utils/formatDuration';
 import { LIST_POLL_INTERVAL_MS } from '../utils/pollInterval';
@@ -61,6 +63,14 @@ interface AdminUser {
 interface Category {
   id: string;
   name: string;
+  cluster?: string;
+}
+
+/** T13 — saqlangan filtr kombinatsiyasi (shaxsiy, murojaatlar sahifasidagi filtrlar bo'yicha). */
+interface SavedFilter {
+  id: string;
+  name: string;
+  filterJson: Partial<TicketFilters>;
 }
 
 const STATUS_OPTIONS = [
@@ -78,9 +88,7 @@ const PRIORITY_OPTIONS = [
   { value: 'critical', label: 'Kritik' },
 ];
 
-const PAGE_SIZE = 15;
-
-const TICKET_COLUMN_WIDTHS = [56, 260, 140, 210, 120, 100, 120, 190, 110, 160];
+const TICKET_COLUMN_WIDTHS = [40, 56, 260, 140, 210, 120, 100, 120, 190, 110, 160];
 const TICKET_COLUMN_WIDTHS_WITH_ACTIONS = [...TICKET_COLUMN_WIDTHS, 140];
 
 function TicketTableColgroup({ isSuperadmin }: { isSuperadmin: boolean }) {
@@ -248,9 +256,13 @@ function CreateTicketModal({
   error: string | null;
 }) {
   const [form, setForm] = useState<CreateTicketForm>(EMPTY_CREATE_FORM);
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
   useEffect(() => {
-    if (isOpen) setForm(EMPTY_CREATE_FORM);
+    if (isOpen) {
+      setForm(EMPTY_CREATE_FORM);
+      setAttemptedSubmit(false);
+    }
   }, [isOpen]);
 
   useEffect(() => {
@@ -267,18 +279,22 @@ function CreateTicketModal({
   const isOtherCategory = form.categoryId === '__other__';
   const isOtherOrg = form.organizationId === '__other__';
 
+  const isOrgMissing = !form.organizationId || (isOtherOrg && !form.customOrgName.trim());
+  const isPhoneMissing = !form.requesterPhone.trim() || !isPhoneComplete(form.requesterPhone);
+
   const disabled =
     isSaving ||
     !form.title.trim() ||
     !form.description.trim() ||
     !form.categoryId ||
     !form.requesterName.trim() ||
-    !form.requesterPhone.trim() ||
+    isPhoneMissing ||
     (isOtherCategory && !form.customCategoryName.trim()) ||
-    (isOtherOrg && !form.customOrgName.trim());
+    isOrgMissing;
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    setAttemptedSubmit(true);
     if (disabled) return;
     onSubmit(form);
   };
@@ -302,24 +318,16 @@ function CreateTicketModal({
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
             {error && <p className="form-error">{error}</p>}
-            <label className="modal-field">
-              <span>Murojaatchi F.I.O.</span>
-              <input
-                value={form.requesterName}
-                onChange={(e) => setForm((f) => ({ ...f, requesterName: e.target.value }))}
-                placeholder="Murojaatchining to'liq ismi"
-                required
-              />
-            </label>
-            <label className="modal-field">
-              <span>Murojaatchi telefon raqami</span>
-              <input
-                value={form.requesterPhone}
-                onChange={(e) => setForm((f) => ({ ...f, requesterPhone: e.target.value }))}
-                placeholder="+998 90 123 45 67"
-                required
-              />
-            </label>
+            <RequesterFields
+              name={form.requesterName}
+              phone={form.requesterPhone}
+              onNameChange={(value) => setForm((f) => ({ ...f, requesterName: value }))}
+              onPhoneChange={(value) => setForm((f) => ({ ...f, requesterPhone: value }))}
+              onApplySuggestion={(s) =>
+                setForm((f) => ({ ...f, organizationId: s.organizationId ?? f.organizationId }))
+              }
+              phoneInvalid={attemptedSubmit && isPhoneMissing}
+            />
             <label className="modal-field">
               <span>Mavzu</span>
               <input
@@ -348,11 +356,7 @@ function CreateTicketModal({
                 required
               >
                 <option value="">Tanlang</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
+                <CategoryOptionGroups categories={categories} />
                 <option value="__other__">Boshqa</option>
               </select>
               {isOtherCategory && (
@@ -382,8 +386,10 @@ function CreateTicketModal({
               <select
                 value={form.organizationId}
                 onChange={(e) => setForm((f) => ({ ...f, organizationId: e.target.value }))}
+                className={attemptedSubmit && isOrgMissing ? 'field-invalid' : undefined}
+                required
               >
-                <option value="">Tanlanmagan</option>
+                <option value="">Tanlang</option>
                 {organizations.map((o) => (
                   <option key={o.id} value={o.id}>
                     {o.name}
@@ -396,9 +402,11 @@ function CreateTicketModal({
                   value={form.customOrgName}
                   onChange={(e) => setForm((f) => ({ ...f, customOrgName: e.target.value }))}
                   placeholder="Tashkilot nomini kiriting"
+                  className={attemptedSubmit && isOrgMissing ? 'field-invalid' : undefined}
                   required
                 />
               )}
+              {attemptedSubmit && isOrgMissing && <p className="field-error">Tashkilotni tanlang</p>}
             </label>
             <label className="modal-field">
               <span>Fayl biriktirish</span>
@@ -433,6 +441,7 @@ interface LegacyTicketForm {
   customOrgName: string;
   requesterName: string;
   requesterPhone: string;
+  assignedToId: string;
   status: string;
   createdAt: string;
   closedAt: string;
@@ -448,6 +457,7 @@ const EMPTY_LEGACY_FORM: LegacyTicketForm = {
   customOrgName: '',
   requesterName: '',
   requesterPhone: '',
+  assignedToId: '',
   status: 'closed',
   createdAt: '',
   closedAt: '',
@@ -457,6 +467,7 @@ function LegacyTicketModal({
   isOpen,
   organizations,
   categories,
+  admins,
   onClose,
   onSubmit,
   isSaving,
@@ -465,15 +476,20 @@ function LegacyTicketModal({
   isOpen: boolean;
   organizations: Organization[];
   categories: Category[];
+  admins: AdminUser[];
   onClose: () => void;
   onSubmit: (form: LegacyTicketForm) => void;
   isSaving: boolean;
   error: string | null;
 }) {
   const [form, setForm] = useState<LegacyTicketForm>(EMPTY_LEGACY_FORM);
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
   useEffect(() => {
-    if (isOpen) setForm(EMPTY_LEGACY_FORM);
+    if (isOpen) {
+      setForm(EMPTY_LEGACY_FORM);
+      setAttemptedSubmit(false);
+    }
   }, [isOpen]);
 
   useEffect(() => {
@@ -489,6 +505,10 @@ function LegacyTicketModal({
 
   const isOtherCategory = form.categoryId === '__other__';
   const isOtherOrg = form.organizationId === '__other__';
+  const isOrgMissing = !form.organizationId || (isOtherOrg && !form.customOrgName.trim());
+  const isPhoneMissing = !form.requesterPhone.trim() || !isPhoneComplete(form.requesterPhone);
+  const showUnassignedClosedWarning =
+    !form.assignedToId && (form.status === 'closed' || form.status === 'resolved');
 
   const disabled =
     isSaving ||
@@ -496,13 +516,14 @@ function LegacyTicketModal({
     !form.description.trim() ||
     !form.categoryId ||
     !form.requesterName.trim() ||
-    !form.requesterPhone.trim() ||
+    isPhoneMissing ||
     !form.createdAt ||
     (isOtherCategory && !form.customCategoryName.trim()) ||
-    (isOtherOrg && !form.customOrgName.trim());
+    isOrgMissing;
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    setAttemptedSubmit(true);
     if (disabled) return;
     onSubmit(form);
   };
@@ -522,24 +543,16 @@ function LegacyTicketModal({
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
             {error && <p className="form-error">{error}</p>}
-            <label className="modal-field">
-              <span>Murojaatchi F.I.O.</span>
-              <input
-                value={form.requesterName}
-                onChange={(e) => setForm((f) => ({ ...f, requesterName: e.target.value }))}
-                placeholder="Murojaatchining to'liq ismi"
-                required
-              />
-            </label>
-            <label className="modal-field">
-              <span>Murojaatchi telefon raqami</span>
-              <input
-                value={form.requesterPhone}
-                onChange={(e) => setForm((f) => ({ ...f, requesterPhone: e.target.value }))}
-                placeholder="+998 90 123 45 67"
-                required
-              />
-            </label>
+            <RequesterFields
+              name={form.requesterName}
+              phone={form.requesterPhone}
+              onNameChange={(value) => setForm((f) => ({ ...f, requesterName: value }))}
+              onPhoneChange={(value) => setForm((f) => ({ ...f, requesterPhone: value }))}
+              onApplySuggestion={(s) =>
+                setForm((f) => ({ ...f, organizationId: s.organizationId ?? f.organizationId }))
+              }
+              phoneInvalid={attemptedSubmit && isPhoneMissing}
+            />
             <label className="modal-field">
               <span>Mavzu</span>
               <input
@@ -568,11 +581,7 @@ function LegacyTicketModal({
                 required
               >
                 <option value="">Tanlang</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
+                <CategoryOptionGroups categories={categories} />
                 <option value="__other__">Boshqa</option>
               </select>
               {isOtherCategory && (
@@ -602,8 +611,10 @@ function LegacyTicketModal({
               <select
                 value={form.organizationId}
                 onChange={(e) => setForm((f) => ({ ...f, organizationId: e.target.value }))}
+                className={attemptedSubmit && isOrgMissing ? 'field-invalid' : undefined}
+                required
               >
-                <option value="">Tanlanmagan</option>
+                <option value="">Tanlang</option>
                 {organizations.map((o) => (
                   <option key={o.id} value={o.id}>
                     {o.name}
@@ -616,9 +627,11 @@ function LegacyTicketModal({
                   value={form.customOrgName}
                   onChange={(e) => setForm((f) => ({ ...f, customOrgName: e.target.value }))}
                   placeholder="Tashkilot nomini kiriting"
+                  className={attemptedSubmit && isOrgMissing ? 'field-invalid' : undefined}
                   required
                 />
               )}
+              {attemptedSubmit && isOrgMissing && <p className="field-error">Tashkilotni tanlang</p>}
             </label>
             <label className="modal-field">
               <span>Holat</span>
@@ -632,6 +645,25 @@ function LegacyTicketModal({
                   </option>
                 ))}
               </select>
+            </label>
+            <label className="modal-field">
+              <span>Ijrochi</span>
+              <select
+                value={form.assignedToId}
+                onChange={(e) => setForm((f) => ({ ...f, assignedToId: e.target.value }))}
+              >
+                <option value="">Tayinlanmagan</option>
+                {admins.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.fullname ?? a.id}
+                  </option>
+                ))}
+              </select>
+              {showUnassignedClosedWarning && (
+                <p className="field-hint field-hint--warning">
+                  Ijrochisiz yopilgan murojaat xodimlar statistikasiga tushmaydi
+                </p>
+              )}
             </label>
             <label className="modal-field">
               <span>Yaratilgan sana/vaqt</span>
@@ -859,11 +891,7 @@ function ExportTicketsModal({
                 onChange={(e) => setFilters((f) => ({ ...f, categoryFilter: e.target.value }))}
               >
                 <option value="">Barchasi</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
+                <CategoryOptionGroups categories={categories} />
               </select>
             </label>
             <label className="modal-field">
@@ -970,10 +998,17 @@ export function TicketsPage() {
   const [createdFrom, setCreatedFrom] = useState('');
   const [createdTo, setCreatedTo] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [savedFilters, setSavedFilters] = useState<SavedFilter[]>([]);
+  const [isSavingFilter, setIsSavingFilter] = useState(false);
+  const [savingFilterName, setSavingFilterName] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [ticketToDelete, setTicketToDelete] = useState<Ticket | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkSaving, setIsBulkSaving] = useState(false);
+  const [bulkStatusToConfirm, setBulkStatusToConfirm] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = usePageSize();
   const [choiceModalOpen, setChoiceModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -1014,7 +1049,67 @@ export function TicketsPage() {
     setCreatedTo('');
   };
 
+  const currentFilters: TicketFilters = {
+    organizationFilter,
+    statusFilter,
+    priorityFilter,
+    categoryFilter,
+    assignedToFilter,
+    createdFrom,
+    createdTo,
+    searchTerm,
+  };
+  const activeFilterCount = Object.values(currentFilters).filter(Boolean).length;
+
+  const loadSavedFilters = () => {
+    api
+      .get('/admin/saved-filters')
+      .then((res) => setSavedFilters(res.data.data))
+      .catch(() => {});
+  };
+
+  // T13 — saqlangan filtrni bir klikda qo'llash.
+  const applySavedFilter = (savedFilter: SavedFilter) => {
+    const f = savedFilter.filterJson;
+    setOrganizationFilter(f.organizationFilter ?? '');
+    setStatusFilter(f.statusFilter ?? '');
+    setPriorityFilter(f.priorityFilter ?? '');
+    setCategoryFilter(f.categoryFilter ?? '');
+    setAssignedToFilter(f.assignedToFilter ?? '');
+    setCreatedFrom(f.createdFrom ?? '');
+    setCreatedTo(f.createdTo ?? '');
+    setSearchTerm(f.searchTerm ?? '');
+  };
+
+  const handleSaveCurrentFilter = async (name: string) => {
+    if (!name.trim()) return;
+    setIsSavingFilter(true);
+    try {
+      await api.post('/admin/saved-filters', { name: name.trim(), filterJson: currentFilters });
+      setSavingFilterName(null);
+      loadSavedFilters();
+    } catch {
+      // jim o'tkazib yuboriladi — filtrni saqlash ixtiyoriy qulaylik, asosiy oqimni to'xtatmaydi.
+    } finally {
+      setIsSavingFilter(false);
+    }
+  };
+
+  const handleDeleteSavedFilter = async (id: string) => {
+    setSavedFilters((prev) => prev.filter((f) => f.id !== id));
+    try {
+      await api.delete(`/admin/saved-filters/${id}`);
+    } catch {
+      loadSavedFilters();
+    }
+  };
+
   useEffect(load, []);
+  useEffect(loadSavedFilters, []);
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [page]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -1036,6 +1131,75 @@ export function TicketsPage() {
           ?.message ?? "Ijrochini tayinlab bo'lmadi.";
       setError(message);
     }
+  };
+
+  const applyBulkResult = (updated: Ticket[]) => {
+    const byId = new Map(updated.map((t) => [t.id, t]));
+    setTickets((prev) => prev.map((t) => byId.get(t.id) ?? t));
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkAssign = async (assignedToId: string) => {
+    if (selectedIds.size === 0) return;
+    setIsBulkSaving(true);
+    try {
+      const res = await api.patch('/admin/tickets/bulk', {
+        ids: Array.from(selectedIds),
+        assignedToId: assignedToId || null,
+      });
+      applyBulkResult(res.data.data);
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
+          ?.message ?? "Ommaviy tayinlab bo'lmadi.";
+      setError(message);
+    } finally {
+      setIsBulkSaving(false);
+    }
+  };
+
+  const applyBulkStatus = async (status: string) => {
+    if (selectedIds.size === 0) return;
+    setIsBulkSaving(true);
+    try {
+      const res = await api.patch('/admin/tickets/bulk', {
+        ids: Array.from(selectedIds),
+        status,
+      });
+      applyBulkResult(res.data.data);
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
+          ?.message ?? "Ommaviy holatni o'zgartirib bo'lmadi.";
+      setError(message);
+    } finally {
+      setIsBulkSaving(false);
+    }
+  };
+
+  const handleBulkStatus = (status: string) => {
+    if (!status) return;
+    // "Yopilgan"ga ommaviy o'tishdan oldin tasdiqlash so'raladi (T09 talabi).
+    if (status === 'closed') {
+      setBulkStatusToConfirm(status);
+      return;
+    }
+    applyBulkStatus(status);
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds((prev) =>
+      prev.size === paginatedTickets.length ? new Set() : new Set(paginatedTickets.map((t) => t.id)),
+    );
+  };
+
+  const toggleSelectOne = (ticketId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(ticketId)) next.delete(ticketId);
+      else next.add(ticketId);
+      return next;
+    });
   };
 
   const handleDelete = async () => {
@@ -1146,6 +1310,7 @@ export function TicketsPage() {
         organizationId: resolvedOrganizationId || undefined,
         requesterName: form.requesterName.trim(),
         requesterPhone: form.requesterPhone.trim(),
+        assignedToId: form.assignedToId || undefined,
         status: form.status,
         createdAt: new Date(form.createdAt).toISOString(),
         closedAt: form.closedAt ? new Date(form.closedAt).toISOString() : undefined,
@@ -1199,13 +1364,14 @@ export function TicketsPage() {
     createdFrom,
     createdTo,
     searchTerm,
+    pageSize,
   ]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredTickets.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(filteredTickets.length / pageSize));
   const currentPage = Math.min(page, totalPages);
   const paginatedTickets = filteredTickets.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE,
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
   );
 
   return (
@@ -1279,11 +1445,7 @@ export function TicketsPage() {
               Kategoriya
               <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
                 <option value="">Barchasi</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
+                <CategoryOptionGroups categories={categories} />
               </select>
             </label>
             <label>
@@ -1306,11 +1468,69 @@ export function TicketsPage() {
               <input type="date" value={createdTo} onChange={(e) => setCreatedTo(e.target.value)} />
             </label>
             <div className="filters-actions">
+              {activeFilterCount > 0 && (
+                <span className="filter-active-chip">{activeFilterCount} ta filtr aktiv</span>
+              )}
               <button type="button" className="btn btn-secondary btn-sm" onClick={clearFilters}>
                 Filterlarni tozalash
               </button>
             </div>
           </div>
+
+          {/* T13 — saqlangan filtrlar: bir klikda qo'llash + joriy kombinatsiyani nom bilan saqlash. */}
+          {(savedFilters.length > 0 || activeFilterCount > 0) && (
+            <div className="saved-filters-bar">
+              {savedFilters.map((sf) => (
+                <span key={sf.id} className="saved-filter-chip">
+                  <button type="button" onClick={() => applySavedFilter(sf)}>
+                    {sf.name}
+                  </button>
+                  <button
+                    type="button"
+                    className="saved-filter-chip-remove"
+                    aria-label={`"${sf.name}" filtrini o'chirish`}
+                    onClick={() => handleDeleteSavedFilter(sf.id)}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+              {activeFilterCount > 0 &&
+                (savingFilterName !== null ? (
+                  <span className="saved-filter-save-form">
+                    <input
+                      autoFocus
+                      value={savingFilterName}
+                      onChange={(e) => setSavingFilterName(e.target.value)}
+                      placeholder="Filtr nomi"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSaveCurrentFilter(savingFilterName);
+                        if (e.key === 'Escape') setSavingFilterName(null);
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      disabled={isSavingFilter || !savingFilterName.trim()}
+                      onClick={() => handleSaveCurrentFilter(savingFilterName)}
+                    >
+                      Saqlash
+                    </button>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSavingFilterName(null)}>
+                      Bekor qilish
+                    </button>
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setSavingFilterName('')}
+                  >
+                    + Joriy filtrni saqlash
+                  </button>
+                ))}
+            </div>
+          )}
 
           {error && <p className="form-error">{error}</p>}
 
@@ -1319,15 +1539,74 @@ export function TicketsPage() {
           {filteredTickets.length === 0 ? (
             <EmptyState
               icon={<IconInbox width={24} height={24} />}
-              title="Hozircha murojaatlar yo'q"
-              description="Filtrni o'zgartirib ko'ring yoki yangi murojaat kelishini kuting."
+              title="Hech narsa topilmadi"
+              description="Filtrlarni o'zgartirib ko'ring yoki yangi murojaat kelishini kuting."
+              actionLabel="Filterlarni tozalash"
+              onAction={clearFilters}
             />
           ) : (
             <div className="table-wrap table-wrap--pin-actions">
+              {selectedIds.size > 0 && (
+                <div className="bulk-actions-bar">
+                  <span className="bulk-actions-count">{selectedIds.size} ta tanlandi</span>
+                  <label className="bulk-actions-field">
+                    Mas'ulni tayinlash
+                    <select
+                      className="assign-select"
+                      defaultValue="__placeholder__"
+                      disabled={isBulkSaving}
+                      onChange={(e) => handleBulkAssign(e.target.value)}
+                    >
+                      <option value="__placeholder__" disabled>
+                        Tanlang
+                      </option>
+                      <option value="">Tayinlanmagan</option>
+                      {admins.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.fullname ?? a.id}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="bulk-actions-field">
+                    Holatni o'zgartirish
+                    <select
+                      defaultValue=""
+                      disabled={isBulkSaving}
+                      onChange={(e) => handleBulkStatus(e.target.value)}
+                    >
+                      <option value="" disabled>
+                        Tanlang
+                      </option>
+                      {STATUS_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setSelectedIds(new Set())}
+                    disabled={isBulkSaving}
+                  >
+                    Bekor qilish
+                  </button>
+                </div>
+              )}
               <table className="tickets-table">
                 <TicketTableColgroup isSuperadmin={isSuperadmin} />
                 <thead>
                   <tr>
+                    <th>
+                      <input
+                        type="checkbox"
+                        checked={paginatedTickets.length > 0 && selectedIds.size === paginatedTickets.length}
+                        onChange={toggleSelectAll}
+                        aria-label="Hammasini tanlash"
+                      />
+                    </th>
                     <th>№</th>
                     <th>Mavzu</th>
                     <th>Tashkilot</th>
@@ -1348,7 +1627,15 @@ export function TicketsPage() {
                       className="clickable-row"
                       onClick={() => navigate(`/dashboard/tickets/${t.id}`)}
                     >
-                      <td className="cell-muted">{(currentPage - 1) * PAGE_SIZE + idx + 1}</td>
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(t.id)}
+                          onChange={() => toggleSelectOne(t.id)}
+                          aria-label={`${t.title} tanlash`}
+                        />
+                      </td>
+                      <td className="cell-muted">{(currentPage - 1) * pageSize + idx + 1}</td>
                       <td className="cell-primary">{truncateWords(t.title, 7)}</td>
                       <td className="cell-nowrap">{t.organization?.name ?? '—'}</td>
                       <td>
@@ -1366,7 +1653,7 @@ export function TicketsPage() {
                       </td>
                       <td className="cell-muted">{t.categoryEntity?.name ?? '—'}</td>
                       <td>
-                        <span className={`priority priority--${t.priority}`}>{t.priority}</span>
+                        <span className={`priority priority--${t.priority}`}>{ticketPriorityLabel(t.priority)}</span>
                       </td>
                       <td>
                         <span className={`status status--${t.status}`}>
@@ -1409,7 +1696,14 @@ export function TicketsPage() {
             </div>
           )}
 
-          <Pagination page={currentPage} totalPages={totalPages} onChange={setPage} />
+          <Pagination
+            page={currentPage}
+            totalPages={totalPages}
+            onChange={setPage}
+            totalItems={filteredTickets.length}
+            pageSize={pageSize}
+            onPageSizeChange={setPageSize}
+          />
         </>
       )}
 
@@ -1445,6 +1739,7 @@ export function TicketsPage() {
         isOpen={legacyModalOpen}
         organizations={organizations}
         categories={categories}
+        admins={admins}
         onClose={() => {
           if (isCreatingLegacy) return;
           setLegacyModalOpen(false);
@@ -1483,6 +1778,18 @@ export function TicketsPage() {
         }
         onConfirm={handleDelete}
         onCancel={() => setTicketToDelete(null)}
+      />
+
+      <ConfirmModal
+        isOpen={!!bulkStatusToConfirm}
+        title="Tanlangan murojaatlarni yopish"
+        message={`${selectedIds.size} ta murojaatni "Yopilgan" holatiga o'tkazmoqchimisiz?`}
+        onConfirm={() => {
+          const status = bulkStatusToConfirm;
+          setBulkStatusToConfirm(null);
+          if (status) applyBulkStatus(status);
+        }}
+        onCancel={() => setBulkStatusToConfirm(null)}
       />
     </AppShell>
   );

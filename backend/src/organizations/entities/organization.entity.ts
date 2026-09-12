@@ -20,6 +20,13 @@ export class Organization {
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;
 
+  /** T14 — ixtiyoriy, saqlash uchun majburiy emas. */
+  @Column({ type: 'text', nullable: true })
+  description: string | null;
+
+  @Column({ name: 'color_tag', type: 'varchar', length: 7, nullable: true })
+  colorTag: string | null;
+
   @OneToMany(() => User, (user) => user.organization)
   users: User[];
 

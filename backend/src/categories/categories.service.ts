@@ -1,7 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Category } from './entities/category.entity';
+import { Category, CategoryCluster } from './entities/category.entity';
 import { Ticket } from '../tickets/entities/ticket.entity';
 import { User } from '../users/entities/user.entity';
 import { AuditLogService } from '../audit-log/audit-log.service';
@@ -36,8 +36,19 @@ export class CategoriesService {
     return this.categoriesRepository.findOne({ where: { id } });
   }
 
-  async create(name: string, actor?: User): Promise<Category> {
-    const category = await this.categoriesRepository.save(this.categoriesRepository.create({ name }));
+  async create(
+    name: string,
+    actor?: User,
+    extra?: { description?: string | null; colorTag?: string | null; cluster?: CategoryCluster },
+  ): Promise<Category> {
+    const category = await this.categoriesRepository.save(
+      this.categoriesRepository.create({
+        name,
+        description: extra?.description ?? null,
+        colorTag: extra?.colorTag ?? null,
+        cluster: extra?.cluster ?? CategoryCluster.MAHSULOT,
+      }),
+    );
 
     if (actor) {
       await this.auditLogService.log(
@@ -55,7 +66,13 @@ export class CategoriesService {
 
   async update(
     id: string,
-    data: { name?: string; isActive?: boolean },
+    data: {
+      name?: string;
+      isActive?: boolean;
+      description?: string | null;
+      colorTag?: string | null;
+      cluster?: CategoryCluster;
+    },
     actor?: User,
   ): Promise<Category> {
     const category = await this.findById(id);
@@ -63,6 +80,9 @@ export class CategoriesService {
 
     if (data.name !== undefined) category.name = data.name;
     if (data.isActive !== undefined) category.isActive = data.isActive;
+    if (data.description !== undefined) category.description = data.description;
+    if (data.colorTag !== undefined) category.colorTag = data.colorTag;
+    if (data.cluster !== undefined) category.cluster = data.cluster;
 
     const updated = await this.categoriesRepository.save(category);
 

@@ -39,6 +39,8 @@ interface RecentTicket {
   status: string;
   priority: string;
   createdAt: string;
+  assignedTo?: { id: string } | null;
+  hasNewCustomerReply?: boolean;
 }
 
 const RECENT_TICKETS_LIMIT = 8;
@@ -60,6 +62,22 @@ function formatRelativeTime(dateStr: string): string {
   const months = Math.floor(days / 30);
   if (months < 12) return `${months} oy oldin`;
   return `${Math.floor(months / 12)} yil oldin`;
+}
+
+function BellTicketItem({ ticket, onClick }: { ticket: RecentTicket; onClick: () => void }) {
+  return (
+    <button type="button" className="topbar-bell-dropdown-item" onClick={onClick}>
+      <div className="topbar-bell-dropdown-item-top">
+        <span className="topbar-bell-dropdown-item-number">#{ticket.number}</span>
+        <span className={`priority priority--${ticket.priority}`}>{ticket.priority}</span>
+      </div>
+      <span className="topbar-bell-dropdown-item-title">{truncateTitle(ticket.title)}</span>
+      <div className="topbar-bell-dropdown-item-bottom">
+        <span className={`status status--${ticket.status}`}>{STATUS_LABELS[ticket.status] ?? ticket.status}</span>
+        <span className="topbar-bell-dropdown-item-time">{formatRelativeTime(ticket.createdAt)}</span>
+      </div>
+    </button>
+  );
 }
 
 const NAV_GROUPS = [
@@ -109,10 +127,12 @@ export function AppShell({ title, breadcrumb, actions, children, contentClassNam
   const location = useLocation();
 
   const [newTicketsCount, setNewTicketsCount] = useState(0);
+  const [newRepliesCount, setNewRepliesCount] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1');
   const [bellOpen, setBellOpen] = useState(false);
   const [recentTickets, setRecentTickets] = useState<RecentTicket[]>([]);
+  const [replyTickets, setReplyTickets] = useState<RecentTicket[]>([]);
   const [recentTicketsLoading, setRecentTicketsLoading] = useState(false);
   const [recentTicketsLoaded, setRecentTicketsLoaded] = useState(false);
   const bellRef = useRef<HTMLDivElement>(null);
@@ -124,12 +144,24 @@ export function AppShell({ title, breadcrumb, actions, children, contentClassNam
         .then((res) => setNewTicketsCount(res.data.data?.statusCounts?.new ?? 0))
         .catch(() => {});
     }
+    // T11 — "Yangi javob" bildirishnomasi: mijoz javob yozib, hali ijrochi tomonidan
+    // javobsiz qolgan, joriy foydalanuvchiga tayinlangan murojaatlar soni.
+    function loadNewRepliesCount() {
+      api
+        .get('/admin/tickets/notifications/reply-count')
+        .then((res) => setNewRepliesCount(res.data.data?.count ?? 0))
+        .catch(() => {});
+    }
 
     loadNewTicketsCount();
-    // Yangi murojaat kelganda qo'ng'iroq belgisi qo'lda sahifani yangilamasdan ham yangilanib
-    // tursin — barcha sahifalarda ko'rinadigan yagona doimiy indikator (ТЗ band 8).
+    loadNewRepliesCount();
+    // Yangi murojaat/javob kelganda qo'ng'iroq belgisi qo'lda sahifani yangilamasdan ham
+    // yangilanib tursin — barcha sahifalarda ko'rinadigan yagona doimiy indikator (ТЗ band 8).
     const intervalId = window.setInterval(() => {
-      if (!document.hidden) loadNewTicketsCount();
+      if (!document.hidden) {
+        loadNewTicketsCount();
+        loadNewRepliesCount();
+      }
     }, LIST_POLL_INTERVAL_MS);
     return () => window.clearInterval(intervalId);
   }, [location.pathname === '/dashboard']);
@@ -140,20 +172,26 @@ export function AppShell({ title, breadcrumb, actions, children, contentClassNam
     api
       .get('/admin/tickets')
       .then((res) => {
-        const tickets: RecentTicket[] = (res.data.data ?? [])
-          .filter((t: RecentTicket) => t.status === 'new')
-          .sort((a: RecentTicket, b: RecentTicket) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        const all: RecentTicket[] = res.data.data ?? [];
+        const tickets = all
+          .filter((t) => t.status === 'new')
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
           .slice(0, RECENT_TICKETS_LIMIT);
         setRecentTickets(tickets);
+        const replies = all
+          .filter((t) => t.hasNewCustomerReply && t.assignedTo?.id === user?.id)
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .slice(0, RECENT_TICKETS_LIMIT);
+        setReplyTickets(replies);
         setRecentTicketsLoaded(true);
       })
       .catch(() => {})
       .finally(() => setRecentTicketsLoading(false));
-  }, [bellOpen, recentTicketsLoaded]);
+  }, [bellOpen, recentTicketsLoaded, user?.id]);
 
   useEffect(() => {
     setRecentTicketsLoaded(false);
-  }, [newTicketsCount]);
+  }, [newTicketsCount, newRepliesCount]);
 
   useEffect(() => {
     if (!bellOpen) return;
@@ -332,12 +370,41 @@ export function AppShell({ title, breadcrumb, actions, children, contentClassNam
                 aria-expanded={bellOpen}
               >
                 <IconBell width={19} height={19} />
-                {newTicketsCount > 0 && (
-                  <span className="topbar-bell-badge">{newTicketsCount > 99 ? '99+' : newTicketsCount}</span>
+                {newTicketsCount + newRepliesCount > 0 && (
+                  <span className="topbar-bell-badge">
+                    {newTicketsCount + newRepliesCount > 99 ? '99+' : newTicketsCount + newRepliesCount}
+                  </span>
                 )}
               </button>
               {bellOpen && (
                 <div className="topbar-bell-dropdown">
+                  {newRepliesCount > 0 && (
+                    <>
+                      <div className="topbar-bell-dropdown-header">
+                        <span>Yangi javoblar</span>
+                      </div>
+                      <div className="topbar-bell-dropdown-list">
+                        {recentTicketsLoading ? (
+                          <div className="topbar-bell-dropdown-loading">
+                            {Array.from({ length: 2 }).map((_, i) => (
+                              <div className="skeleton skeleton-line" key={i} />
+                            ))}
+                          </div>
+                        ) : (
+                          replyTickets.map((t) => (
+                            <BellTicketItem
+                              key={t.id}
+                              ticket={t}
+                              onClick={() => {
+                                setBellOpen(false);
+                                navigate(`/dashboard/tickets/${t.id}`);
+                              }}
+                            />
+                          ))
+                        )}
+                      </div>
+                    </>
+                  )}
                   <div className="topbar-bell-dropdown-header">
                     <span>Yangi murojaatlar</span>
                   </div>
@@ -352,27 +419,14 @@ export function AppShell({ title, breadcrumb, actions, children, contentClassNam
                       <p className="topbar-bell-dropdown-empty">Yangi murojaatlar yo'q</p>
                     ) : (
                       recentTickets.map((t) => (
-                        <button
-                          type="button"
+                        <BellTicketItem
                           key={t.id}
-                          className="topbar-bell-dropdown-item"
+                          ticket={t}
                           onClick={() => {
                             setBellOpen(false);
                             navigate(`/dashboard/tickets/${t.id}`);
                           }}
-                        >
-                          <div className="topbar-bell-dropdown-item-top">
-                            <span className="topbar-bell-dropdown-item-number">#{t.number}</span>
-                            <span className={`priority priority--${t.priority}`}>{t.priority}</span>
-                          </div>
-                          <span className="topbar-bell-dropdown-item-title">{truncateTitle(t.title)}</span>
-                          <div className="topbar-bell-dropdown-item-bottom">
-                            <span className={`status status--${t.status}`}>
-                              {STATUS_LABELS[t.status] ?? t.status}
-                            </span>
-                            <span className="topbar-bell-dropdown-item-time">{formatRelativeTime(t.createdAt)}</span>
-                          </div>
-                        </button>
+                        />
                       ))
                     )}
                   </div>

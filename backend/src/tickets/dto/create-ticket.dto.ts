@@ -1,5 +1,7 @@
-import { IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsEnum, IsNotEmpty, IsOptional, IsPhoneNumber, IsString, MaxLength } from 'class-validator';
 import { TicketPriority } from '../entities/ticket.entity';
+import { normalizePhoneOrUndefined } from '../../bot/utils/phone.util';
 
 export class CreateTicketDto {
   @IsString()
@@ -19,9 +21,9 @@ export class CreateTicketDto {
   @IsEnum(TicketPriority)
   priority?: TicketPriority;
 
-  @IsOptional()
   @IsString()
-  organizationId?: string;
+  @IsNotEmpty()
+  organizationId: string;
 
   @IsOptional()
   @IsString()
@@ -29,7 +31,8 @@ export class CreateTicketDto {
   requesterName?: string;
 
   @IsOptional()
-  @IsString()
+  @Transform(({ value }) => normalizePhoneOrUndefined(value))
+  @IsPhoneNumber('UZ', { message: "Telefon raqami to'liq emas yoki noto'g'ri formatda." })
   @MaxLength(20)
   requesterPhone?: string;
 }

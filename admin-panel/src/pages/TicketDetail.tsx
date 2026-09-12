@@ -21,6 +21,7 @@ interface Message {
   id: string;
   text: string;
   createdAt: string;
+  visibility?: 'public' | 'internal';
   sender?: { id: string; fullname: string | null; role: string };
   attachments?: Attachment[];
 }
@@ -58,6 +59,15 @@ const STATUS_OPTIONS = [
   { value: 'closed', label: 'Yopilgan' },
 ];
 
+const PRIORITY_OPTIONS = [
+  { value: 'low', label: 'Past' },
+  { value: 'medium', label: "O'rta" },
+  { value: 'high', label: 'Yuqori' },
+  { value: 'critical', label: 'Kritik' },
+];
+
+const REPLY_MODE_STORAGE_KEY = 'silknode_reply_mode';
+
 const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1').replace(
   /\/api\/v1\/?$/,
   '',
@@ -77,6 +87,13 @@ export function TicketDetailPage() {
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [text, setText] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [replyMode, setReplyMode] = useState<'public' | 'internal'>(() => {
+    try {
+      return sessionStorage.getItem(REPLY_MODE_STORAGE_KEY) === 'internal' ? 'internal' : 'public';
+    } catch {
+      return 'public';
+    }
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -116,8 +133,25 @@ export function TicketDetailPage() {
     setTicket(res.data.data);
   };
 
-  const handleStartEditClosedAt = () => {
+  const handlePriorityChange = async (priority: string) => {
     if (!ticket) return;
+    const res = await api.patch(`/admin/tickets/${ticket.id}/priority`, { priority });
+    setTicket(res.data.data);
+  };
+
+  const handleReplyModeChange = (mode: 'public' | 'internal') => {
+    setReplyMode(mode);
+    try {
+      sessionStorage.setItem(REPLY_MODE_STORAGE_KEY, mode);
+    } catch {
+      // sessionStorage mavjud bo'lmasa (masalan, private rejim) — jim o'tkazib yuboriladi.
+    }
+  };
+
+  const canEditClosedAt = ticket?.status === 'closed' || ticket?.status === 'resolved';
+
+  const handleStartEditClosedAt = () => {
+    if (!ticket || !canEditClosedAt) return;
     setClosedAtDraft(toDateTimeLocalValue(ticket.closedAt ? new Date(ticket.closedAt) : new Date()));
     setClosedAtError(null);
     setIsEditingClosedAt(true);
@@ -176,7 +210,7 @@ export function TicketDetailPage() {
     setError(null);
     try {
       if (text.trim()) {
-        await api.post(`/admin/tickets/${id}/messages`, { text });
+        await api.post(`/admin/tickets/${id}/messages`, { text, visibility: replyMode });
       }
       if (file) {
         const formData = new FormData();
@@ -257,6 +291,21 @@ export function TicketDetailPage() {
                 ))}
               </select>
             </label>
+
+            <label>
+              Muhimlik
+              <select
+                className={`priority-select priority-select--${ticket.priority}`}
+                value={ticket.priority}
+                onChange={(e) => handlePriorityChange(e.target.value)}
+              >
+                {PRIORITY_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
         </div>
 
@@ -297,9 +346,16 @@ export function TicketDetailPage() {
             <span className="ticket-summary-meta-label ticket-summary-meta-label--editable">
               <button
                 type="button"
-                className="ticket-summary-meta-edit-btn"
+                className={`ticket-summary-meta-edit-btn${
+                  canEditClosedAt ? '' : ' ticket-summary-meta-edit-btn--disabled'
+                }`}
                 onClick={handleStartEditClosedAt}
-                title="Yopilish vaqtini o'zgartirish"
+                aria-disabled={!canEditClosedAt}
+                title={
+                  canEditClosedAt
+                    ? "Yopilish vaqtini o'zgartirish"
+                    : "Yopish vaqtini faqat murojaat yopilgandan keyin tahrirlash mumkin"
+                }
               >
                 <IconEdit width={12} height={12} />
               </button>
@@ -356,15 +412,19 @@ export function TicketDetailPage() {
         <div className="chat">
           {messages.map((m) => {
             const isAdmin = m.sender && m.sender.role !== 'user';
+            const isInternal = m.visibility === 'internal';
             return (
               <div
                 key={m.id}
-                className={`chat-message ${isAdmin ? 'chat-message--admin' : 'chat-message--user'}`}
+                className={`chat-message ${isAdmin ? 'chat-message--admin' : 'chat-message--user'} ${
+                  isInternal ? 'chat-message--internal' : ''
+                }`}
               >
                 <div className="chat-message-meta">
                   <Avatar name={m.sender?.fullname ?? (isAdmin ? 'Admin' : 'Foydalanuvchi')} size="sm" />{' '}
                   {m.sender?.fullname ?? (isAdmin ? 'Admin' : 'Foydalanuvchi')} ·{' '}
                   {new Date(m.createdAt).toLocaleString('uz-UZ')}
+                  {isInternal && <span className="chat-message-internal-badge">Ichki eslatma</span>}
                 </div>
                 <div className="chat-message-text">{m.text}</div>
                 {m.attachments && m.attachments.length > 0 && (
@@ -410,11 +470,31 @@ export function TicketDetailPage() {
         </div>
       )}
 
-      <form className="chat-form" onSubmit={handleSend}>
+      <form className={`chat-form ${replyMode === 'internal' ? 'chat-form--internal' : ''}`} onSubmit={handleSend}>
+        <div className="reply-mode-switch" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={replyMode === 'public'}
+            className={`reply-mode-option ${replyMode === 'public' ? 'reply-mode-option--active' : ''}`}
+            onClick={() => handleReplyModeChange('public')}
+          >
+            Mijozga javob
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={replyMode === 'internal'}
+            className={`reply-mode-option ${replyMode === 'internal' ? 'reply-mode-option--active' : ''}`}
+            onClick={() => handleReplyModeChange('internal')}
+          >
+            Ichki eslatma
+          </button>
+        </div>
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Javob yozing..."
+          placeholder={replyMode === 'internal' ? 'Ichki eslatma yozing...' : 'Javob yozing...'}
           rows={3}
         />
         <div className="chat-form-row">
@@ -425,7 +505,7 @@ export function TicketDetailPage() {
           </label>
           <button className="btn btn-primary btn-sm" type="submit" disabled={isSending}>
             <IconSend width={14} height={14} />
-            {isSending ? 'Yuborilmoqda...' : 'Yuborish'}
+            {isSending ? 'Yuborilmoqda...' : replyMode === 'internal' ? 'Eslatma qo\'shish' : 'Yuborish'}
           </button>
         </div>
         {error && <p className="form-error">{error}</p>}

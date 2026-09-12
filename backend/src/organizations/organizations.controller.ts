@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, UseGuards } from '@nestjs/common';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsHexColor, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { OrganizationsService } from './organizations.service';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt.guard';
@@ -12,6 +12,15 @@ class CreateOrganizationDto {
   @IsString()
   @IsNotEmpty()
   name: string;
+
+  /** T14 — ixtiyoriy. */
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsHexColor()
+  colorTag?: string;
 }
 
 /** Web Admin Panel uchun — Mini App bilan hech qanday umumiy endpoint emas (bo'lim 5.3). */
@@ -28,7 +37,10 @@ export class OrganizationsController {
 
   @Post()
   async create(@Body() dto: CreateOrganizationDto, @CurrentUser() actor: User) {
-    const organization = await this.organizationsService.create(dto.name, actor);
+    const organization = await this.organizationsService.create(dto.name, actor, {
+      description: dto.description,
+      colorTag: dto.colorTag,
+    });
     return { success: true, data: organization };
   }
 

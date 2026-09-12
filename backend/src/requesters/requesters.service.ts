@@ -61,6 +61,33 @@ export class RequestersService {
     return summaries.sort((a, b) => b.lastTicketAt.getTime() - a.lastTicketAt.getTime());
   }
 
+  /**
+   * T03 — telefon bo'yicha mavjud murojaatchini taklif qilish uchun qisman moslik qidiruvi.
+   * Kamida 7 ta raqam talab qilinadi (frontend debounce bilan shuni ta'minlaydi), aks holda bo'sh qaytadi.
+   */
+  async search(phoneQuery: string): Promise<RequesterSummary[]> {
+    const digits = normalizePhone(phoneQuery).replace(/^\+/, '');
+    if (digits.length < 7) return [];
+
+    const tickets = await this.ticketsRepository.find({
+      relations: ['organization', 'createdBy'],
+      order: { createdAt: 'DESC' },
+    });
+
+    const groups = new Map<string, Ticket[]>();
+    for (const ticket of tickets) {
+      const phone = ticket.requesterPhone ?? ticket.createdBy?.phoneNumber ?? null;
+      if (!phone) continue;
+      if (!normalizePhone(phone).replace(/^\+/, '').includes(digits)) continue;
+      const key = keyForTicket(ticket);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(ticket);
+    }
+
+    const summaries = Array.from(groups.entries()).map(([key, group]) => this.summarize(key, group));
+    return summaries.sort((a, b) => b.lastTicketAt.getTime() - a.lastTicketAt.getTime()).slice(0, 5);
+  }
+
   async findOne(key: string): Promise<RequesterDetail> {
     const tickets = await this.ticketsRepository.find({
       relations: ['organization', 'createdBy', 'categoryEntity', 'assignedTo'],

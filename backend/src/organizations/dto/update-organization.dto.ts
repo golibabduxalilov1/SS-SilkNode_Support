@@ -1,4 +1,4 @@
-import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsHexColor, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class UpdateOrganizationDto {
   @IsOptional()
@@ -9,4 +9,13 @@ export class UpdateOrganizationDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  /** T14 — ixtiyoriy. */
+  @IsOptional()
+  @IsString()
+  description?: string | null;
+
+  @IsOptional()
+  @IsHexColor()
+  colorTag?: string | null;
 }

@@ -14,6 +14,7 @@ interface AdminUser {
 const ACTION_LABELS: Record<string, string> = {
   ticket_status_changed: "Murojaat holati o'zgartirildi",
   ticket_assigned: 'Murojaat tayinlandi',
+  ticket_priority_changed: "Murojaat muhimligi o'zgartirildi",
   employee_created: "Xodim qo'shildi",
   employee_updated: 'Xodim tahrirlandi',
   employee_role_changed: "Xodim roli o'zgartirildi",

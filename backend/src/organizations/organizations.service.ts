@@ -38,9 +38,17 @@ export class OrganizationsService {
     return this.organizationsRepository.findOne({ where: { id } });
   }
 
-  async create(name: string, actor?: User): Promise<Organization> {
+  async create(
+    name: string,
+    actor?: User,
+    extra?: { description?: string | null; colorTag?: string | null },
+  ): Promise<Organization> {
     const organization = await this.organizationsRepository.save(
-      this.organizationsRepository.create({ name }),
+      this.organizationsRepository.create({
+        name,
+        description: extra?.description ?? null,
+        colorTag: extra?.colorTag ?? null,
+      }),
     );
 
     if (actor) {
@@ -59,7 +67,7 @@ export class OrganizationsService {
 
   async update(
     id: string,
-    data: { name?: string; isActive?: boolean },
+    data: { name?: string; isActive?: boolean; description?: string | null; colorTag?: string | null },
     actor?: User,
   ): Promise<Organization> {
     const organization = await this.findById(id);
@@ -67,6 +75,8 @@ export class OrganizationsService {
 
     if (data.name !== undefined) organization.name = data.name;
     if (data.isActive !== undefined) organization.isActive = data.isActive;
+    if (data.description !== undefined) organization.description = data.description;
+    if (data.colorTag !== undefined) organization.colorTag = data.colorTag;
 
     const updated = await this.organizationsRepository.save(organization);
 

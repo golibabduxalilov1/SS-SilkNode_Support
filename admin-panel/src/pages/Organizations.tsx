@@ -10,6 +10,14 @@ interface Organization {
   id: string;
   name: string;
   isActive: boolean;
+  description: string | null;
+  colorTag: string | null;
+}
+
+export interface OrganizationFormValues {
+  name: string;
+  description: string;
+  colorTag: string;
 }
 
 type ModalMode = 'create' | 'edit';
@@ -17,7 +25,7 @@ type ModalMode = 'create' | 'edit';
 function OrganizationModal({
   isOpen,
   mode,
-  initialName,
+  initial,
   onClose,
   onSubmit,
   isSaving,
@@ -25,17 +33,24 @@ function OrganizationModal({
 }: {
   isOpen: boolean;
   mode: ModalMode;
-  initialName: string;
+  initial: OrganizationFormValues;
   onClose: () => void;
-  onSubmit: (name: string) => void;
+  onSubmit: (values: OrganizationFormValues) => void;
   isSaving: boolean;
   error: string | null;
 }) {
-  const [name, setName] = useState(initialName);
+  const [name, setName] = useState(initial.name);
+  const [description, setDescription] = useState(initial.description);
+  const [colorTag, setColorTag] = useState(initial.colorTag);
 
   useEffect(() => {
-    if (isOpen) setName(initialName);
-  }, [isOpen, initialName]);
+    if (isOpen) {
+      setName(initial.name);
+      setDescription(initial.description);
+      setColorTag(initial.colorTag);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -49,13 +64,12 @@ function OrganizationModal({
   if (!isOpen) return null;
 
   const trimmed = name.trim();
-  const unchanged = mode === 'edit' && trimmed === initialName.trim();
-  const disabled = isSaving || !trimmed || unchanged;
+  const disabled = isSaving || !trimmed;
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (disabled) return;
-    onSubmit(trimmed);
+    onSubmit({ name: trimmed, description: description.trim(), colorTag });
   };
 
   return createPortal(
@@ -82,6 +96,30 @@ function OrganizationModal({
                 required
                 autoFocus
               />
+            </label>
+            <label className="modal-field">
+              <span>Tavsif (ixtiyoriy)</span>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Tashkilot haqida qisqacha izoh"
+                rows={3}
+              />
+            </label>
+            <label className="modal-field modal-field--color">
+              <span>Rangli teg (ixtiyoriy)</span>
+              <div className="color-tag-input">
+                <input
+                  type="color"
+                  value={colorTag || '#8a6a1f'}
+                  onChange={(e) => setColorTag(e.target.value)}
+                />
+                {colorTag && (
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => setColorTag('')}>
+                    Tozalash
+                  </button>
+                )}
+              </div>
             </label>
           </div>
           <div className="modal-footer">
@@ -139,14 +177,19 @@ export function OrganizationsPage() {
     setModalOpen(false);
   };
 
-  const handleModalSubmit = async (name: string) => {
+  const handleModalSubmit = async (values: OrganizationFormValues) => {
     setIsSaving(true);
     setModalError(null);
+    const payload = {
+      name: values.name,
+      description: values.description || null,
+      colorTag: values.colorTag || null,
+    };
     try {
       if (modalMode === 'create') {
-        await api.post('/admin/organizations', { name });
+        await api.post('/admin/organizations', payload);
       } else if (editingOrg) {
-        await api.patch(`/admin/organizations/${editingOrg.id}`, { name });
+        await api.patch(`/admin/organizations/${editingOrg.id}`, payload);
       }
       setModalOpen(false);
       load();
@@ -215,7 +258,13 @@ export function OrganizationsPage() {
                       <span className="avatar avatar--sm">
                         <IconBuilding width={12} height={12} />
                       </span>
-                      <span className="cell-primary">{o.name}</span>
+                      {o.colorTag && (
+                        <span className="color-tag-dot" style={{ background: o.colorTag }} title={o.colorTag} />
+                      )}
+                      <div className="cell-user-info">
+                        <span className="cell-primary">{o.name}</span>
+                        {o.description && <span className="cell-description">{o.description}</span>}
+                      </div>
                     </div>
                   </td>
                   <td>
@@ -247,7 +296,15 @@ export function OrganizationsPage() {
       <OrganizationModal
         isOpen={modalOpen}
         mode={modalMode}
-        initialName={modalMode === 'edit' ? editingOrg?.name ?? '' : ''}
+        initial={
+          modalMode === 'edit' && editingOrg
+            ? {
+                name: editingOrg.name,
+                description: editingOrg.description ?? '',
+                colorTag: editingOrg.colorTag ?? '',
+              }
+            : { name: '', description: '', colorTag: '' }
+        }
         onClose={closeModal}
         onSubmit={handleModalSubmit}
         isSaving={isSaving}

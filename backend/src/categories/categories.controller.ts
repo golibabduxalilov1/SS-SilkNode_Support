@@ -1,7 +1,8 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, UseGuards } from '@nestjs/common';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsEnum, IsHexColor, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { CategoriesService } from './categories.service';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { CategoryCluster } from './entities/category.entity';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt.guard';
 import { TelegramAuthGuard } from '../auth/guards/telegram-auth.guard';
 import { UserEligibilityGuard } from '../auth/guards/user-eligibility.guard';
@@ -12,6 +13,20 @@ class CreateCategoryDto {
   @IsString()
   @IsNotEmpty()
   name: string;
+
+  /** T14 — ixtiyoriy. */
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsHexColor()
+  colorTag?: string;
+
+  /** T16 — minimal klasterlash. */
+  @IsOptional()
+  @IsEnum(CategoryCluster)
+  cluster?: CategoryCluster;
 }
 
 /** Web Admin Panel uchun — Mini App bilan hech qanday umumiy endpoint emas (Organizations bilan bir xil pattern). */
@@ -28,7 +43,11 @@ export class CategoriesController {
 
   @Post()
   async create(@Body() dto: CreateCategoryDto, @CurrentUser() actor: User) {
-    const category = await this.categoriesService.create(dto.name, actor);
+    const category = await this.categoriesService.create(dto.name, actor, {
+      description: dto.description,
+      colorTag: dto.colorTag,
+      cluster: dto.cluster,
+    });
     return { success: true, data: category };
   }
 

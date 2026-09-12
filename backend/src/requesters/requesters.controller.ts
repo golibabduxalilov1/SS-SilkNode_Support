@@ -1,4 +1,4 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { RequestersService } from './requesters.service';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt.guard';
 
@@ -11,6 +11,16 @@ export class RequestersController {
   @Get()
   async findAll() {
     const requesters = await this.requestersService.findAll();
+    return { success: true, data: requesters };
+  }
+
+  /**
+   * GET /admin/requesters/search?phone= — T03: murojaatchi qidiruvi.
+   * ':key' bilan to'qnashmasligi uchun undan oldin e'lon qilingan (literal segment ustunlik qiladi).
+   */
+  @Get('search')
+  async search(@Query('phone') phone?: string) {
+    const requesters = phone ? await this.requestersService.search(phone) : [];
     return { success: true, data: requesters };
   }
 

@@ -9,6 +9,8 @@ import {
 } from '@nestjs/common';
 import { MessagesService } from './messages.service';
 import { CreateMessageDto } from './dto/create-message.dto';
+import { CreateAdminMessageDto } from './dto/create-admin-message.dto';
+import { MessageVisibility } from './entities/message.entity';
 import { TelegramAuthGuard } from '../auth/guards/telegram-auth.guard';
 import { UserEligibilityGuard } from '../auth/guards/user-eligibility.guard';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt.guard';
@@ -27,7 +29,7 @@ export class MessagesController {
   @UseGuards(TelegramAuthGuard, UserEligibilityGuard)
   async findMine(@Param('ticketId') ticketId: string, @CurrentUser() user: User) {
     await this.assertOwnsTicket(ticketId, user.id);
-    const messages = await this.messagesService.findByTicket(ticketId);
+    const messages = await this.messagesService.findByTicket(ticketId, { publicOnly: true });
     return { success: true, data: messages };
   }
 
@@ -54,14 +56,18 @@ export class MessagesController {
   @UseGuards(AdminJwtAuthGuard)
   async createForAdmin(
     @Param('ticketId') ticketId: string,
-    @Body() dto: CreateMessageDto,
+    @Body() dto: CreateAdminMessageDto,
     @CurrentUser() admin: User,
   ) {
-    const message = await this.messagesService.create(ticketId, admin.id, dto.text);
+    const visibility = dto.visibility ?? MessageVisibility.PUBLIC;
+    const message = await this.messagesService.create(ticketId, admin.id, dto.text, visibility);
 
-    const ticket = await this.messagesService.findTicketForNotification(ticketId);
-    if (ticket) {
-      await this.notifyUserService.notifyNewMessage(ticket, dto.text);
+    // Ichki eslatma mijozga hech qanday bildirishnoma kanali orqali yuborilmaydi (T04).
+    if (visibility === MessageVisibility.PUBLIC) {
+      const ticket = await this.messagesService.findTicketForNotification(ticketId);
+      if (ticket) {
+        await this.notifyUserService.notifyNewMessage(ticket, dto.text);
+      }
     }
 
     return { success: true, data: message };
