@@ -1645,6 +1645,14 @@ button {
   margin-bottom: 16px;
 }
 
+.toolbar-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .toolbar-toggle {
   display: inline-flex;
   align-items: center;

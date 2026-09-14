@@ -1422,19 +1422,29 @@ export function TicketsPage() {
       ) : (
         <>
           <div className="toolbar-collapsible">
-            <button
-              type="button"
-              className={`toolbar-toggle${isToolbarOpen ? ' toolbar-toggle--open' : ''}`}
-              aria-expanded={isToolbarOpen}
-              onClick={() => setIsToolbarOpen((open) => !open)}
-            >
-              <IconFilter width={15} height={15} />
-              {t('tickets.toolbarToggle')}
-              {activeFilterCount > 0 && (
-                <span className="filter-active-chip">{activeFilterCount}</span>
-              )}
-              <IconChevronDown width={15} height={15} className="toolbar-toggle-chevron" />
-            </button>
+            <div className="toolbar-header-row">
+              <button
+                type="button"
+                className={`toolbar-toggle${isToolbarOpen ? ' toolbar-toggle--open' : ''}`}
+                aria-expanded={isToolbarOpen}
+                onClick={() => setIsToolbarOpen((open) => !open)}
+              >
+                <IconFilter width={15} height={15} />
+                {t('tickets.toolbarToggle')}
+                {activeFilterCount > 0 && (
+                  <span className="filter-active-chip">{activeFilterCount}</span>
+                )}
+                <IconChevronDown width={15} height={15} className="toolbar-toggle-chevron" />
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setChoiceModalOpen(true)}
+              >
+                <IconPlus width={15} height={15} />
+                {t('tickets.create')}
+              </button>
+            </div>
 
             {isToolbarOpen && (
               <>
@@ -1454,14 +1464,6 @@ export function TicketsPage() {
                   >
                     <IconDownload width={15} height={15} />
                     {t('tickets.download')}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={() => setChoiceModalOpen(true)}
-                  >
-                    <IconPlus width={15} height={15} />
-                    {t('tickets.create')}
                   </button>
                 </div>
 
