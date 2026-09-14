@@ -207,35 +207,48 @@ const WORK_START_HOUR = 10;
 const WORK_END_HOUR = 18;
 const WORKING_WEEKDAYS = new Set([1, 2, 3, 4, 5, 6]); // 0 = yakshanba (dam olish kuni)
 
-function isWorkingDay(date: Date): boolean {
-  return WORKING_WEEKDAYS.has(date.getDay());
+// Toshkent DST qo'llanilmaydi, shuning uchun doimiy UTC+5 siljish yetarli.
+// Server qaysi timezone'da ishlashidan (UTC, boshqa server vaqti va h.k.) qat'iy
+// nazar ish soatlari har doim Toshkent mahalliy vaqti bo'yicha hisoblanishi uchun
+// vaqtni avval shu siljishga o'tkazib, keyin faqat UTC get/set metodlari ishlatiladi.
+const TASHKENT_OFFSET_MS = 5 * 60 * 60 * 1000;
+
+function toTashkentShifted(date: Date): Date {
+  return new Date(date.getTime() + TASHKENT_OFFSET_MS);
 }
 
-// from/to orasida faqat ish kunlari + ish soatlari (10:00-18:00) ichiga tushgan
-// daqiqalarni yig'adi — tungi va dam olish kunidagi vaqt hisobga kirmaydi.
+function isWorkingDay(tashkentShiftedDate: Date): boolean {
+  return WORKING_WEEKDAYS.has(tashkentShiftedDate.getUTCDay());
+}
+
+// from/to orasida faqat ish kunlari + ish soatlari (10:00-18:00, Toshkent vaqti)
+// ichiga tushgan daqiqalarni yig'adi — tungi va dam olish kunidagi vaqt hisobga kirmaydi.
 function diffMinutes(from: Date, to: Date): number {
   if (to.getTime() <= from.getTime()) return MIN_RESOLUTION_MINUTES;
 
+  const fromShifted = toTashkentShifted(from);
+  const toShifted = toTashkentShifted(to);
+
   let totalMs = 0;
-  const cursor = new Date(from);
-  cursor.setHours(0, 0, 0, 0);
-  const lastDay = new Date(to);
-  lastDay.setHours(0, 0, 0, 0);
+  const cursor = new Date(fromShifted);
+  cursor.setUTCHours(0, 0, 0, 0);
+  const lastDay = new Date(toShifted);
+  lastDay.setUTCHours(0, 0, 0, 0);
 
   while (cursor.getTime() <= lastDay.getTime()) {
     if (isWorkingDay(cursor)) {
       const windowStart = new Date(cursor);
-      windowStart.setHours(WORK_START_HOUR, 0, 0, 0);
+      windowStart.setUTCHours(WORK_START_HOUR, 0, 0, 0);
       const windowEnd = new Date(cursor);
-      windowEnd.setHours(WORK_END_HOUR, 0, 0, 0);
+      windowEnd.setUTCHours(WORK_END_HOUR, 0, 0, 0);
 
-      const segmentStart = Math.max(windowStart.getTime(), from.getTime());
-      const segmentEnd = Math.min(windowEnd.getTime(), to.getTime());
+      const segmentStart = Math.max(windowStart.getTime(), fromShifted.getTime());
+      const segmentEnd = Math.min(windowEnd.getTime(), toShifted.getTime());
       if (segmentEnd > segmentStart) {
         totalMs += segmentEnd - segmentStart;
       }
     }
-    cursor.setDate(cursor.getDate() + 1);
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
 
   const minutes = Math.round(totalMs / 60000);
