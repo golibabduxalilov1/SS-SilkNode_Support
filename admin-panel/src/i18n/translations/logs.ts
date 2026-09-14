@@ -2,6 +2,7 @@ export const logs = {
   uz: {
     title: 'Loglar',
     breadcrumb: 'Dashboard / Loglar',
+    toolbarToggle: 'Filtrlar',
     actionType: 'Amal turi',
     admin: 'Admin',
     dateFrom: 'Sanadan',
@@ -37,6 +38,7 @@ export const logs = {
   ru: {
     title: 'Логи',
     breadcrumb: 'Дашборд / Логи',
+    toolbarToggle: 'Фильтры',
     actionType: 'Тип действия',
     admin: 'Админ',
     dateFrom: 'С даты',

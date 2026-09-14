@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { AppShell } from '../components/AppShell';
-import { IconHistory } from '../components/icons';
+import { IconChevronDown, IconFilter, IconHistory } from '../components/icons';
 import { EmptyState, Pagination, TableSkeleton } from '../components/ui';
 import { AuditLogEntry, fetchAuditLogs } from '../api/auditLogs';
 import { TranslationKey, useLanguage } from '../i18n/LanguageContext';
@@ -66,6 +66,7 @@ export function LogsPage() {
   const [dateTo, setDateTo] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isToolbarOpen, setIsToolbarOpen] = useState(false);
 
   useEffect(() => {
     api
@@ -106,45 +107,62 @@ export function LogsPage() {
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const dateLocale = language === 'ru' ? 'ru-RU' : 'uz-UZ';
+  const activeFilterCount = [actionFilter, actorFilter, dateFrom, dateTo].filter(Boolean).length;
 
   return (
     <AppShell title={t('logs.title')} breadcrumb={t('logs.breadcrumb')}>
-      <div className="filters">
-        <label>
-          {t('logs.actionType')}
-          <select value={actionFilter} onChange={(e) => setActionFilter(e.target.value)}>
-            <option value="">{t('common.all')}</option>
-            {Object.entries(ACTION_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          {t('logs.admin')}
-          <select value={actorFilter} onChange={(e) => setActorFilter(e.target.value)}>
-            <option value="">{t('common.all')}</option>
-            {admins.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.fullname ?? a.id}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          {t('logs.dateFrom')}
-          <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-        </label>
-        <label>
-          {t('logs.dateTo')}
-          <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
-        </label>
-        <div className="filters-actions">
-          <button type="button" className="btn btn-secondary btn-sm" onClick={clearFilters}>
-            {t('logs.clearFilters')}
-          </button>
-        </div>
+      <div className="toolbar-collapsible">
+        <button
+          type="button"
+          className={`toolbar-toggle${isToolbarOpen ? ' toolbar-toggle--open' : ''}`}
+          aria-expanded={isToolbarOpen}
+          onClick={() => setIsToolbarOpen((open) => !open)}
+        >
+          <IconFilter width={15} height={15} />
+          {t('logs.toolbarToggle')}
+          {activeFilterCount > 0 && <span className="filter-active-chip">{activeFilterCount}</span>}
+          <IconChevronDown width={15} height={15} className="toolbar-toggle-chevron" />
+        </button>
+
+        {isToolbarOpen && (
+          <div className="filters">
+            <label>
+              {t('logs.actionType')}
+              <select value={actionFilter} onChange={(e) => setActionFilter(e.target.value)}>
+                <option value="">{t('common.all')}</option>
+                {Object.entries(ACTION_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              {t('logs.admin')}
+              <select value={actorFilter} onChange={(e) => setActorFilter(e.target.value)}>
+                <option value="">{t('common.all')}</option>
+                {admins.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.fullname ?? a.id}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              {t('logs.dateFrom')}
+              <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+            </label>
+            <label>
+              {t('logs.dateTo')}
+              <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+            </label>
+            <div className="filters-actions">
+              <button type="button" className="btn btn-secondary btn-sm" onClick={clearFilters}>
+                {t('logs.clearFilters')}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {error && <p className="form-error">{error}</p>}

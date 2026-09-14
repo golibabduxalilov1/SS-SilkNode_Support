@@ -21,8 +21,10 @@ import { AppShell } from '../components/AppShell';
 import {
   IconAlert,
   IconCheck,
+  IconChevronDown,
   IconClose,
   IconDownload,
+  IconFilter,
   IconInbox,
   IconLock,
   IconSearch,
@@ -899,6 +901,7 @@ export function DashboardPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [isToolbarOpen, setIsToolbarOpen] = useState(false);
 
   const [processedReport, setProcessedReport] = useState<ProcessedTicketsReport | null>(null);
   const [isProcessedLoading, setIsProcessedLoading] = useState(true);
@@ -1433,29 +1436,45 @@ export function DashboardPage() {
       title={t('dashboard.title')}
       breadcrumb={scopeLabel ? `${t('dashboard.scopeCut')}: ${scopeLabel}` : t('dashboard.overviewAllTime')}
     >
-      <MobileFilterDrawer activeCount={filterChips.length}>
-        <FilterBar
-          assignees={assignees}
-          assigneeFilter={selectedAssigneeId ?? ''}
-          onAssigneeChange={(value) => setSelectedAssigneeId(value || null)}
-          organizations={organizations}
-          categories={categories}
-          organizationFilter={organizationFilter}
-          onOrganizationChange={setOrganizationFilter}
-          categoryFilter={categoryFilter}
-          onCategoryChange={setCategoryFilter}
-          statusFilter={statusFilter}
-          onStatusChange={setStatusFilter}
-          dateFrom={dateFrom}
-          onDateFromChange={setDateFrom}
-          dateTo={dateTo}
-          onDateToChange={setDateTo}
-          chips={filterChips}
-          hasActiveFilters={hasPanelFilters}
-          onClearAll={clearAllFilters}
-          isRefreshing={isRefreshing}
-        />
-      </MobileFilterDrawer>
+      <div className="toolbar-collapsible">
+        <button
+          type="button"
+          className={`toolbar-toggle${isToolbarOpen ? ' toolbar-toggle--open' : ''}`}
+          aria-expanded={isToolbarOpen}
+          onClick={() => setIsToolbarOpen((open) => !open)}
+        >
+          <IconFilter width={15} height={15} />
+          {t('dashboard.toolbarToggle')}
+          {filterChips.length > 0 && <span className="filter-active-chip">{filterChips.length}</span>}
+          <IconChevronDown width={15} height={15} className="toolbar-toggle-chevron" />
+        </button>
+
+        {isToolbarOpen && (
+          <MobileFilterDrawer activeCount={filterChips.length}>
+            <FilterBar
+              assignees={assignees}
+              assigneeFilter={selectedAssigneeId ?? ''}
+              onAssigneeChange={(value) => setSelectedAssigneeId(value || null)}
+              organizations={organizations}
+              categories={categories}
+              organizationFilter={organizationFilter}
+              onOrganizationChange={setOrganizationFilter}
+              categoryFilter={categoryFilter}
+              onCategoryChange={setCategoryFilter}
+              statusFilter={statusFilter}
+              onStatusChange={setStatusFilter}
+              dateFrom={dateFrom}
+              onDateFromChange={setDateFrom}
+              dateTo={dateTo}
+              onDateToChange={setDateTo}
+              chips={filterChips}
+              hasActiveFilters={hasPanelFilters}
+              onClearAll={clearAllFilters}
+              isRefreshing={isRefreshing}
+            />
+          </MobileFilterDrawer>
+        )}
+      </div>
 
       <div className={`scope-banner ${scopeLabel ? 'scope-banner--active' : 'scope-banner--neutral'}`}>
         {scopeLabel ? (

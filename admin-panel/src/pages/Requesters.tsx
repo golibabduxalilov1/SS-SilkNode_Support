@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { AppShell } from '../components/AppShell';
-import { IconSearch, IconUser } from '../components/icons';
+import { IconChevronDown, IconFilter, IconSearch, IconUser } from '../components/icons';
 import { Avatar, EmptyState, Pagination, TableSkeleton } from '../components/ui';
 import { usePageSize } from '../utils/usePageSize';
 import { LIST_POLL_INTERVAL_MS } from '../utils/pollInterval';
@@ -104,6 +104,7 @@ export function RequestersPage() {
   const [minTickets, setMinTickets] = useState('');
   const [maxTickets, setMaxTickets] = useState('');
   const [sort, setSort] = useState<RequesterSortState>({ key: 'lastTicketAt', dir: 'desc' });
+  const [isToolbarOpen, setIsToolbarOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = usePageSize();
 
@@ -176,6 +177,9 @@ export function RequestersPage() {
   );
 
   const hasActiveFilters = Boolean(nameSearch || phoneSearch || organizationFilter || minTickets || maxTickets);
+  const activeFilterCount = [nameSearch, phoneSearch, organizationFilter, minTickets, maxTickets].filter(
+    Boolean,
+  ).length;
 
   return (
     <AppShell title={t('requesters.title')} breadcrumb={t('requesters.breadcrumb')} contentClassName="app-content--table-scroll">
@@ -183,63 +187,83 @@ export function RequestersPage() {
         <TableSkeleton rows={6} cols={5} />
       ) : (
         <>
-          <div className="toolbar">
-            <div className="toolbar-search">
-              <IconSearch width={15} height={15} />
-              <input
-                value={nameSearch}
-                onChange={(e) => setNameSearch(e.target.value)}
-                placeholder={t('requesters.searchByName')}
-              />
-            </div>
-            <div className="toolbar-search">
-              <IconSearch width={15} height={15} />
-              <input
-                value={phoneSearch}
-                onChange={(e) => setPhoneSearch(e.target.value)}
-                placeholder={t('requesters.searchByPhone')}
-              />
-            </div>
-          </div>
+          <div className="toolbar-collapsible">
+            <button
+              type="button"
+              className={`toolbar-toggle${isToolbarOpen ? ' toolbar-toggle--open' : ''}`}
+              aria-expanded={isToolbarOpen}
+              onClick={() => setIsToolbarOpen((open) => !open)}
+            >
+              <IconFilter width={15} height={15} />
+              {t('requesters.toolbarToggle')}
+              {activeFilterCount > 0 && (
+                <span className="filter-active-chip">{activeFilterCount}</span>
+              )}
+              <IconChevronDown width={15} height={15} className="toolbar-toggle-chevron" />
+            </button>
 
-          <div className="filters">
-            <label>
-              {t('requesters.organization')}
-              <select value={organizationFilter} onChange={(e) => setOrganizationFilter(e.target.value)}>
-                <option value="">{t('common.all')}</option>
-                {organizations.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              {t('requesters.minTickets')}
-              <input
-                type="number"
-                min={0}
-                value={minTickets}
-                onChange={(e) => setMinTickets(e.target.value)}
-                placeholder="0"
-              />
-            </label>
-            <label>
-              {t('requesters.maxTickets')}
-              <input
-                type="number"
-                min={0}
-                value={maxTickets}
-                onChange={(e) => setMaxTickets(e.target.value)}
-                placeholder="∞"
-              />
-            </label>
-            {hasActiveFilters && (
-              <div className="filters-actions">
-                <button type="button" className="btn btn-secondary btn-sm" onClick={clearFilters}>
-                  {t('requesters.clearFilters')}
-                </button>
-              </div>
+            {isToolbarOpen && (
+              <>
+                <div className="toolbar">
+                  <div className="toolbar-search">
+                    <IconSearch width={15} height={15} />
+                    <input
+                      value={nameSearch}
+                      onChange={(e) => setNameSearch(e.target.value)}
+                      placeholder={t('requesters.searchByName')}
+                    />
+                  </div>
+                  <div className="toolbar-search">
+                    <IconSearch width={15} height={15} />
+                    <input
+                      value={phoneSearch}
+                      onChange={(e) => setPhoneSearch(e.target.value)}
+                      placeholder={t('requesters.searchByPhone')}
+                    />
+                  </div>
+                </div>
+
+                <div className="filters">
+                  <label>
+                    {t('requesters.organization')}
+                    <select value={organizationFilter} onChange={(e) => setOrganizationFilter(e.target.value)}>
+                      <option value="">{t('common.all')}</option>
+                      {organizations.map((o) => (
+                        <option key={o.id} value={o.id}>
+                          {o.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    {t('requesters.minTickets')}
+                    <input
+                      type="number"
+                      min={0}
+                      value={minTickets}
+                      onChange={(e) => setMinTickets(e.target.value)}
+                      placeholder="0"
+                    />
+                  </label>
+                  <label>
+                    {t('requesters.maxTickets')}
+                    <input
+                      type="number"
+                      min={0}
+                      value={maxTickets}
+                      onChange={(e) => setMaxTickets(e.target.value)}
+                      placeholder="∞"
+                    />
+                  </label>
+                  {hasActiveFilters && (
+                    <div className="filters-actions">
+                      <button type="button" className="btn btn-secondary btn-sm" onClick={clearFilters}>
+                        {t('requesters.clearFilters')}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </>
             )}
           </div>
 
