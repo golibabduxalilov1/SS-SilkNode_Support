@@ -1228,12 +1228,6 @@ export function TicketsPage() {
     applyBulkStatus(status);
   };
 
-  const toggleSelectAll = () => {
-    setSelectedIds((prev) =>
-      prev.size === paginatedTickets.length ? new Set() : new Set(paginatedTickets.map((t2) => t2.id)),
-    );
-  };
-
   const toggleSelectOne = (ticketId: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -1672,14 +1666,7 @@ export function TicketsPage() {
                 <TicketTableColgroup isSuperadmin={isSuperadmin} />
                 <thead>
                   <tr>
-                    <th>
-                      <input
-                        type="checkbox"
-                        checked={paginatedTickets.length > 0 && selectedIds.size === paginatedTickets.length}
-                        onChange={toggleSelectAll}
-                        aria-label={t('tickets.selectAll')}
-                      />
-                    </th>
+                    <th></th>
                     <th>{t('tickets.colNumber')}</th>
                     <th>{t('tickets.colSubject')}</th>
                     <th>{t('tickets.colOrganization')}</th>
