@@ -17,10 +17,10 @@ export const requesterFields = {
   ru: {
     fullName: 'Ф.И.О. заявителя',
     fullNamePlaceholder: 'Полное имя заявителя',
-    extraContact: 'Ещё один контакт',
+    extraContact: 'Еще один контакт',
     extraContactPlaceholder: 'Например, Азиз ака',
     removeContact: 'Удалить контакт',
-    addContact: 'Ещё один контакт',
+    addContact: 'Еще один контакт',
     phoneLabel: 'Номер телефона заявителя',
     phoneIncomplete: 'Номер телефона указан не полностью',
     existingRequester: 'Этот номер уже существует:',

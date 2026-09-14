@@ -59,7 +59,7 @@ export const ticketDetail = {
     downloadError: 'Не удалось скачать файл.',
     description: 'Описание',
     noMessages: 'Пока нет сообщений',
-    noMessagesDescription: 'Когда начнётся переписка, сообщения появятся здесь.',
+    noMessagesDescription: 'Когда начнется переписка, сообщения появятся здесь.',
     admin: 'Админ',
     user_: 'Пользователь',
     internalNote: 'Внутренняя заметка',

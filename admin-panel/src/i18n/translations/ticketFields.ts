@@ -17,7 +17,7 @@ export const ticketFields = {
     statusInProgress: 'В процессе',
     statusWaitingUser: 'Ожидает ответа',
     statusWaitingUserLong: 'Ожидается ответ пользователя',
-    statusResolved: 'Решён',
+    statusResolved: 'Решен',
     statusClosed: 'Закрыт',
     priorityLow: 'Низкий',
     priorityMedium: 'Средний',

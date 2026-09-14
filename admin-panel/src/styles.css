@@ -1638,6 +1638,49 @@ button {
   font-size: 14px;
 }
 
+/* Murojaatlar: qidiruv/tugmalar + filtrlar bitta dropdown panelga yig'ilgan,
+   default holatda yopiq. Jadval maydoni panel ochiq/yopiqligiga qarab
+   flex orqali avtomatik moslashadi (app-content--table-scroll > .table-wrap). */
+.toolbar-collapsible {
+  margin-bottom: 16px;
+}
+
+.toolbar-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-strong);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease), border-color var(--duration-fast) var(--ease);
+}
+
+.toolbar-toggle:hover {
+  border-color: var(--primary);
+}
+
+.toolbar-toggle--open {
+  border-color: var(--primary);
+}
+
+.toolbar-toggle-chevron {
+  transition: transform var(--duration-fast) var(--ease);
+}
+
+.toolbar-toggle--open .toolbar-toggle-chevron {
+  transform: rotate(180deg);
+}
+
+.toolbar-collapsible .toolbar,
+.toolbar-collapsible .filters {
+  margin-top: 12px;
+}
+
 .filters {
   display: flex;
   flex-wrap: wrap;

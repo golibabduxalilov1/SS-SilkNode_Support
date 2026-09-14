@@ -6,10 +6,12 @@ import { useAuth } from '../auth/AuthContext';
 import { AppShell } from '../components/AppShell';
 import { ConfirmModal } from '../components/ConfirmModal';
 import {
+  IconChevronDown,
   IconClose,
   IconDownload,
   IconFileSpreadsheet,
   IconFileText,
+  IconFilter,
   IconHistory,
   IconInbox,
   IconPlus,
@@ -1032,6 +1034,7 @@ export function TicketsPage() {
   const [createdFrom, setCreatedFrom] = useState('');
   const [createdTo, setCreatedTo] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isToolbarOpen, setIsToolbarOpen] = useState(false);
   const [savedFilters, setSavedFilters] = useState<SavedFilter[]>([]);
   const [savedFiltersError, setSavedFiltersError] = useState<string | null>(null);
   const [isSavingFilter, setIsSavingFilter] = useState(false);
@@ -1418,106 +1421,126 @@ export function TicketsPage() {
         <TableSkeleton rows={6} cols={10} />
       ) : (
         <>
-          <div className="toolbar">
-            <div className="toolbar-search toolbar-search-full">
-              <IconSearch width={15} height={15} />
-              <input
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder={t('tickets.searchPlaceholder')}
-              />
-            </div>
+          <div className="toolbar-collapsible">
             <button
               type="button"
-              className="btn btn-secondary"
-              onClick={() => setExportModalOpen(true)}
+              className={`toolbar-toggle${isToolbarOpen ? ' toolbar-toggle--open' : ''}`}
+              aria-expanded={isToolbarOpen}
+              onClick={() => setIsToolbarOpen((open) => !open)}
             >
-              <IconDownload width={15} height={15} />
-              {t('tickets.download')}
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => setChoiceModalOpen(true)}
-            >
-              <IconPlus width={15} height={15} />
-              {t('tickets.create')}
-            </button>
-          </div>
-
-          <MobileFilterDrawer activeCount={activeFilterCount}>
-          <div className="filters">
-            <label>
-              {t('tickets.organization')}
-              <select value={organizationFilter} onChange={(e) => setOrganizationFilter(e.target.value)}>
-                <option value="">{t('common.all')}</option>
-                {organizations.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              {t('tickets.status')}
-              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-                <option value="">{t('common.all')}</option>
-                {STATUS_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              {t('tickets.priority')}
-              <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}>
-                <option value="">{t('common.all')}</option>
-                {PRIORITY_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              {t('tickets.category')}
-              <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-                <option value="">{t('common.all')}</option>
-                <CategoryOptionGroups categories={categories} />
-              </select>
-            </label>
-            <label>
-              {t('tickets.assignedToFilterLabel')}
-              <select value={assignedToFilter} onChange={(e) => setAssignedToFilter(e.target.value)}>
-                <option value="">{t('common.all')}</option>
-                {admins.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.fullname ?? a.id}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              {t('tickets.createdFrom')}
-              <input type="date" value={createdFrom} onChange={(e) => setCreatedFrom(e.target.value)} />
-            </label>
-            <label>
-              {t('tickets.createdTo')}
-              <input type="date" value={createdTo} onChange={(e) => setCreatedTo(e.target.value)} />
-            </label>
-            <div className="filters-actions">
+              <IconFilter width={15} height={15} />
+              {t('tickets.toolbarToggle')}
               {activeFilterCount > 0 && (
-                <span className="filter-active-chip">
-                  {activeFilterCount} {t('tickets.activeFilterCount')}
-                </span>
+                <span className="filter-active-chip">{activeFilterCount}</span>
               )}
-              <button type="button" className="btn btn-secondary btn-sm" onClick={clearFilters}>
-                {t('tickets.clearFilters')}
-              </button>
-            </div>
+              <IconChevronDown width={15} height={15} className="toolbar-toggle-chevron" />
+            </button>
+
+            {isToolbarOpen && (
+              <>
+                <div className="toolbar">
+                  <div className="toolbar-search toolbar-search-full">
+                    <IconSearch width={15} height={15} />
+                    <input
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder={t('tickets.searchPlaceholder')}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setExportModalOpen(true)}
+                  >
+                    <IconDownload width={15} height={15} />
+                    {t('tickets.download')}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => setChoiceModalOpen(true)}
+                  >
+                    <IconPlus width={15} height={15} />
+                    {t('tickets.create')}
+                  </button>
+                </div>
+
+                <MobileFilterDrawer activeCount={activeFilterCount}>
+                  <div className="filters">
+                    <label>
+                      {t('tickets.organization')}
+                      <select value={organizationFilter} onChange={(e) => setOrganizationFilter(e.target.value)}>
+                        <option value="">{t('common.all')}</option>
+                        {organizations.map((o) => (
+                          <option key={o.id} value={o.id}>
+                            {o.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      {t('tickets.status')}
+                      <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                        <option value="">{t('common.all')}</option>
+                        {STATUS_OPTIONS.map((o) => (
+                          <option key={o.value} value={o.value}>
+                            {o.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      {t('tickets.priority')}
+                      <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}>
+                        <option value="">{t('common.all')}</option>
+                        {PRIORITY_OPTIONS.map((o) => (
+                          <option key={o.value} value={o.value}>
+                            {o.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      {t('tickets.category')}
+                      <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+                        <option value="">{t('common.all')}</option>
+                        <CategoryOptionGroups categories={categories} />
+                      </select>
+                    </label>
+                    <label>
+                      {t('tickets.assignedToFilterLabel')}
+                      <select value={assignedToFilter} onChange={(e) => setAssignedToFilter(e.target.value)}>
+                        <option value="">{t('common.all')}</option>
+                        {admins.map((a) => (
+                          <option key={a.id} value={a.id}>
+                            {a.fullname ?? a.id}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      {t('tickets.createdFrom')}
+                      <input type="date" value={createdFrom} onChange={(e) => setCreatedFrom(e.target.value)} />
+                    </label>
+                    <label>
+                      {t('tickets.createdTo')}
+                      <input type="date" value={createdTo} onChange={(e) => setCreatedTo(e.target.value)} />
+                    </label>
+                    <div className="filters-actions">
+                      {activeFilterCount > 0 && (
+                        <span className="filter-active-chip">
+                          {activeFilterCount} {t('tickets.activeFilterCount')}
+                        </span>
+                      )}
+                      <button type="button" className="btn btn-secondary btn-sm" onClick={clearFilters}>
+                        {t('tickets.clearFilters')}
+                      </button>
+                    </div>
+                  </div>
+                </MobileFilterDrawer>
+              </>
+            )}
           </div>
-          </MobileFilterDrawer>
 
           {/* T13 — saqlangan filtrlar: bir klikda qo'llash + joriy kombinatsiyani nom bilan saqlash. */}
           {(savedFilters.length > 0 || activeFilterCount > 0) && (
