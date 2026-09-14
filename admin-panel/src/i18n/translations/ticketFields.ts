@@ -1,0 +1,28 @@
+export const ticketFields = {
+  uz: {
+    statusNew: 'Yangi',
+    statusInProgress: 'Jarayonda',
+    statusWaitingUser: 'Javob kutilmoqda',
+    statusWaitingUserLong: 'Foydalanuvchi javobi kutilmoqda',
+    statusResolved: 'Yechilgan',
+    statusClosed: 'Yopilgan',
+    priorityLow: 'Past',
+    priorityMedium: 'O’rta',
+    priorityHigh: 'Yuqori',
+    priorityCritical: 'Kritik',
+    unassigned: 'Tayinlanmagan',
+  },
+  ru: {
+    statusNew: 'Новый',
+    statusInProgress: 'В процессе',
+    statusWaitingUser: 'Ожидает ответа',
+    statusWaitingUserLong: 'Ожидается ответ пользователя',
+    statusResolved: 'Решён',
+    statusClosed: 'Закрыт',
+    priorityLow: 'Низкий',
+    priorityMedium: 'Средний',
+    priorityHigh: 'Высокий',
+    priorityCritical: 'Критический',
+    unassigned: 'Не назначен',
+  },
+};

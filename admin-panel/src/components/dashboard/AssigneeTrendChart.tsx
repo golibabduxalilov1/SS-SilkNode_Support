@@ -3,6 +3,7 @@ import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, X
 import { ChartTooltip, formatDayLabel } from '../../pages/Dashboard';
 import { IconSearch } from '../icons';
 import { EmptyState } from '../ui';
+import { TranslationKey, useLanguage } from '../../i18n/LanguageContext';
 
 export interface AssigneeResolutionTrendEntry {
   userId: string;
@@ -50,6 +51,7 @@ function buildSingleAssigneeView(
   data: AssigneeResolutionTrendPoint[],
   selectedAssigneeId: string,
   selectedAssigneeName: string,
+  t: (key: TranslationKey) => string,
 ): { rows: PivotRow[]; series: Series[] } {
   const rows: PivotRow[] = data.map((point) => {
     let selected = 0;
@@ -64,12 +66,15 @@ function buildSingleAssigneeView(
     rows,
     series: [
       { key: 'selected', name: selectedAssigneeName, color: 'var(--indigo-600)' },
-      { key: 'others', name: 'Boshqalar (jami)', color: OTHERS_COLOR, muted: true },
+      { key: 'others', name: t('dashboard.seriesOthersTotal'), color: OTHERS_COLOR, muted: true },
     ],
   };
 }
 
-function buildTopAssigneesView(data: AssigneeResolutionTrendPoint[]): { rows: PivotRow[]; series: Series[] } {
+function buildTopAssigneesView(
+  data: AssigneeResolutionTrendPoint[],
+  t: (key: TranslationKey) => string,
+): { rows: PivotRow[]; series: Series[] } {
   const totals = computeTotals(data);
   const ranked = Array.from(totals.entries()).sort((a, b) => b[1].total - a[1].total);
   const top = ranked.slice(0, MAX_INDIVIDUAL_LINES);
@@ -81,7 +86,7 @@ function buildTopAssigneesView(data: AssigneeResolutionTrendPoint[]): { rows: Pi
     color: TOP_ASSIGNEE_COLORS[i % TOP_ASSIGNEE_COLORS.length],
   }));
   if (rest.size > 0) {
-    series.push({ key: 'others', name: 'Boshqalar', color: OTHERS_COLOR, muted: true });
+    series.push({ key: 'others', name: t('dashboard.seriesOthers'), color: OTHERS_COLOR, muted: true });
   }
 
   const rows: PivotRow[] = data.map((point) => {
@@ -109,29 +114,26 @@ export function AssigneeTrendChart({
   selectedAssigneeId: string | null;
   selectedAssigneeName: string | null;
 }) {
+  const { t } = useLanguage();
   const [hiddenKeys, setHiddenKeys] = useState<Set<string>>(new Set());
 
   const totals = useMemo(() => computeTotals(data), [data]);
-  const hasAnyData = useMemo(() => Array.from(totals.values()).some((t) => t.total > 0), [totals]);
+  const hasAnyData = useMemo(() => Array.from(totals.values()).some((entry) => entry.total > 0), [totals]);
   const selectedHasData = selectedAssigneeId ? (totals.get(selectedAssigneeId)?.total ?? 0) > 0 : true;
 
   const { rows, series } = useMemo(() => {
     if (selectedAssigneeId && selectedAssigneeName) {
-      return buildSingleAssigneeView(data, selectedAssigneeId, selectedAssigneeName);
+      return buildSingleAssigneeView(data, selectedAssigneeId, selectedAssigneeName, t);
     }
-    return buildTopAssigneesView(data);
-  }, [data, selectedAssigneeId, selectedAssigneeName]);
+    return buildTopAssigneesView(data, t);
+  }, [data, selectedAssigneeId, selectedAssigneeName, t]);
 
   if (!hasAnyData || !selectedHasData) {
     return (
       <EmptyState
         icon={<IconSearch width={22} height={22} />}
-        title="Bu filtr bo'yicha ma'lumot yo'q"
-        description={
-          selectedAssigneeId
-            ? "Tanlangan ijrochi shu davrda hech qanday murojaat yopmagan."
-            : "Tanlangan davrda hech qanday murojaat yopilmagan."
-        }
+        title={t('dashboard.noFilterDataTitle')}
+        description={selectedAssigneeId ? t('dashboard.noFilterDataSelected') : t('dashboard.noFilterDataAll')}
       />
     );
   }

@@ -524,9 +524,19 @@ button {
    ========================================================================== */
 
 .login-page {
+  position: relative;
   display: flex;
   min-height: 100vh;
   background: var(--canvas);
+}
+
+.login-lang-toggle {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 10;
+  background: var(--surface);
+  border: 1px solid var(--border);
 }
 
 /* Left brand showcase — hidden below --breakpoint, right form fills viewport */
@@ -1333,6 +1343,31 @@ button {
 }
 
 .theme-toggle:hover {
+  background: var(--veil);
+  color: var(--text);
+}
+
+.lang-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  height: 38px;
+  padding: 0 8px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  transition: background var(--duration-fast) var(--ease), color var(--duration-fast) var(--ease);
+}
+
+.lang-toggle:hover {
   background: var(--veil);
   color: var(--text);
 }

@@ -10,6 +10,7 @@ import {
   YAxis,
 } from 'recharts';
 import { formatDayLabel } from '../../pages/Dashboard';
+import { TranslationKey, useLanguage } from '../../i18n/LanguageContext';
 
 export interface DailyTrendPoint {
   date: string;
@@ -20,11 +21,13 @@ export interface DailyTrendPoint {
 
 type Granularity = 'day' | 'week' | 'month';
 
-const GRANULARITY_OPTIONS: Array<{ key: Granularity; label: string }> = [
-  { key: 'day', label: 'Kunlik' },
-  { key: 'week', label: 'Haftalik' },
-  { key: 'month', label: 'Oylik' },
-];
+function getGranularityOptions(t: (key: TranslationKey) => string): Array<{ key: Granularity; label: string }> {
+  return [
+    { key: 'day', label: t('dashboard.granularityDay') },
+    { key: 'week', label: t('dashboard.granularityWeek') },
+    { key: 'month', label: t('dashboard.granularityMonth') },
+  ];
+}
 
 // dailyTrend'dagi "YYYY-MM-DD" satrini mahalliy vaqt zonasida Date'ga aylantiradi
 // (new Date(str) UTC deb talqin qilib, kun chegaralarini bir kun surib yuborishi mumkin).
@@ -52,14 +55,16 @@ function monthBucketKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-01`;
 }
 
-function formatWeekLabel(dateStr: string): string {
-  return `${formatDayLabel(dateStr)} h.`;
+const MONTHS_UZ = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyn', 'Iyl', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek'];
+const MONTHS_RU = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
+
+function formatWeekLabel(dateStr: string, weekAbbrev: string): string {
+  return `${formatDayLabel(dateStr)} ${weekAbbrev}`;
 }
 
-function formatMonthLabel(dateStr: string): string {
+function formatMonthLabel(dateStr: string, months: string[]): string {
   const [y, m] = dateStr.split('-');
-  const MONTHS = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyn', 'Iyl', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek'];
-  return `${MONTHS[Number(m) - 1]} ${y}`;
+  return `${months[Number(m) - 1]} ${y}`;
 }
 
 function aggregateTrend(data: DailyTrendPoint[], granularity: Granularity): DailyTrendPoint[] {
@@ -85,9 +90,13 @@ function aggregateTrend(data: DailyTrendPoint[], granularity: Granularity): Dail
   return order.map((key) => buckets.get(key)!);
 }
 
-function trendLabelFormatter(granularity: Granularity): (dateStr: string) => string {
-  if (granularity === 'week') return formatWeekLabel;
-  if (granularity === 'month') return formatMonthLabel;
+function trendLabelFormatter(
+  granularity: Granularity,
+  weekAbbrev: string,
+  months: string[],
+): (dateStr: string) => string {
+  if (granularity === 'week') return (dateStr) => formatWeekLabel(dateStr, weekAbbrev);
+  if (granularity === 'month') return (dateStr) => formatMonthLabel(dateStr, months);
   return formatDayLabel;
 }
 
@@ -104,11 +113,13 @@ function TrendTooltip({
   payload,
   label,
   labelFormatter,
+  t,
 }: {
   active?: boolean;
   payload?: TooltipPayloadEntry[];
   label?: string;
   labelFormatter: (dateStr: string) => string;
+  t: (key: TranslationKey) => string;
 }) {
   if (!active || !payload || payload.length === 0) return null;
   const point = payload[0].payload;
@@ -118,22 +129,22 @@ function TrendTooltip({
       <div className="chart-tooltip-label">{labelFormatter(label ?? '')}</div>
       <div className="chart-tooltip-row">
         <span className="chart-tooltip-swatch" style={{ background: 'var(--primary)' }} />
-        <span>Yasalgan</span>
+        <span>{t('dashboard.seriesCreated')}</span>
         <strong>{point.created}</strong>
       </div>
       <div className="chart-tooltip-row">
         <span className="chart-tooltip-swatch" style={{ background: 'var(--success)' }} />
-        <span>Yopilgan</span>
+        <span>{t('dashboard.kpiClosed')}</span>
         <strong>{point.closed}</strong>
       </div>
       <div className="chart-tooltip-row">
         <span className="chart-tooltip-swatch" style={{ background: 'var(--priority-high)' }} />
-        <span>Ochiq (kumulyativ)</span>
+        <span>{t('dashboard.seriesOpenCumulative')}</span>
         <strong>{point.open > 0 ? `+${point.open}` : point.open}</strong>
       </div>
       <div className="chart-tooltip-row">
         <span className="chart-tooltip-swatch" style={{ background: 'transparent' }} />
-        <span>Throughput</span>
+        <span>{t('dashboard.throughput')}</span>
         <strong>{throughput}</strong>
       </div>
     </div>
@@ -141,9 +152,13 @@ function TrendTooltip({
 }
 
 export function TrendChart({ data, periodLabel }: { data: DailyTrendPoint[]; periodLabel: string }) {
+  const { language, t } = useLanguage();
+  const months = language === 'ru' ? MONTHS_RU : MONTHS_UZ;
+  const weekAbbrev = t('dashboard.weekAbbrev');
+  const GRANULARITY_OPTIONS = getGranularityOptions(t);
   const [granularity, setGranularity] = useState<Granularity>('day');
   const chartData = useMemo(() => aggregateTrend(data, granularity), [data, granularity]);
-  const labelFormatter = trendLabelFormatter(granularity);
+  const labelFormatter = trendLabelFormatter(granularity, weekAbbrev, months);
 
   const totalCreated = chartData.reduce((sum, p) => sum + p.created, 0);
   const totalClosed = chartData.reduce((sum, p) => sum + p.closed, 0);
@@ -156,18 +171,18 @@ export function TrendChart({ data, periodLabel }: { data: DailyTrendPoint[]; per
         <ul className="chart-legend chart-legend--inline">
           <li className="chart-legend-item">
             <span className="chart-legend-swatch" style={{ background: 'var(--primary)' }} />
-            <span className="chart-legend-name">Yasalgan</span>
+            <span className="chart-legend-name">{t('dashboard.seriesCreated')}</span>
           </li>
           <li className="chart-legend-item">
             <span className="chart-legend-swatch" style={{ background: 'var(--success)' }} />
-            <span className="chart-legend-name">Yopilgan</span>
+            <span className="chart-legend-name">{t('dashboard.kpiClosed')}</span>
           </li>
           <li className="chart-legend-item">
             <span className="chart-legend-swatch" style={{ background: 'var(--priority-high)' }} />
-            <span className="chart-legend-name">Ochiq qolganlar (kumulyativ)</span>
+            <span className="chart-legend-name">{t('dashboard.seriesRemainingOpenCumulative')}</span>
           </li>
         </ul>
-        <div className="segmented-control" role="group" aria-label="Davr kesimi">
+        <div className="segmented-control" role="group" aria-label={t('dashboard.periodGroupLabel')}>
           {GRANULARITY_OPTIONS.map((opt) => (
             <button
               key={opt.key}
@@ -203,11 +218,14 @@ export function TrendChart({ data, periodLabel }: { data: DailyTrendPoint[]; per
             minTickGap={24}
           />
           <YAxis allowDecimals={false} stroke="var(--text-tertiary)" fontSize={11} tickLine={false} axisLine={false} width={32} />
-          <Tooltip content={<TrendTooltip labelFormatter={labelFormatter} />} cursor={{ stroke: 'var(--border-strong)', strokeWidth: 1 }} />
+          <Tooltip
+            content={<TrendTooltip labelFormatter={labelFormatter} t={t} />}
+            cursor={{ stroke: 'var(--border-strong)', strokeWidth: 1 }}
+          />
           <Area
             type="monotone"
             dataKey="created"
-            name="Yasalgan"
+            name={t('dashboard.seriesCreated')}
             stroke="var(--primary)"
             strokeWidth={2.5}
             fill="url(#trendCreatedFill)"
@@ -217,7 +235,7 @@ export function TrendChart({ data, periodLabel }: { data: DailyTrendPoint[]; per
           <Area
             type="monotone"
             dataKey="closed"
-            name="Yopilgan"
+            name={t('dashboard.kpiClosed')}
             stroke="var(--success)"
             strokeWidth={2.5}
             fill="url(#trendClosedFill)"
@@ -227,7 +245,7 @@ export function TrendChart({ data, periodLabel }: { data: DailyTrendPoint[]; per
           <Line
             type="monotone"
             dataKey="open"
-            name="Ochiq qolganlar"
+            name={t('dashboard.seriesRemainingOpen')}
             stroke="var(--priority-high)"
             strokeWidth={2}
             strokeDasharray="4 3"
@@ -238,11 +256,12 @@ export function TrendChart({ data, periodLabel }: { data: DailyTrendPoint[]; per
       </ResponsiveContainer>
       {hasData ? (
         <p className="chart-summary-note">
-          {periodLabel}: <strong>{totalCreated}</strong> ta yasaldi, <strong>{totalClosed}</strong> ta yopildi,
-          throughput: <strong>{throughput}</strong>
+          {periodLabel}: <strong>{totalCreated}</strong> {t('dashboard.trendSummaryCreatedSuffix')},{' '}
+          <strong>{totalClosed}</strong> {t('dashboard.trendSummaryClosedSuffix')}, {t('dashboard.throughput')}:{' '}
+          <strong>{throughput}</strong>
         </p>
       ) : (
-        <p className="chart-empty-note">Hozircha maʼlumot yoʻq — murojaatlar kelib tushishi bilan grafik to'ladi.</p>
+        <p className="chart-empty-note">{t('dashboard.noDataChartNote')}</p>
       )}
     </>
   );

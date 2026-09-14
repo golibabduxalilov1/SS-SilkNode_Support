@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { formatDayLabel } from '../../pages/Dashboard';
 import { EmptyState } from '../ui';
 import { IconSearch } from '../icons';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 export interface WorkloadHeatmapEntry {
   userId: string;
@@ -27,6 +28,7 @@ function intensityTier(count: number, max: number): number {
 }
 
 export function WorkloadHeatmap({ data, assignees }: { data: WorkloadHeatmapPoint[]; assignees: AssigneeOption[] }) {
+  const { t } = useLanguage();
   const { rows, max } = useMemo(() => {
     const countsByAssignee = new Map<string, number[]>();
     for (const a of assignees) countsByAssignee.set(a.userId, new Array(data.length).fill(0));
@@ -60,8 +62,8 @@ export function WorkloadHeatmap({ data, assignees }: { data: WorkloadHeatmapPoin
     return (
       <EmptyState
         icon={<IconSearch width={22} height={22} />}
-        title="Bu davrda yuklama ma'lumoti yo'q"
-        description="Tanlangan davrda hech kimga murojaat tayinlanmagan."
+        title={t('dashboard.heatmapEmptyTitle')}
+        description={t('dashboard.heatmapEmptyDescription')}
       />
     );
   }
@@ -86,7 +88,10 @@ export function WorkloadHeatmap({ data, assignees }: { data: WorkloadHeatmapPoin
               <div
                 key={data[i].date}
                 className={`heatmap-cell heatmap-cell--tier${intensityTier(count, max)}`}
-                title={`${row.name} · ${formatDayLabel(data[i].date)}: ${count} ta`}
+                title={t('dashboard.heatmapCellTitleTemplate')
+                  .replace('{name}', row.name)
+                  .replace('{date}', formatDayLabel(data[i].date))
+                  .replace('{count}', String(count))}
               >
                 {count > 0 ? count : ''}
               </div>
@@ -95,11 +100,11 @@ export function WorkloadHeatmap({ data, assignees }: { data: WorkloadHeatmapPoin
         ))}
       </div>
       <div className="heatmap-legend">
-        <span>Kam</span>
+        <span>{t('dashboard.heatmapLow')}</span>
         {Array.from({ length: INTENSITY_TIERS + 1 }).map((_, i) => (
           <span key={i} className={`heatmap-cell heatmap-cell--tier${i} heatmap-legend-swatch`} />
         ))}
-        <span>Ko'p</span>
+        <span>{t('dashboard.heatmapHigh')}</span>
       </div>
     </div>
   );

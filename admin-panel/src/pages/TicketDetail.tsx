@@ -6,6 +6,7 @@ import { IconChevronLeft, IconEdit, IconFileText, IconInbox, IconPaperclip, Icon
 import { Avatar, EmptyState } from '../components/ui';
 import { formatFileSize } from '../utils/formatFileSize';
 import { formatDurationMinutes } from '../utils/formatDuration';
+import { TranslationKey, useLanguage } from '../i18n/LanguageContext';
 
 interface Attachment {
   id: string;
@@ -51,20 +52,24 @@ interface Ticket {
   assignedTo?: { id: string; fullname: string | null } | null;
 }
 
-const STATUS_OPTIONS = [
-  { value: 'new', label: 'Yangi' },
-  { value: 'in_progress', label: 'Jarayonda' },
-  { value: 'waiting_user', label: 'Foydalanuvchi javobi kutilmoqda' },
-  { value: 'resolved', label: 'Yechilgan' },
-  { value: 'closed', label: 'Yopilgan' },
-];
+function getStatusOptions(t: (key: TranslationKey) => string) {
+  return [
+    { value: 'new', label: t('ticketFields.statusNew') },
+    { value: 'in_progress', label: t('ticketFields.statusInProgress') },
+    { value: 'waiting_user', label: t('ticketFields.statusWaitingUserLong') },
+    { value: 'resolved', label: t('ticketFields.statusResolved') },
+    { value: 'closed', label: t('ticketFields.statusClosed') },
+  ];
+}
 
-const PRIORITY_OPTIONS = [
-  { value: 'low', label: 'Past' },
-  { value: 'medium', label: "O'rta" },
-  { value: 'high', label: 'Yuqori' },
-  { value: 'critical', label: 'Kritik' },
-];
+function getPriorityOptions(t: (key: TranslationKey) => string) {
+  return [
+    { value: 'low', label: t('ticketFields.priorityLow') },
+    { value: 'medium', label: t('ticketFields.priorityMedium') },
+    { value: 'high', label: t('ticketFields.priorityHigh') },
+    { value: 'critical', label: t('ticketFields.priorityCritical') },
+  ];
+}
 
 const REPLY_MODE_STORAGE_KEY = 'silknode_reply_mode';
 
@@ -81,6 +86,10 @@ function toDateTimeLocalValue(date: Date): string {
 export function TicketDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { language, t } = useLanguage();
+  const dateLocale = language === 'ru' ? 'ru-RU' : 'uz-UZ';
+  const STATUS_OPTIONS = getStatusOptions(t);
+  const PRIORITY_OPTIONS = getPriorityOptions(t);
 
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -173,7 +182,7 @@ export function TicketDetailPage() {
       setTicket(res.data.data);
       setIsEditingClosedAt(false);
     } catch (err: any) {
-      setClosedAtError(err?.response?.data?.error?.message ?? 'Xatolik yuz berdi.');
+      setClosedAtError(err?.response?.data?.error?.message ?? t('ticketDetail.genericError'));
     } finally {
       setIsSavingClosedAt(false);
     }
@@ -198,7 +207,7 @@ export function TicketDetailPage() {
       link.remove();
       URL.revokeObjectURL(blobUrl);
     } catch {
-      setError('Faylni yuklab bo\'lmadi.');
+      setError(t('ticketDetail.downloadError'));
     }
   };
 
@@ -222,7 +231,7 @@ export function TicketDetailPage() {
       const messagesRes = await api.get(`/admin/tickets/${id}/messages`);
       setMessages(messagesRes.data.data);
     } catch (err: any) {
-      setError(err?.response?.data?.error?.message ?? 'Xatolik yuz berdi.');
+      setError(err?.response?.data?.error?.message ?? t('ticketDetail.genericError'));
     } finally {
       setIsSending(false);
     }
@@ -230,7 +239,7 @@ export function TicketDetailPage() {
 
   if (isLoading) {
     return (
-      <AppShell title="Yuklanmoqda…" breadcrumb="Dashboard / Murojaat">
+      <AppShell title={t('ticketDetail.loading')} breadcrumb={t('ticketDetail.breadcrumb')}>
         <div className="table-wrap" style={{ padding: 24 }}>
           <div className="skeleton skeleton-line" style={{ width: '40%', marginBottom: 12 }} />
           <div className="skeleton skeleton-line" style={{ width: '70%', marginBottom: 12 }} />
@@ -242,22 +251,22 @@ export function TicketDetailPage() {
 
   if (!ticket) {
     return (
-      <AppShell title="Murojaat" breadcrumb="Dashboard / Murojaat">
+      <AppShell title={t('ticketDetail.title')} breadcrumb={t('ticketDetail.breadcrumb')}>
         <EmptyState
           icon={<IconInbox width={24} height={24} />}
-          title="Murojaat topilmadi"
-          description="Bu murojaat o'chirilgan yoki mavjud emas bo'lishi mumkin."
+          title={t('ticketDetail.notFound')}
+          description={t('ticketDetail.notFoundDescription')}
         />
       </AppShell>
     );
   }
 
   return (
-    <AppShell title={`#${ticket.number}`} breadcrumb="Dashboard / Murojaatlar">
+    <AppShell title={`#${ticket.number}`} breadcrumb={t('ticketDetail.breadcrumbList')}>
       <div className="ticket-detail-page">
       <button className="btn btn-ghost btn-sm page-back-btn" onClick={() => navigate('/tickets')}>
         <IconChevronLeft width={15} height={15} />
-        Murojaatlar
+        {t('ticketDetail.backToList')}
       </button>
       <div className="ticket-summary-card">
         <div className="ticket-summary-top">
@@ -267,7 +276,7 @@ export function TicketDetailPage() {
           </div>
           <div className="ticket-summary-badges ticket-summary-controls">
             <label>
-              Holat
+              {t('ticketDetail.status')}
               <select value={ticket.status} onChange={(e) => handleStatusChange(e.target.value)}>
                 {STATUS_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
@@ -278,12 +287,12 @@ export function TicketDetailPage() {
             </label>
 
             <label>
-              Ijrochi
+              {t('ticketDetail.assignee')}
               <select
                 value={ticket.assignedTo?.id ?? ''}
                 onChange={(e) => handleAssign(e.target.value)}
               >
-                <option value="">Tayinlanmagan</option>
+                <option value="">{t('ticketDetail.unassigned')}</option>
                 {admins.map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.fullname ?? a.id} ({a.role})
@@ -293,7 +302,7 @@ export function TicketDetailPage() {
             </label>
 
             <label>
-              Muhimlik
+              {t('ticketDetail.priority')}
               <select
                 className={`priority-select priority-select--${ticket.priority}`}
                 value={ticket.priority}
@@ -311,11 +320,11 @@ export function TicketDetailPage() {
 
         <div className="ticket-summary-meta">
           <div className="ticket-summary-meta-item">
-            <span className="ticket-summary-meta-label">Tashkilot</span>
+            <span className="ticket-summary-meta-label">{t('ticketDetail.organization')}</span>
             <span className="ticket-summary-meta-value">{ticket.organization?.name ?? '—'}</span>
           </div>
           <div className="ticket-summary-meta-item">
-            <span className="ticket-summary-meta-label">Foydalanuvchi</span>
+            <span className="ticket-summary-meta-label">{t('ticketDetail.user')}</span>
             <span className="ticket-summary-meta-value">
               {ticket.requesterName ?? ticket.createdBy?.fullname ?? '—'}
               {(ticket.requesterPhone ?? ticket.createdBy?.phoneNumber) && (
@@ -327,19 +336,19 @@ export function TicketDetailPage() {
             </span>
           </div>
           <div className="ticket-summary-meta-item">
-            <span className="ticket-summary-meta-label">Kategoriya</span>
+            <span className="ticket-summary-meta-label">{t('ticketDetail.category')}</span>
             <span className="ticket-summary-meta-value">{ticket.categoryEntity?.name ?? '—'}</span>
           </div>
           <div className="ticket-summary-meta-item">
-            <span className="ticket-summary-meta-label">Yasaldi</span>
+            <span className="ticket-summary-meta-label">{t('ticketDetail.createdAt')}</span>
             <span className="ticket-summary-meta-value">
-              {new Date(ticket.createdAt).toLocaleString('uz-UZ')}
+              {new Date(ticket.createdAt).toLocaleString(dateLocale)}
             </span>
           </div>
           <div className="ticket-summary-meta-item">
-            <span className="ticket-summary-meta-label">Yakunlangan vaqti</span>
+            <span className="ticket-summary-meta-label">{t('ticketDetail.closedAtLabel')}</span>
             <span className="ticket-summary-meta-value">
-              {ticket.closedAt ? new Date(ticket.closedAt).toLocaleString('uz-UZ') : '—'}
+              {ticket.closedAt ? new Date(ticket.closedAt).toLocaleString(dateLocale) : '—'}
             </span>
           </div>
           <div className="ticket-summary-meta-item">
@@ -351,15 +360,11 @@ export function TicketDetailPage() {
                 }`}
                 onClick={handleStartEditClosedAt}
                 aria-disabled={!canEditClosedAt}
-                title={
-                  canEditClosedAt
-                    ? "Yopilish vaqtini o'zgartirish"
-                    : "Yopish vaqtini faqat murojaat yopilgandan keyin tahrirlash mumkin"
-                }
+                title={canEditClosedAt ? t('ticketDetail.editClosedAt') : t('ticketDetail.editClosedAtDisabled')}
               >
                 <IconEdit width={12} height={12} />
               </button>
-              Yopilish vaqti
+              {t('ticketDetail.closedAtLabel')}
             </span>
             {isEditingClosedAt ? (
               <div className="ticket-summary-meta-edit">
@@ -375,7 +380,7 @@ export function TicketDetailPage() {
                     onClick={handleSaveClosedAt}
                     disabled={isSavingClosedAt || !closedAtDraft}
                   >
-                    {isSavingClosedAt ? 'Saqlanmoqda...' : 'Saqlash'}
+                    {isSavingClosedAt ? t('common.saving') : t('common.save')}
                   </button>
                   <button
                     type="button"
@@ -383,7 +388,7 @@ export function TicketDetailPage() {
                     onClick={handleCancelEditClosedAt}
                     disabled={isSavingClosedAt}
                   >
-                    Bekor qilish
+                    {t('common.cancel')}
                   </button>
                 </div>
                 {closedAtError && <p className="form-error">{closedAtError}</p>}
@@ -397,7 +402,7 @@ export function TicketDetailPage() {
         </div>
 
         <div className="ticket-summary-description">
-          <span className="ticket-summary-meta-label">Tavsif</span>
+          <span className="ticket-summary-meta-label">{t('ticketDetail.description')}</span>
           <p>{ticket.description}</p>
         </div>
       </div>
@@ -405,14 +410,15 @@ export function TicketDetailPage() {
       {messages.length === 0 ? (
         <EmptyState
           icon={<IconInbox width={22} height={22} />}
-          title="Hozircha xabarlar yo'q"
-          description="Suhbat boshlanishi bilan xabarlar shu yerda ko'rinadi."
+          title={t('ticketDetail.noMessages')}
+          description={t('ticketDetail.noMessagesDescription')}
         />
       ) : (
         <div className="chat">
           {messages.map((m) => {
             const isAdmin = m.sender && m.sender.role !== 'user';
             const isInternal = m.visibility === 'internal';
+            const senderName = m.sender?.fullname ?? (isAdmin ? t('ticketDetail.admin') : t('ticketDetail.user_'));
             return (
               <div
                 key={m.id}
@@ -421,10 +427,9 @@ export function TicketDetailPage() {
                 }`}
               >
                 <div className="chat-message-meta">
-                  <Avatar name={m.sender?.fullname ?? (isAdmin ? 'Admin' : 'Foydalanuvchi')} size="sm" />{' '}
-                  {m.sender?.fullname ?? (isAdmin ? 'Admin' : 'Foydalanuvchi')} ·{' '}
-                  {new Date(m.createdAt).toLocaleString('uz-UZ')}
-                  {isInternal && <span className="chat-message-internal-badge">Ichki eslatma</span>}
+                  <Avatar name={senderName} size="sm" /> {senderName} ·{' '}
+                  {new Date(m.createdAt).toLocaleString(dateLocale)}
+                  {isInternal && <span className="chat-message-internal-badge">{t('ticketDetail.internalNote')}</span>}
                 </div>
                 <div className="chat-message-text">{m.text}</div>
                 {m.attachments && m.attachments.length > 0 && (
@@ -433,12 +438,12 @@ export function TicketDetailPage() {
                       <span className="chat-message-attachments-icon">
                         <IconPaperclip width={13} height={13} />
                       </span>
-                      Файлы и документы
+                      {t('ticketDetail.filesAndDocs')}
                     </div>
                     {m.attachments.map((a) => {
                       const isImage = a.mimeType?.startsWith('image/');
                       const size = formatFileSize(a.sizeBytes);
-                      const date = a.createdAt ? new Date(a.createdAt).toLocaleDateString('ru-RU') : '';
+                      const date = a.createdAt ? new Date(a.createdAt).toLocaleDateString(dateLocale) : '';
                       return (
                         <button
                           key={a.id}
@@ -479,7 +484,7 @@ export function TicketDetailPage() {
             className={`reply-mode-option ${replyMode === 'public' ? 'reply-mode-option--active' : ''}`}
             onClick={() => handleReplyModeChange('public')}
           >
-            Mijozga javob
+            {t('ticketDetail.replyToCustomer')}
           </button>
           <button
             type="button"
@@ -488,24 +493,24 @@ export function TicketDetailPage() {
             className={`reply-mode-option ${replyMode === 'internal' ? 'reply-mode-option--active' : ''}`}
             onClick={() => handleReplyModeChange('internal')}
           >
-            Ichki eslatma
+            {t('ticketDetail.internalNoteTab')}
           </button>
         </div>
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder={replyMode === 'internal' ? 'Ichki eslatma yozing...' : 'Javob yozing...'}
+          placeholder={replyMode === 'internal' ? t('ticketDetail.internalNotePlaceholder') : t('ticketDetail.replyPlaceholder')}
           rows={3}
         />
         <div className="chat-form-row">
           <label className="file-input">
             <IconPaperclip width={14} height={14} />
-            {file ? file.name : 'Fayl biriktirish'}
+            {file ? file.name : t('ticketDetail.attachFile')}
             <input type="file" onChange={handleFileChange} style={{ display: 'none' }} />
           </label>
           <button className="btn btn-primary btn-sm" type="submit" disabled={isSending}>
             <IconSend width={14} height={14} />
-            {isSending ? 'Yuborilmoqda...' : replyMode === 'internal' ? 'Eslatma qo\'shish' : 'Yuborish'}
+            {isSending ? t('ticketDetail.sending') : replyMode === 'internal' ? t('ticketDetail.addNote') : t('ticketDetail.send')}
           </button>
         </div>
         {error && <p className="form-error">{error}</p>}

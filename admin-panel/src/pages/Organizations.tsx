@@ -5,6 +5,7 @@ import { AppShell } from '../components/AppShell';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { IconBuilding, IconClose, IconEdit, IconPlus, IconPower, IconTrash } from '../components/icons';
 import { EmptyState, TableSkeleton } from '../components/ui';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface Organization {
   id: string;
@@ -39,6 +40,7 @@ function OrganizationModal({
   isSaving: boolean;
   error: string | null;
 }) {
+  const { t } = useLanguage();
   const [name, setName] = useState(initial.name);
   const [description, setDescription] = useState(initial.description);
   const [colorTag, setColorTag] = useState(initial.colorTag);
@@ -79,8 +81,8 @@ function OrganizationModal({
           <span className="modal-header-icon">
             <IconBuilding width={18} height={18} />
           </span>
-          <h3>{mode === 'create' ? 'Yangi tashkilot' : 'Tashkilotni tahrirlash'}</h3>
-          <button type="button" className="modal-close" onClick={onClose} aria-label="Yopish">
+          <h3>{mode === 'create' ? t('organizations.createTitle') : t('organizations.editTitle')}</h3>
+          <button type="button" className="modal-close" onClick={onClose} aria-label={t('common.close')}>
             <IconClose width={18} height={18} />
           </button>
         </div>
@@ -88,26 +90,26 @@ function OrganizationModal({
           <div className="modal-body">
             {error && <p className="form-error">{error}</p>}
             <label className="modal-field">
-              <span>Nomi</span>
+              <span>{t('organizations.name')}</span>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Tashkilot nomi"
+                placeholder={t('organizations.namePlaceholder')}
                 required
                 autoFocus
               />
             </label>
             <label className="modal-field">
-              <span>Tavsif (ixtiyoriy)</span>
+              <span>{t('organizations.description')}</span>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Tashkilot haqida qisqacha izoh"
+                placeholder={t('organizations.descriptionPlaceholder')}
                 rows={3}
               />
             </label>
             <label className="modal-field modal-field--color">
-              <span>Rangli teg (ixtiyoriy)</span>
+              <span>{t('organizations.colorTag')}</span>
               <div className="color-tag-input">
                 <input
                   type="color"
@@ -116,7 +118,7 @@ function OrganizationModal({
                 />
                 {colorTag && (
                   <button type="button" className="btn btn-ghost btn-sm" onClick={() => setColorTag('')}>
-                    Tozalash
+                    {t('organizations.clear')}
                   </button>
                 )}
               </div>
@@ -124,10 +126,10 @@ function OrganizationModal({
           </div>
           <div className="modal-footer">
             <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSaving}>
-              Bekor qilish
+              {t('common.cancel')}
             </button>
             <button className="btn btn-primary" type="submit" disabled={disabled}>
-              {isSaving ? 'Saqlanmoqda...' : 'Saqlash'}
+              {isSaving ? t('common.saving') : t('common.save')}
             </button>
           </div>
         </form>
@@ -138,6 +140,7 @@ function OrganizationModal({
 }
 
 export function OrganizationsPage() {
+  const { t } = useLanguage();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -194,9 +197,7 @@ export function OrganizationsPage() {
       setModalOpen(false);
       load();
     } catch {
-      setModalError(
-        modalMode === 'create' ? "Tashkilot yasab bo'lmadi." : "Tashkilot nomini o'zgartirib bo'lmadi.",
-      );
+      setModalError(modalMode === 'create' ? t('organizations.createError') : t('organizations.editError'));
     } finally {
       setIsSaving(false);
     }
@@ -217,17 +218,17 @@ export function OrganizationsPage() {
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
-          ?.message ?? "Tashkilotni o'chirib bo'lmadi.";
+          ?.message ?? t('organizations.deleteError');
       setError(message);
     }
   };
 
   return (
-    <AppShell title="Tashkilotlar" breadcrumb="Dashboard / Tashkilotlar">
+    <AppShell title={t('organizations.title')} breadcrumb={t('organizations.breadcrumb')}>
       <div className="toolbar">
         <button className="btn btn-primary" type="button" onClick={openCreateModal}>
           <IconPlus width={15} height={15} />
-          Qo'shish
+          {t('organizations.add')}
         </button>
       </div>
       {error && <p className="form-error">{error}</p>}
@@ -237,16 +238,16 @@ export function OrganizationsPage() {
       ) : organizations.length === 0 ? (
         <EmptyState
           icon={<IconBuilding width={24} height={24} />}
-          title="Hozircha tashkilotlar yo'q"
-          description="Yuqoridagi tugma orqali birinchi tashkilotni qo'shing."
+          title={t('organizations.empty')}
+          description={t('organizations.emptyDescription')}
         />
       ) : (
         <div className="table-wrap">
           <table className="tickets-table tickets-table--equal organizations-table">
             <thead>
               <tr>
-                <th>Nomi</th>
-                <th>Holati</th>
+                <th>{t('organizations.colName')}</th>
+                <th>{t('organizations.colStatus')}</th>
                 <th></th>
               </tr>
             </thead>
@@ -269,21 +270,21 @@ export function OrganizationsPage() {
                   </td>
                   <td>
                     <span className={`status status--${o.isActive ? 'active' : 'inactive'}`}>
-                      {o.isActive ? 'Faol' : "Nofaol"}
+                      {o.isActive ? t('organizations.active') : t('organizations.inactive')}
                     </span>
                   </td>
                   <td className="table-actions">
                     <button onClick={() => openEditModal(o)}>
                       <IconEdit width={13} height={13} />
-                      Tahrirlash
+                      {t('organizations.edit')}
                     </button>
                     <button onClick={() => handleToggleActive(o)}>
                       <IconPower width={13} height={13} />
-                      {o.isActive ? 'Nofaollashtirish' : 'Faollashtirish'}
+                      {o.isActive ? t('organizations.deactivate') : t('organizations.activate')}
                     </button>
                     <button className="danger" onClick={() => setOrgToDelete(o)}>
                       <IconTrash width={13} height={13} />
-                      O'chirish
+                      {t('organizations.delete')}
                     </button>
                   </td>
                 </tr>
@@ -313,11 +314,9 @@ export function OrganizationsPage() {
 
       <ConfirmModal
         isOpen={!!orgToDelete}
-        title="Tashkilotni o'chirish"
+        title={t('organizations.deleteTitle')}
         message={
-          orgToDelete
-            ? `"${orgToDelete.name}" tashkilotini o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.`
-            : ''
+          orgToDelete ? t('organizations.deleteConfirmTemplate').replace('{name}', orgToDelete.name) : ''
         }
         onConfirm={handleDelete}
         onCancel={() => setOrgToDelete(null)}

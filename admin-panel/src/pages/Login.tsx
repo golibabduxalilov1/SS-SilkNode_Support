@@ -2,6 +2,7 @@ import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
+import { useLanguage } from '../i18n/LanguageContext';
 import {
   IconAlert,
   IconClock,
@@ -14,21 +15,22 @@ import {
   IconUsers,
 } from '../components/icons';
 
-const FEATURES = [
-  { icon: IconGrid, label: 'Murojaatlarni yagona panelda boshqarish' },
-  { icon: IconUsers, label: "Jamoa a'zolari bilan hamkorlikda ishlash" },
-  { icon: IconClock, label: 'Real vaqt rejimida holatni kuzatish' },
-];
-
 /** POST /api/v1/admin/auth/login — bo'lim 5.3, Mini App'dan mustaqil kirish. */
 export function LoginPage() {
   const { login } = useAuth();
+  const { language, toggleLanguage, t } = useLanguage();
   const navigate = useNavigate();
   const [loginValue, setLoginValue] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const FEATURES = [
+    { icon: IconGrid, label: t('login.feature1') },
+    { icon: IconUsers, label: t('login.feature2') },
+    { icon: IconClock, label: t('login.feature3') },
+  ];
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -43,7 +45,7 @@ export function LoginPage() {
       login(accessToken, user);
       navigate('/dashboard', { replace: true });
     } catch {
-      setError("Login yoki parol noto'g'ri.");
+      setError(t('login.invalidCredentials'));
     } finally {
       setIsSubmitting(false);
     }
@@ -51,6 +53,15 @@ export function LoginPage() {
 
   return (
     <div className="login-page">
+      <button
+        type="button"
+        className="lang-toggle login-lang-toggle"
+        onClick={toggleLanguage}
+        aria-label={t('appShell.switchLanguage')}
+        title={t('appShell.switchLanguage')}
+      >
+        {language === 'uz' ? 'UZ' : 'RU'}
+      </button>
       <aside className="login-showcase">
         <div className="login-showcase-glow" />
         <div className="login-showcase-content">
@@ -60,7 +71,7 @@ export function LoginPage() {
             </span>
             <h2>Silknode Support</h2>
           </div>
-          <p>Mijozlar murojaatlarini tez, tartibli va nazorat ostida boshqaring.</p>
+          <p>{t('login.tagline')}</p>
           <ul className="login-showcase-features">
             {FEATURES.map(({ icon: Icon, label }) => (
               <li key={label}>
@@ -81,12 +92,12 @@ export function LoginPage() {
             <img src="/logo.png" alt="Silknode" />
           </span>
           <div className="login-form-heading">
-            <h1>Xush kelibsiz</h1>
-            <p className="subtitle">Davom etish uchun tizimga kiring</p>
+            <h1>{t('login.welcome')}</h1>
+            <p className="subtitle">{t('login.subtitle')}</p>
           </div>
 
           <label className="login-field">
-            Login
+            {t('login.login')}
             <div className="login-input-wrap">
               <IconUser className="login-input-icon" width={17} height={17} />
               <input
@@ -100,7 +111,7 @@ export function LoginPage() {
           </label>
 
           <label className="login-field login-field-password">
-            Parol
+            {t('login.password')}
             <div className="login-input-wrap">
               <IconLock className="login-input-icon" width={17} height={17} />
               <input
@@ -114,7 +125,7 @@ export function LoginPage() {
                 type="button"
                 className="login-input-toggle"
                 onClick={() => setShowPassword((v) => !v)}
-                aria-label={showPassword ? 'Parolni yashirish' : "Parolni ko'rsatish"}
+                aria-label={showPassword ? t('login.hidePassword') : t('login.showPassword')}
                 tabIndex={-1}
               >
                 {showPassword ? <IconEyeOff width={17} height={17} /> : <IconEye width={17} height={17} />}
@@ -131,7 +142,7 @@ export function LoginPage() {
 
           <button type="submit" className="login-submit" disabled={isSubmitting}>
             {isSubmitting && <IconSpinner className="login-submit-spinner" width={16} height={16} />}
-            {isSubmitting ? 'Kirilmoqda...' : 'Kirish'}
+            {isSubmitting ? t('login.signingIn') : t('login.signIn')}
           </button>
         </form>
       </main>

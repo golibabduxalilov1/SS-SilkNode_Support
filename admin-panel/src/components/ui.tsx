@@ -1,11 +1,7 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { IconClose, IconFilter } from './icons';
+import { useLanguage } from '../i18n/LanguageContext';
 
-/** T16 — kategoriya select'larida ikki klaster ("Yo'nalish" / "Mahsulot/tizim") bo'yicha optgroup. */
-const CATEGORY_CLUSTER_LABELS: Record<string, string> = {
-  yonalish: "Yo'nalish",
-  mahsulot: 'Mahsulot/tizim',
-};
 const CATEGORY_CLUSTER_ORDER = ['yonalish', 'mahsulot'];
 
 export function CategoryOptionGroups({
@@ -13,6 +9,11 @@ export function CategoryOptionGroups({
 }: {
   categories: { id: string; name: string; cluster?: string }[];
 }) {
+  const { t } = useLanguage();
+  const CATEGORY_CLUSTER_LABELS: Record<string, string> = {
+    yonalish: t('ui.clusterDirection'),
+    mahsulot: t('ui.clusterProduct'),
+  };
   return (
     <>
       {CATEGORY_CLUSTER_ORDER.map((cluster) => {
@@ -97,6 +98,7 @@ export function Pagination({
   onPageSizeChange?: (size: number) => void;
   pageSizeOptions?: number[];
 }) {
+  const { t } = useLanguage();
   const showRange = totalItems !== undefined && pageSize !== undefined && totalItems > 0;
   if (totalPages <= 1 && !showRange) return null;
 
@@ -116,7 +118,10 @@ export function Pagination({
     <div className="pagination">
       {showRange && (
         <span className="pagination-range">
-          {rangeStart}–{rangeEnd} / {totalItems} ta
+          {t('ui.rangeTemplate')
+            .replace('{start}', String(rangeStart))
+            .replace('{end}', String(rangeEnd))
+            .replace('{total}', String(totalItems))}
         </span>
       )}
       {totalPages > 1 && (
@@ -127,7 +132,7 @@ export function Pagination({
             disabled={page <= 1}
             onClick={() => onChange(page - 1)}
           >
-            Oldingi
+            {t('ui.prev')}
           </button>
           <div className="pagination-pages">
             {pages.map((p, i) =>
@@ -153,13 +158,13 @@ export function Pagination({
             disabled={page >= totalPages}
             onClick={() => onChange(page + 1)}
           >
-            Keyingi
+            {t('ui.next')}
           </button>
         </>
       )}
       {onPageSizeChange && pageSize !== undefined && (
         <label className="pagination-page-size">
-          Sahifada
+          {t('ui.perPage')}
           <select value={pageSize} onChange={(e) => onPageSizeChange(Number(e.target.value))}>
             {pageSizeOptions.map((size) => (
               <option key={size} value={size}>
@@ -193,6 +198,7 @@ export function TableSkeleton({ rows = 5, cols = 6 }: { rows?: number; cols?: nu
  * (ochiq bo'lganda) fixed bottom-sheet sifatida ko'rsatadi, shu bilan filtr state'i ikkilanmaydi.
  */
 export function MobileFilterDrawer({ activeCount, children }: { activeCount: number; children: ReactNode }) {
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
@@ -205,16 +211,17 @@ export function MobileFilterDrawer({ activeCount, children }: { activeCount: num
     <>
       <button type="button" className="mobile-filter-toggle" onClick={() => setIsOpen(true)}>
         <IconFilter width={14} height={14} />
-        Filtrlar{activeCount > 0 ? ` (${activeCount})` : ''}
+        {t('ui.filters')}
+        {activeCount > 0 ? ` (${activeCount})` : ''}
       </button>
       {isOpen && <div className="mobile-filter-backdrop" onClick={() => setIsOpen(false)} />}
       <div className={`mobile-filter-drawer${isOpen ? ' mobile-filter-drawer--open' : ''}`}>
         <div className="mobile-filter-drawer-head">
-          <span>Filtrlar</span>
+          <span>{t('ui.filters')}</span>
           <button
             type="button"
             className="mobile-filter-drawer-close"
-            aria-label="Filtrlarni yopish"
+            aria-label={t('ui.closeFilters')}
             onClick={() => setIsOpen(false)}
           >
             <IconClose width={16} height={16} />

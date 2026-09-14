@@ -5,16 +5,18 @@ import { AppShell } from '../components/AppShell';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { IconClose, IconEdit, IconLayers, IconPlus, IconPower, IconTrash } from '../components/icons';
 import { EmptyState, TableSkeleton } from '../components/ui';
+import { TranslationKey, useLanguage } from '../i18n/LanguageContext';
 
 type Cluster = 'yonalish' | 'mahsulot';
 
-/** T16 — minimal klasterlash: "Yo'nalish" (umumiy soha, masalan CRM/ERP) vs "Mahsulot/tizim" (brend, masalan Silknode Adminka). */
-export const CLUSTER_LABELS: Record<Cluster, string> = {
-  yonalish: "Yo'nalish",
-  mahsulot: 'Mahsulot/tizim',
-};
-
 export const CLUSTER_ORDER: Cluster[] = ['yonalish', 'mahsulot'];
+
+function getClusterLabels(t: (key: TranslationKey) => string): Record<Cluster, string> {
+  return {
+    yonalish: t('categories.clusterDirection'),
+    mahsulot: t('categories.clusterProduct'),
+  };
+}
 
 interface Category {
   id: string;
@@ -51,6 +53,8 @@ function CategoryModal({
   isSaving: boolean;
   error: string | null;
 }) {
+  const { t } = useLanguage();
+  const CLUSTER_LABELS = getClusterLabels(t);
   const [name, setName] = useState(initial.name);
   const [description, setDescription] = useState(initial.description);
   const [colorTag, setColorTag] = useState(initial.colorTag);
@@ -93,8 +97,8 @@ function CategoryModal({
           <span className="modal-header-icon">
             <IconLayers width={18} height={18} />
           </span>
-          <h3>{mode === 'create' ? 'Yangi kategoriya' : 'Kategoriyani tahrirlash'}</h3>
-          <button type="button" className="modal-close" onClick={onClose} aria-label="Yopish">
+          <h3>{mode === 'create' ? t('categories.createTitle') : t('categories.editTitle')}</h3>
+          <button type="button" className="modal-close" onClick={onClose} aria-label={t('common.close')}>
             <IconClose width={18} height={18} />
           </button>
         </div>
@@ -102,17 +106,17 @@ function CategoryModal({
           <div className="modal-body">
             {error && <p className="form-error">{error}</p>}
             <label className="modal-field">
-              <span>Nomi</span>
+              <span>{t('categories.name')}</span>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Kategoriya nomi"
+                placeholder={t('categories.namePlaceholder')}
                 required
                 autoFocus
               />
             </label>
             <label className="modal-field">
-              <span>Klaster</span>
+              <span>{t('categories.cluster')}</span>
               <select value={cluster} onChange={(e) => setCluster(e.target.value as Cluster)}>
                 {CLUSTER_ORDER.map((c) => (
                   <option key={c} value={c}>
@@ -122,16 +126,16 @@ function CategoryModal({
               </select>
             </label>
             <label className="modal-field">
-              <span>Tavsif (ixtiyoriy)</span>
+              <span>{t('categories.description')}</span>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Kategoriya haqida qisqacha izoh"
+                placeholder={t('categories.descriptionPlaceholder')}
                 rows={3}
               />
             </label>
             <label className="modal-field modal-field--color">
-              <span>Rangli teg (ixtiyoriy)</span>
+              <span>{t('categories.colorTag')}</span>
               <div className="color-tag-input">
                 <input
                   type="color"
@@ -140,7 +144,7 @@ function CategoryModal({
                 />
                 {colorTag && (
                   <button type="button" className="btn btn-ghost btn-sm" onClick={() => setColorTag('')}>
-                    Tozalash
+                    {t('categories.clear')}
                   </button>
                 )}
               </div>
@@ -148,10 +152,10 @@ function CategoryModal({
           </div>
           <div className="modal-footer">
             <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSaving}>
-              Bekor qilish
+              {t('common.cancel')}
             </button>
             <button className="btn btn-primary" type="submit" disabled={disabled}>
-              {isSaving ? 'Saqlanmoqda...' : 'Saqlash'}
+              {isSaving ? t('common.saving') : t('common.save')}
             </button>
           </div>
         </form>
@@ -162,6 +166,8 @@ function CategoryModal({
 }
 
 export function CategoriesPage() {
+  const { t } = useLanguage();
+  const CLUSTER_LABELS = getClusterLabels(t);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -219,9 +225,7 @@ export function CategoriesPage() {
       setModalOpen(false);
       load();
     } catch {
-      setModalError(
-        modalMode === 'create' ? "Kategoriya yasab bo'lmadi." : "Kategoriya nomini o'zgartirib bo'lmadi.",
-      );
+      setModalError(modalMode === 'create' ? t('categories.createError') : t('categories.editError'));
     } finally {
       setIsSaving(false);
     }
@@ -242,7 +246,7 @@ export function CategoriesPage() {
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
-          ?.message ?? "Kategoriyani o'chirib bo'lmadi.";
+          ?.message ?? t('categories.deleteError');
       setError(message);
     }
   };
@@ -264,21 +268,21 @@ export function CategoriesPage() {
         </td>
         <td>
           <span className={`status status--${c.isActive ? 'active' : 'inactive'}`}>
-            {c.isActive ? 'Faol' : 'Nofaol'}
+            {c.isActive ? t('categories.active') : t('categories.inactive')}
           </span>
         </td>
         <td className="table-actions">
           <button onClick={() => openEditModal(c)}>
             <IconEdit width={13} height={13} />
-            Tahrirlash
+            {t('categories.edit')}
           </button>
           <button onClick={() => handleToggleActive(c)}>
             <IconPower width={13} height={13} />
-            {c.isActive ? 'Nofaollashtirish' : 'Faollashtirish'}
+            {c.isActive ? t('categories.deactivate') : t('categories.activate')}
           </button>
           <button className="danger" onClick={() => setCategoryToDelete(c)}>
             <IconTrash width={13} height={13} />
-            O'chirish
+            {t('categories.delete')}
           </button>
         </td>
       </tr>
@@ -286,11 +290,11 @@ export function CategoriesPage() {
   }
 
   return (
-    <AppShell title="Kategoriyalar" breadcrumb="Dashboard / Kategoriyalar">
+    <AppShell title={t('categories.title')} breadcrumb={t('categories.breadcrumb')}>
       <div className="toolbar">
         <button className="btn btn-primary" type="button" onClick={openCreateModal}>
           <IconPlus width={15} height={15} />
-          Qo'shish
+          {t('categories.add')}
         </button>
       </div>
       {error && <p className="form-error">{error}</p>}
@@ -300,8 +304,8 @@ export function CategoriesPage() {
       ) : categories.length === 0 ? (
         <EmptyState
           icon={<IconLayers width={24} height={24} />}
-          title="Hozircha kategoriyalar yo'q"
-          description="Yuqoridagi tugma orqali birinchi kategoriyani qo'shing."
+          title={t('categories.empty')}
+          description={t('categories.emptyDescription')}
         />
       ) : (
         CLUSTER_ORDER.map((cluster) => {
@@ -314,8 +318,8 @@ export function CategoriesPage() {
                 <table className="tickets-table tickets-table--equal categories-table">
                   <thead>
                     <tr>
-                      <th>Nomi</th>
-                      <th>Holati</th>
+                      <th>{t('categories.colName')}</th>
+                      <th>{t('categories.colStatus')}</th>
                       <th></th>
                     </tr>
                   </thead>
@@ -352,10 +356,10 @@ export function CategoriesPage() {
 
       <ConfirmModal
         isOpen={!!categoryToDelete}
-        title="Kategoriyani o'chirish"
+        title={t('categories.deleteTitle')}
         message={
           categoryToDelete
-            ? `"${categoryToDelete.name}" kategoriyasini o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.`
+            ? t('categories.deleteConfirmTemplate').replace('{name}', categoryToDelete.name)
             : ''
         }
         onConfirm={handleDelete}

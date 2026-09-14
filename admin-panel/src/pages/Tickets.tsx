@@ -30,6 +30,9 @@ import { usePageSize } from '../utils/usePageSize';
 import { exportTableToExcel, exportTableToPdf } from '../utils/tableExport';
 import { formatDurationMinutes } from '../utils/formatDuration';
 import { LIST_POLL_INTERVAL_MS } from '../utils/pollInterval';
+import { TranslationKey, useLanguage } from '../i18n/LanguageContext';
+
+type T = (key: TranslationKey) => string;
 
 interface Message {
   id: string;
@@ -80,20 +83,24 @@ interface SavedFilter {
   filterJson: Partial<TicketFilters>;
 }
 
-const STATUS_OPTIONS = [
-  { value: 'new', label: 'Yangi' },
-  { value: 'in_progress', label: 'Jarayonda' },
-  { value: 'waiting_user', label: 'Javob kutilmoqda' },
-  { value: 'resolved', label: 'Yechilgan' },
-  { value: 'closed', label: 'Yopilgan' },
-];
+function getStatusOptions(t: T) {
+  return [
+    { value: 'new', label: t('ticketFields.statusNew') },
+    { value: 'in_progress', label: t('ticketFields.statusInProgress') },
+    { value: 'waiting_user', label: t('ticketFields.statusWaitingUser') },
+    { value: 'resolved', label: t('ticketFields.statusResolved') },
+    { value: 'closed', label: t('ticketFields.statusClosed') },
+  ];
+}
 
-const PRIORITY_OPTIONS = [
-  { value: 'low', label: 'Past' },
-  { value: 'medium', label: "O'rta" },
-  { value: 'high', label: 'Yuqori' },
-  { value: 'critical', label: 'Kritik' },
-];
+function getPriorityOptions(t: T) {
+  return [
+    { value: 'low', label: t('ticketFields.priorityLow') },
+    { value: 'medium', label: t('ticketFields.priorityMedium') },
+    { value: 'high', label: t('ticketFields.priorityHigh') },
+    { value: 'critical', label: t('ticketFields.priorityCritical') },
+  ];
+}
 
 const TICKET_COLUMN_WIDTHS = [40, 56, 260, 140, 210, 120, 100, 120, 190, 110, 160];
 const TICKET_COLUMN_WIDTHS_WITH_ACTIONS = [...TICKET_COLUMN_WIDTHS, 140];
@@ -199,6 +206,8 @@ function CreateTicketChoiceModal({
   onSelectNew: () => void;
   onSelectLegacy: () => void;
 }) {
+  const { t } = useLanguage();
+
   useEffect(() => {
     if (!isOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
@@ -214,8 +223,8 @@ function CreateTicketChoiceModal({
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-card modal-card-sm">
         <div className="modal-header">
-          <h3>Murojaat yasash</h3>
-          <button type="button" className="modal-close" onClick={onClose} aria-label="Yopish">
+          <h3>{t('tickets.createChoiceTitle')}</h3>
+          <button type="button" className="modal-close" onClick={onClose} aria-label={t('common.close')}>
             <IconClose width={18} height={18} />
           </button>
         </div>
@@ -225,8 +234,8 @@ function CreateTicketChoiceModal({
               <IconTicketNew width={18} height={18} />
             </span>
             <span className="choice-option-text">
-              <span className="choice-option-title">Yangi murojaat qo'shish</span>
-              <span className="choice-option-desc">Hozir kelib tushgan murojaatni ro'yxatdan o'tkazish</span>
+              <span className="choice-option-title">{t('tickets.createNewTitle')}</span>
+              <span className="choice-option-desc">{t('tickets.createNewDesc')}</span>
             </span>
           </button>
           <button type="button" className="choice-option" onClick={onSelectLegacy}>
@@ -234,8 +243,8 @@ function CreateTicketChoiceModal({
               <IconHistory width={18} height={18} />
             </span>
             <span className="choice-option-text">
-              <span className="choice-option-title">Eski murojaat qo'shish</span>
-              <span className="choice-option-desc">Avval boshqa joyda yuritilgan arxiv murojaatni kiritish</span>
+              <span className="choice-option-title">{t('tickets.createLegacyTitle')}</span>
+              <span className="choice-option-desc">{t('tickets.createLegacyDesc')}</span>
             </span>
           </button>
         </div>
@@ -262,6 +271,8 @@ function CreateTicketModal({
   isSaving: boolean;
   error: string | null;
 }) {
+  const { t } = useLanguage();
+  const PRIORITY_OPTIONS = getPriorityOptions(t);
   const [form, setForm] = useState<CreateTicketForm>(EMPTY_CREATE_FORM);
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
@@ -317,8 +328,8 @@ function CreateTicketModal({
           <span className="modal-header-icon">
             <IconTicketNew width={18} height={18} />
           </span>
-          <h3>Yangi murojaat</h3>
-          <button type="button" className="modal-close" onClick={onClose} aria-label="Yopish">
+          <h3>{t('tickets.newTicketModalTitle')}</h3>
+          <button type="button" className="modal-close" onClick={onClose} aria-label={t('common.close')}>
             <IconClose width={18} height={18} />
           </button>
         </div>
@@ -336,47 +347,47 @@ function CreateTicketModal({
               phoneInvalid={attemptedSubmit && isPhoneMissing}
             />
             <label className="modal-field">
-              <span>Mavzu</span>
+              <span>{t('tickets.subject')}</span>
               <input
                 value={form.title}
                 onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                placeholder="Murojaat mavzusi"
+                placeholder={t('tickets.subjectPlaceholder')}
                 required
                 autoFocus
               />
             </label>
             <label className="modal-field">
-              <span>Tavsif</span>
+              <span>{t('tickets.description')}</span>
               <textarea
                 value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                placeholder="Murojaat tafsilotlari"
+                placeholder={t('tickets.descriptionPlaceholder')}
                 rows={4}
                 required
               />
             </label>
             <label className="modal-field">
-              <span>Kategoriya</span>
+              <span>{t('tickets.category')}</span>
               <select
                 value={form.categoryId}
                 onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}
                 required
               >
-                <option value="">Tanlang</option>
+                <option value="">{t('tickets.choose')}</option>
                 <CategoryOptionGroups categories={categories} />
-                <option value="__other__">Boshqa</option>
+                <option value="__other__">{t('tickets.other')}</option>
               </select>
               {isOtherCategory && (
                 <input
                   value={form.customCategoryName}
                   onChange={(e) => setForm((f) => ({ ...f, customCategoryName: e.target.value }))}
-                  placeholder="Kategoriya nomini kiriting"
+                  placeholder={t('tickets.categoryNamePlaceholder')}
                   required
                 />
               )}
             </label>
             <label className="modal-field">
-              <span>Muhimlik</span>
+              <span>{t('tickets.priority')}</span>
               <select
                 value={form.priority}
                 onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value }))}
@@ -389,34 +400,34 @@ function CreateTicketModal({
               </select>
             </label>
             <label className="modal-field">
-              <span>Tashkilot</span>
+              <span>{t('tickets.organization')}</span>
               <select
                 value={form.organizationId}
                 onChange={(e) => setForm((f) => ({ ...f, organizationId: e.target.value }))}
                 className={attemptedSubmit && isOrgMissing ? 'field-invalid' : undefined}
                 required
               >
-                <option value="">Tanlang</option>
+                <option value="">{t('tickets.choose')}</option>
                 {organizations.map((o) => (
                   <option key={o.id} value={o.id}>
                     {o.name}
                   </option>
                 ))}
-                <option value="__other__">Boshqa</option>
+                <option value="__other__">{t('tickets.other')}</option>
               </select>
               {isOtherOrg && (
                 <input
                   value={form.customOrgName}
                   onChange={(e) => setForm((f) => ({ ...f, customOrgName: e.target.value }))}
-                  placeholder="Tashkilot nomini kiriting"
+                  placeholder={t('tickets.orgNamePlaceholder')}
                   className={attemptedSubmit && isOrgMissing ? 'field-invalid' : undefined}
                   required
                 />
               )}
-              {attemptedSubmit && isOrgMissing && <p className="field-error">Tashkilotni tanlang</p>}
+              {attemptedSubmit && isOrgMissing && <p className="field-error">{t('tickets.orgRequired')}</p>}
             </label>
             <label className="modal-field">
-              <span>Fayl biriktirish</span>
+              <span>{t('tickets.attachFile')}</span>
               <input type="file" multiple onChange={handleFilesChange} />
               {form.files.length > 0 && (
                 <p className="file-list">{form.files.map((f) => f.name).join(', ')}</p>
@@ -425,10 +436,10 @@ function CreateTicketModal({
           </div>
           <div className="modal-footer">
             <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSaving}>
-              Bekor qilish
+              {t('common.cancel')}
             </button>
             <button className="btn btn-primary" type="submit" disabled={disabled}>
-              {isSaving ? 'Yasalmoqda...' : 'Yasash'}
+              {isSaving ? t('tickets.creating') : t('tickets.createButton')}
             </button>
           </div>
         </form>
@@ -489,6 +500,9 @@ function LegacyTicketModal({
   isSaving: boolean;
   error: string | null;
 }) {
+  const { t } = useLanguage();
+  const STATUS_OPTIONS = getStatusOptions(t);
+  const PRIORITY_OPTIONS = getPriorityOptions(t);
   const [form, setForm] = useState<LegacyTicketForm>(EMPTY_LEGACY_FORM);
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
@@ -542,8 +556,8 @@ function LegacyTicketModal({
           <span className="modal-header-icon">
             <IconHistory width={18} height={18} />
           </span>
-          <h3>Eski murojaat qo'shish</h3>
-          <button type="button" className="modal-close" onClick={onClose} aria-label="Yopish">
+          <h3>{t('tickets.legacyTicketModalTitle')}</h3>
+          <button type="button" className="modal-close" onClick={onClose} aria-label={t('common.close')}>
             <IconClose width={18} height={18} />
           </button>
         </div>
@@ -561,47 +575,47 @@ function LegacyTicketModal({
               phoneInvalid={attemptedSubmit && isPhoneMissing}
             />
             <label className="modal-field">
-              <span>Mavzu</span>
+              <span>{t('tickets.subject')}</span>
               <input
                 value={form.title}
                 onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                placeholder="Murojaat mavzusi"
+                placeholder={t('tickets.subjectPlaceholder')}
                 required
                 autoFocus
               />
             </label>
             <label className="modal-field">
-              <span>Tavsif</span>
+              <span>{t('tickets.description')}</span>
               <textarea
                 value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                placeholder="Murojaat tafsilotlari"
+                placeholder={t('tickets.descriptionPlaceholder')}
                 rows={4}
                 required
               />
             </label>
             <label className="modal-field">
-              <span>Kategoriya</span>
+              <span>{t('tickets.category')}</span>
               <select
                 value={form.categoryId}
                 onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}
                 required
               >
-                <option value="">Tanlang</option>
+                <option value="">{t('tickets.choose')}</option>
                 <CategoryOptionGroups categories={categories} />
-                <option value="__other__">Boshqa</option>
+                <option value="__other__">{t('tickets.other')}</option>
               </select>
               {isOtherCategory && (
                 <input
                   value={form.customCategoryName}
                   onChange={(e) => setForm((f) => ({ ...f, customCategoryName: e.target.value }))}
-                  placeholder="Kategoriya nomini kiriting"
+                  placeholder={t('tickets.categoryNamePlaceholder')}
                   required
                 />
               )}
             </label>
             <label className="modal-field">
-              <span>Muhimlik</span>
+              <span>{t('tickets.priority')}</span>
               <select
                 value={form.priority}
                 onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value }))}
@@ -614,34 +628,34 @@ function LegacyTicketModal({
               </select>
             </label>
             <label className="modal-field">
-              <span>Tashkilot</span>
+              <span>{t('tickets.organization')}</span>
               <select
                 value={form.organizationId}
                 onChange={(e) => setForm((f) => ({ ...f, organizationId: e.target.value }))}
                 className={attemptedSubmit && isOrgMissing ? 'field-invalid' : undefined}
                 required
               >
-                <option value="">Tanlang</option>
+                <option value="">{t('tickets.choose')}</option>
                 {organizations.map((o) => (
                   <option key={o.id} value={o.id}>
                     {o.name}
                   </option>
                 ))}
-                <option value="__other__">Boshqa</option>
+                <option value="__other__">{t('tickets.other')}</option>
               </select>
               {isOtherOrg && (
                 <input
                   value={form.customOrgName}
                   onChange={(e) => setForm((f) => ({ ...f, customOrgName: e.target.value }))}
-                  placeholder="Tashkilot nomini kiriting"
+                  placeholder={t('tickets.orgNamePlaceholder')}
                   className={attemptedSubmit && isOrgMissing ? 'field-invalid' : undefined}
                   required
                 />
               )}
-              {attemptedSubmit && isOrgMissing && <p className="field-error">Tashkilotni tanlang</p>}
+              {attemptedSubmit && isOrgMissing && <p className="field-error">{t('tickets.orgRequired')}</p>}
             </label>
             <label className="modal-field">
-              <span>Holat</span>
+              <span>{t('tickets.status')}</span>
               <select
                 value={form.status}
                 onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
@@ -654,12 +668,12 @@ function LegacyTicketModal({
               </select>
             </label>
             <label className="modal-field">
-              <span>Ijrochi</span>
+              <span>{t('tickets.assignee')}</span>
               <select
                 value={form.assignedToId}
                 onChange={(e) => setForm((f) => ({ ...f, assignedToId: e.target.value }))}
               >
-                <option value="">Tayinlanmagan</option>
+                <option value="">{t('tickets.unassigned')}</option>
                 {admins.map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.fullname ?? a.id}
@@ -667,13 +681,11 @@ function LegacyTicketModal({
                 ))}
               </select>
               {showUnassignedClosedWarning && (
-                <p className="field-hint field-hint--warning">
-                  Ijrochisiz yopilgan murojaat xodimlar statistikasiga tushmaydi
-                </p>
+                <p className="field-hint field-hint--warning">{t('tickets.unassignedClosedWarning')}</p>
               )}
             </label>
             <label className="modal-field">
-              <span>Yaratilgan sana/vaqt</span>
+              <span>{t('tickets.createdAtDateTime')}</span>
               <input
                 type="datetime-local"
                 value={form.createdAt}
@@ -682,7 +694,7 @@ function LegacyTicketModal({
               />
             </label>
             <label className="modal-field">
-              <span>Yopilgan sana/vaqt (ixtiyoriy)</span>
+              <span>{t('tickets.closedAtDateTimeOptional')}</span>
               <input
                 type="datetime-local"
                 value={form.closedAt}
@@ -692,10 +704,10 @@ function LegacyTicketModal({
           </div>
           <div className="modal-footer">
             <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSaving}>
-              Bekor qilish
+              {t('common.cancel')}
             </button>
             <button className="btn btn-primary" type="submit" disabled={disabled}>
-              {isSaving ? 'Yasalmoqda...' : 'Yasash'}
+              {isSaving ? t('tickets.creating') : t('tickets.createButton')}
             </button>
           </div>
         </form>
@@ -705,43 +717,45 @@ function LegacyTicketModal({
   );
 }
 
-function ticketPriorityLabel(priority: string): string {
-  return PRIORITY_OPTIONS.find((o) => o.value === priority)?.label ?? priority;
+function ticketPriorityLabel(priority: string, t: T): string {
+  return getPriorityOptions(t).find((o) => o.value === priority)?.label ?? priority;
 }
 
-function ticketStatusLabel(status: string): string {
-  return STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status;
+function ticketStatusLabel(status: string, t: T): string {
+  return getStatusOptions(t).find((o) => o.value === status)?.label ?? status;
 }
 
-function ticketsToExportRows(tickets: Ticket[]): (string | number)[][] {
-  return tickets.map((t) => [
-    t.number,
-    t.title,
-    t.organization?.name ?? '-',
-    t.requesterName ?? t.createdBy?.fullname ?? '-',
-    t.requesterPhone ?? t.createdBy?.phoneNumber ?? '-',
-    t.categoryEntity?.name ?? '-',
-    ticketPriorityLabel(t.priority),
-    ticketStatusLabel(t.status),
-    t.assignedTo?.fullname ?? 'Tayinlanmagan',
-    new Date(t.createdAt).toLocaleString('uz-UZ'),
-    closingDuration(t),
+function ticketsToExportRows(tickets: Ticket[], t: T, dateLocale: string): (string | number)[][] {
+  return tickets.map((t2) => [
+    t2.number,
+    t2.title,
+    t2.organization?.name ?? '-',
+    t2.requesterName ?? t2.createdBy?.fullname ?? '-',
+    t2.requesterPhone ?? t2.createdBy?.phoneNumber ?? '-',
+    t2.categoryEntity?.name ?? '-',
+    ticketPriorityLabel(t2.priority, t),
+    ticketStatusLabel(t2.status, t),
+    t2.assignedTo?.fullname ?? t('tickets.unassigned'),
+    new Date(t2.createdAt).toLocaleString(dateLocale),
+    closingDuration(t2),
   ]);
 }
 
-const EXPORT_HEADERS = [
-  '№',
-  'Mavzu',
-  'Tashkilot',
-  'Foydalanuvchi',
-  'Telefon',
-  'Kategoriya',
-  'Muhimlik',
-  'Holat',
-  "Mas'ul",
-  'Yaratildi',
-  'Yopilish vaqti',
-];
+function getExportHeaders(t: T): string[] {
+  return [
+    t('tickets.colNumber'),
+    t('tickets.exportSubjectHeader'),
+    t('tickets.colOrganization'),
+    t('tickets.exportUserHeader'),
+    t('tickets.exportPhoneHeader'),
+    t('tickets.exportCategoryHeader'),
+    t('tickets.exportPriorityHeader'),
+    t('tickets.exportStatusHeader'),
+    t('tickets.exportAssigneeHeader'),
+    t('tickets.exportCreatedHeader'),
+    t('tickets.exportClosedDurationHeader'),
+  ];
+}
 
 function ExportTicketsModal({
   isOpen,
@@ -760,6 +774,10 @@ function ExportTicketsModal({
   admins: AdminUser[];
   initialFilters: TicketFilters;
 }) {
+  const { language, t } = useLanguage();
+  const dateLocale = language === 'ru' ? 'ru-RU' : 'uz-UZ';
+  const STATUS_OPTIONS = getStatusOptions(t);
+  const PRIORITY_OPTIONS = getPriorityOptions(t);
   const [filters, setFilters] = useState<TicketFilters>(initialFilters);
   const [isExportingExcel, setIsExportingExcel] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
@@ -784,28 +802,31 @@ function ExportTicketsModal({
 
   const buildExportTable = () => {
     const filterSummary = [
-      filters.statusFilter && `Holat: ${ticketStatusLabel(filters.statusFilter)}`,
-      filters.priorityFilter && `Muhimlik: ${ticketPriorityLabel(filters.priorityFilter)}`,
+      filters.statusFilter && `${t('tickets.exportStatusLabel')}: ${ticketStatusLabel(filters.statusFilter, t)}`,
+      filters.priorityFilter &&
+        `${t('tickets.exportPriorityLabel')}: ${ticketPriorityLabel(filters.priorityFilter, t)}`,
       filters.organizationFilter &&
-        `Tashkilot: ${organizations.find((o) => o.id === filters.organizationFilter)?.name ?? ''}`,
+        `${t('tickets.exportOrgLabel')}: ${organizations.find((o) => o.id === filters.organizationFilter)?.name ?? ''}`,
       filters.categoryFilter &&
-        `Kategoriya: ${categories.find((c) => c.id === filters.categoryFilter)?.name ?? ''}`,
+        `${t('tickets.exportCategoryLabel')}: ${categories.find((c) => c.id === filters.categoryFilter)?.name ?? ''}`,
       filters.assignedToFilter &&
-        `Mas'ul: ${admins.find((a) => a.id === filters.assignedToFilter)?.fullname ?? ''}`,
-      filters.createdFrom && `${filters.createdFrom} dan`,
-      filters.createdTo && `${filters.createdTo} gacha`,
-      filters.searchTerm && `Qidiruv: "${filters.searchTerm}"`,
+        `${t('tickets.exportAssigneeLabel')}: ${admins.find((a) => a.id === filters.assignedToFilter)?.fullname ?? ''}`,
+      filters.createdFrom && `${filters.createdFrom} ${t('tickets.exportFromLabel')}`,
+      filters.createdTo && `${filters.createdTo} ${t('tickets.exportToLabel')}`,
+      filters.searchTerm && `${t('tickets.exportSearchLabel')}: "${filters.searchTerm}"`,
     ]
       .filter(Boolean)
       .join(' • ');
 
     return {
-      title: 'Murojaatlar ro\'yxati',
-      subtitle: `Yaratildi: ${new Date().toLocaleString('uz-UZ')} • Jami: ${matched.length} ta${
+      title: t('tickets.exportTitle'),
+      subtitle: `${t('tickets.exportCreatedLabel')}: ${new Date().toLocaleString(dateLocale)} • ${t(
+        'tickets.exportTotalLabel',
+      )}: ${matched.length}${t('tickets.exportUnit') ? ` ${t('tickets.exportUnit')}` : ''}${
         filterSummary ? ` • ${filterSummary}` : ''
       }`,
-      headers: EXPORT_HEADERS,
-      rows: ticketsToExportRows(matched),
+      headers: getExportHeaders(t),
+      rows: ticketsToExportRows(matched, t, dateLocale),
       fileName: `murojaatlar_${new Date().toISOString().slice(0, 10)}`,
     };
   };
@@ -841,21 +862,21 @@ function ExportTicketsModal({
           <span className="modal-header-icon">
             <IconDownload width={18} height={18} />
           </span>
-          <h3>Murojaatlarni yuklab olish</h3>
-          <button type="button" className="modal-close" onClick={onClose} aria-label="Yopish">
+          <h3>{t('tickets.exportModalTitle')}</h3>
+          <button type="button" className="modal-close" onClick={onClose} aria-label={t('common.close')}>
             <IconClose width={18} height={18} />
           </button>
         </div>
         <div className="modal-body">
-          <p className="export-section-label">Filtrlar</p>
+          <p className="export-section-label">{t('tickets.filters')}</p>
           <div className="export-filters">
             <label className="modal-field">
-              <span>Tashkilot</span>
+              <span>{t('tickets.organization')}</span>
               <select
                 value={filters.organizationFilter}
                 onChange={(e) => setFilters((f) => ({ ...f, organizationFilter: e.target.value }))}
               >
-                <option value="">Barchasi</option>
+                <option value="">{t('common.all')}</option>
                 {organizations.map((o) => (
                   <option key={o.id} value={o.id}>
                     {o.name}
@@ -864,12 +885,12 @@ function ExportTicketsModal({
               </select>
             </label>
             <label className="modal-field">
-              <span>Holat</span>
+              <span>{t('tickets.status')}</span>
               <select
                 value={filters.statusFilter}
                 onChange={(e) => setFilters((f) => ({ ...f, statusFilter: e.target.value }))}
               >
-                <option value="">Barchasi</option>
+                <option value="">{t('common.all')}</option>
                 {STATUS_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
                     {o.label}
@@ -878,12 +899,12 @@ function ExportTicketsModal({
               </select>
             </label>
             <label className="modal-field">
-              <span>Muhimlik</span>
+              <span>{t('tickets.priority')}</span>
               <select
                 value={filters.priorityFilter}
                 onChange={(e) => setFilters((f) => ({ ...f, priorityFilter: e.target.value }))}
               >
-                <option value="">Barchasi</option>
+                <option value="">{t('common.all')}</option>
                 {PRIORITY_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
                     {o.label}
@@ -892,22 +913,22 @@ function ExportTicketsModal({
               </select>
             </label>
             <label className="modal-field">
-              <span>Kategoriya</span>
+              <span>{t('tickets.category')}</span>
               <select
                 value={filters.categoryFilter}
                 onChange={(e) => setFilters((f) => ({ ...f, categoryFilter: e.target.value }))}
               >
-                <option value="">Barchasi</option>
+                <option value="">{t('common.all')}</option>
                 <CategoryOptionGroups categories={categories} />
               </select>
             </label>
             <label className="modal-field">
-              <span>Mas'ul</span>
+              <span>{t('tickets.assignedToFilterLabel')}</span>
               <select
                 value={filters.assignedToFilter}
                 onChange={(e) => setFilters((f) => ({ ...f, assignedToFilter: e.target.value }))}
               >
-                <option value="">Barchasi</option>
+                <option value="">{t('common.all')}</option>
                 {admins.map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.fullname ?? a.id}
@@ -916,7 +937,7 @@ function ExportTicketsModal({
               </select>
             </label>
             <label className="modal-field">
-              <span>Yaratildi (dan)</span>
+              <span>{t('tickets.createdFrom')}</span>
               <input
                 type="date"
                 value={filters.createdFrom}
@@ -924,7 +945,7 @@ function ExportTicketsModal({
               />
             </label>
             <label className="modal-field">
-              <span>Yaratildi (gacha)</span>
+              <span>{t('tickets.createdTo')}</span>
               <input
                 type="date"
                 value={filters.createdTo}
@@ -933,12 +954,14 @@ function ExportTicketsModal({
             </label>
           </div>
           <button type="button" className="btn btn-secondary btn-sm" onClick={clearExportFilters}>
-            Filterlarni tozalash
+            {t('tickets.clearFilters')}
           </button>
 
-          <p className="export-result-count">{matched.length} ta murojaat yuklab olinadi</p>
+          <p className="export-result-count">
+            {matched.length} {t('tickets.exportResultCount')}
+          </p>
 
-          <p className="export-section-label">Format</p>
+          <p className="export-section-label">{t('tickets.format')}</p>
           <div className="export-format-grid">
             <button
               type="button"
@@ -950,8 +973,8 @@ function ExportTicketsModal({
                 <IconFileSpreadsheet width={18} height={18} />
               </span>
               <span className="choice-option-text">
-                <span className="choice-option-title">{isExportingExcel ? 'Tayyorlanmoqda...' : 'Excel'}</span>
-                <span className="choice-option-desc">.xlsx fayl sifatida yuklab olish</span>
+                <span className="choice-option-title">{isExportingExcel ? t('tickets.preparing') : 'Excel'}</span>
+                <span className="choice-option-desc">{t('tickets.excelDesc')}</span>
               </span>
             </button>
             <button
@@ -964,8 +987,8 @@ function ExportTicketsModal({
                 <IconFileText width={18} height={18} />
               </span>
               <span className="choice-option-text">
-                <span className="choice-option-title">{isExportingPdf ? 'Tayyorlanmoqda...' : 'PDF'}</span>
-                <span className="choice-option-desc">.pdf fayl sifatida yuklab olish</span>
+                <span className="choice-option-title">{isExportingPdf ? t('tickets.preparing') : 'PDF'}</span>
+                <span className="choice-option-desc">{t('tickets.pdfDesc')}</span>
               </span>
             </button>
           </div>
@@ -992,6 +1015,10 @@ function closingDuration(ticket: Ticket): string {
 export function TicketsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { language, t } = useLanguage();
+  const dateLocale = language === 'ru' ? 'ru-RU' : 'uz-UZ';
+  const STATUS_OPTIONS = getStatusOptions(t);
+  const PRIORITY_OPTIONS = getPriorityOptions(t);
   const isSuperadmin = user?.role === 'superadmin';
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -1076,7 +1103,7 @@ export function TicketsPage() {
         setSavedFilters(res.data.data);
         setSavedFiltersError(null);
       })
-      .catch(() => setSavedFiltersError("Saqlangan filtrlarni yuklab bo'lmadi"));
+      .catch(() => setSavedFiltersError(t('tickets.savedFiltersLoadError')));
   };
 
   // T13 — saqlangan filtrni bir klikda qo'llash.
@@ -1135,18 +1162,18 @@ export function TicketsPage() {
         assignedToId: assignedToId || null,
       });
       const updated = res.data.data;
-      setTickets((prev) => prev.map((t) => (t.id === ticket.id ? { ...t, assignedTo: updated.assignedTo } : t)));
+      setTickets((prev) => prev.map((t2) => (t2.id === ticket.id ? { ...t2, assignedTo: updated.assignedTo } : t2)));
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
-          ?.message ?? "Ijrochini tayinlab bo'lmadi.";
+          ?.message ?? t('tickets.assignError');
       setError(message);
     }
   };
 
   const applyBulkResult = (updated: Ticket[]) => {
-    const byId = new Map(updated.map((t) => [t.id, t]));
-    setTickets((prev) => prev.map((t) => byId.get(t.id) ?? t));
+    const byId = new Map(updated.map((t2) => [t2.id, t2]));
+    setTickets((prev) => prev.map((t2) => byId.get(t2.id) ?? t2));
     setSelectedIds(new Set());
   };
 
@@ -1162,7 +1189,7 @@ export function TicketsPage() {
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
-          ?.message ?? "Ommaviy tayinlab bo'lmadi.";
+          ?.message ?? t('tickets.bulkAssignError');
       setError(message);
     } finally {
       setIsBulkSaving(false);
@@ -1181,7 +1208,7 @@ export function TicketsPage() {
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
-          ?.message ?? "Ommaviy holatni o'zgartirib bo'lmadi.";
+          ?.message ?? t('tickets.bulkStatusError');
       setError(message);
     } finally {
       setIsBulkSaving(false);
@@ -1200,7 +1227,7 @@ export function TicketsPage() {
 
   const toggleSelectAll = () => {
     setSelectedIds((prev) =>
-      prev.size === paginatedTickets.length ? new Set() : new Set(paginatedTickets.map((t) => t.id)),
+      prev.size === paginatedTickets.length ? new Set() : new Set(paginatedTickets.map((t2) => t2.id)),
     );
   };
 
@@ -1219,11 +1246,11 @@ export function TicketsPage() {
     setTicketToDelete(null);
     try {
       await api.delete(`/admin/tickets/${ticket.id}`);
-      setTickets((prev) => prev.filter((t) => t.id !== ticket.id));
+      setTickets((prev) => prev.filter((t2) => t2.id !== ticket.id));
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
-          ?.message ?? "Murojaatni o'chirib bo'lmadi.";
+          ?.message ?? t('tickets.deleteError');
       setError(message);
     }
   };
@@ -1238,7 +1265,7 @@ export function TicketsPage() {
           const orgRes = await api.post('/admin/organizations', { name: form.customOrgName.trim() });
           resolvedOrganizationId = orgRes.data.data.id;
         } catch {
-          setCreateError("Tashkilot yasab bo'lmadi.");
+          setCreateError(t('tickets.createOrgError'));
           setIsCreating(false);
           return;
         }
@@ -1250,7 +1277,7 @@ export function TicketsPage() {
           const categoryRes = await api.post('/admin/categories', { name: form.customCategoryName.trim() });
           resolvedCategoryId = categoryRes.data.data.id;
         } catch {
-          setCreateError("Kategoriya yasab bo'lmadi.");
+          setCreateError(t('tickets.createCategoryError'));
           setIsCreating(false);
           return;
         }
@@ -1278,7 +1305,7 @@ export function TicketsPage() {
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
-          ?.message ?? "Murojaat yasab bo'lmadi.";
+          ?.message ?? t('tickets.createTicketError');
       setCreateError(message);
     } finally {
       setIsCreating(false);
@@ -1295,7 +1322,7 @@ export function TicketsPage() {
           const orgRes = await api.post('/admin/organizations', { name: form.customOrgName.trim() });
           resolvedOrganizationId = orgRes.data.data.id;
         } catch {
-          setLegacyError("Tashkilot yasab bo'lmadi.");
+          setLegacyError(t('tickets.createOrgError'));
           setIsCreatingLegacy(false);
           return;
         }
@@ -1307,7 +1334,7 @@ export function TicketsPage() {
           const categoryRes = await api.post('/admin/categories', { name: form.customCategoryName.trim() });
           resolvedCategoryId = categoryRes.data.data.id;
         } catch {
-          setLegacyError("Kategoriya yasab bo'lmadi.");
+          setLegacyError(t('tickets.createCategoryError'));
           setIsCreatingLegacy(false);
           return;
         }
@@ -1332,7 +1359,7 @@ export function TicketsPage() {
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
-          ?.message ?? "Eski murojaatni saqlab bo'lmadi.";
+          ?.message ?? t('tickets.createLegacyError');
       setLegacyError(message);
     } finally {
       setIsCreatingLegacy(false);
@@ -1386,7 +1413,7 @@ export function TicketsPage() {
   );
 
   return (
-    <AppShell title="Murojaatlar" breadcrumb="Barcha murojaatlar" contentClassName="app-content--table-scroll">
+    <AppShell title={t('tickets.title')} breadcrumb={t('tickets.breadcrumb')} contentClassName="app-content--table-scroll">
       {isLoading ? (
         <TableSkeleton rows={6} cols={10} />
       ) : (
@@ -1397,7 +1424,7 @@ export function TicketsPage() {
               <input
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Murojaat, mijoz yoki raqam bo'yicha qidirish"
+                placeholder={t('tickets.searchPlaceholder')}
               />
             </div>
             <button
@@ -1406,7 +1433,7 @@ export function TicketsPage() {
               onClick={() => setExportModalOpen(true)}
             >
               <IconDownload width={15} height={15} />
-              Yuklab olish
+              {t('tickets.download')}
             </button>
             <button
               type="button"
@@ -1414,16 +1441,16 @@ export function TicketsPage() {
               onClick={() => setChoiceModalOpen(true)}
             >
               <IconPlus width={15} height={15} />
-              Yasash
+              {t('tickets.create')}
             </button>
           </div>
 
           <MobileFilterDrawer activeCount={activeFilterCount}>
           <div className="filters">
             <label>
-              Tashkilot
+              {t('tickets.organization')}
               <select value={organizationFilter} onChange={(e) => setOrganizationFilter(e.target.value)}>
-                <option value="">Barchasi</option>
+                <option value="">{t('common.all')}</option>
                 {organizations.map((o) => (
                   <option key={o.id} value={o.id}>
                     {o.name}
@@ -1432,9 +1459,9 @@ export function TicketsPage() {
               </select>
             </label>
             <label>
-              Holat
+              {t('tickets.status')}
               <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-                <option value="">Barchasi</option>
+                <option value="">{t('common.all')}</option>
                 {STATUS_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
                     {o.label}
@@ -1443,9 +1470,9 @@ export function TicketsPage() {
               </select>
             </label>
             <label>
-              Muhimlik
+              {t('tickets.priority')}
               <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}>
-                <option value="">Barchasi</option>
+                <option value="">{t('common.all')}</option>
                 {PRIORITY_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
                     {o.label}
@@ -1454,16 +1481,16 @@ export function TicketsPage() {
               </select>
             </label>
             <label>
-              Kategoriya
+              {t('tickets.category')}
               <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-                <option value="">Barchasi</option>
+                <option value="">{t('common.all')}</option>
                 <CategoryOptionGroups categories={categories} />
               </select>
             </label>
             <label>
-              Mas'ul
+              {t('tickets.assignedToFilterLabel')}
               <select value={assignedToFilter} onChange={(e) => setAssignedToFilter(e.target.value)}>
-                <option value="">Barchasi</option>
+                <option value="">{t('common.all')}</option>
                 {admins.map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.fullname ?? a.id}
@@ -1472,19 +1499,21 @@ export function TicketsPage() {
               </select>
             </label>
             <label>
-              Yasaldi (dan)
+              {t('tickets.createdFrom')}
               <input type="date" value={createdFrom} onChange={(e) => setCreatedFrom(e.target.value)} />
             </label>
             <label>
-              Yasaldi (gacha)
+              {t('tickets.createdTo')}
               <input type="date" value={createdTo} onChange={(e) => setCreatedTo(e.target.value)} />
             </label>
             <div className="filters-actions">
               {activeFilterCount > 0 && (
-                <span className="filter-active-chip">{activeFilterCount} ta filtr aktiv</span>
+                <span className="filter-active-chip">
+                  {activeFilterCount} {t('tickets.activeFilterCount')}
+                </span>
               )}
               <button type="button" className="btn btn-secondary btn-sm" onClick={clearFilters}>
-                Filterlarni tozalash
+                {t('tickets.clearFilters')}
               </button>
             </div>
           </div>
@@ -1501,7 +1530,7 @@ export function TicketsPage() {
                   <button
                     type="button"
                     className="saved-filter-chip-remove"
-                    aria-label={`"${sf.name}" filtrini o'chirish`}
+                    aria-label={`"${sf.name}" ${t('tickets.removeSavedFilter')}`}
                     onClick={() => handleDeleteSavedFilter(sf.id)}
                   >
                     ×
@@ -1515,7 +1544,7 @@ export function TicketsPage() {
                       autoFocus
                       value={savingFilterName}
                       onChange={(e) => setSavingFilterName(e.target.value)}
-                      placeholder="Filtr nomi"
+                      placeholder={t('tickets.filterNamePlaceholder')}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') handleSaveCurrentFilter(savingFilterName);
                         if (e.key === 'Escape') setSavingFilterName(null);
@@ -1527,10 +1556,10 @@ export function TicketsPage() {
                       disabled={isSavingFilter || !savingFilterName.trim()}
                       onClick={() => handleSaveCurrentFilter(savingFilterName)}
                     >
-                      Saqlash
+                      {t('common.save')}
                     </button>
                     <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSavingFilterName(null)}>
-                      Bekor qilish
+                      {t('common.cancel')}
                     </button>
                   </span>
                 ) : (
@@ -1539,7 +1568,7 @@ export function TicketsPage() {
                     className="btn btn-ghost btn-sm"
                     onClick={() => setSavingFilterName('')}
                   >
-                    + Joriy filtrni saqlash
+                    {t('tickets.saveCurrentFilter')}
                   </button>
                 ))}
             </div>
@@ -1549,23 +1578,27 @@ export function TicketsPage() {
 
           {error && <p className="form-error">{error}</p>}
 
-          <p className="filter-results">{filteredTickets.length} ta murojaat topildi</p>
+          <p className="filter-results">
+            {filteredTickets.length} {t('tickets.resultsFound')}
+          </p>
 
           {filteredTickets.length === 0 ? (
             <EmptyState
               icon={<IconInbox width={24} height={24} />}
-              title="Hech narsa topilmadi"
-              description="Filtrlarni o'zgartirib ko'ring yoki yangi murojaat kelishini kuting."
-              actionLabel="Filterlarni tozalash"
+              title={t('tickets.notFound')}
+              description={t('tickets.notFoundDescription')}
+              actionLabel={t('tickets.clearFilters')}
               onAction={clearFilters}
             />
           ) : (
             <div className="table-wrap table-wrap--pin-actions">
               {selectedIds.size > 0 && (
                 <div className="bulk-actions-bar">
-                  <span className="bulk-actions-count">{selectedIds.size} ta tanlandi</span>
+                  <span className="bulk-actions-count">
+                    {selectedIds.size} {t('tickets.selectedCount')}
+                  </span>
                   <label className="bulk-actions-field">
-                    Mas'ulni tayinlash
+                    {t('tickets.assignSelected')}
                     <select
                       className="assign-select"
                       defaultValue="__placeholder__"
@@ -1573,9 +1606,9 @@ export function TicketsPage() {
                       onChange={(e) => handleBulkAssign(e.target.value)}
                     >
                       <option value="__placeholder__" disabled>
-                        Tanlang
+                        {t('tickets.choose')}
                       </option>
-                      <option value="">Tayinlanmagan</option>
+                      <option value="">{t('tickets.unassigned')}</option>
                       {admins.map((a) => (
                         <option key={a.id} value={a.id}>
                           {a.fullname ?? a.id}
@@ -1584,14 +1617,14 @@ export function TicketsPage() {
                     </select>
                   </label>
                   <label className="bulk-actions-field">
-                    Holatni o'zgartirish
+                    {t('tickets.changeStatus')}
                     <select
                       defaultValue=""
                       disabled={isBulkSaving}
                       onChange={(e) => handleBulkStatus(e.target.value)}
                     >
                       <option value="" disabled>
-                        Tanlang
+                        {t('tickets.choose')}
                       </option>
                       {STATUS_OPTIONS.map((o) => (
                         <option key={o.value} value={o.value}>
@@ -1606,7 +1639,7 @@ export function TicketsPage() {
                     onClick={() => setSelectedIds(new Set())}
                     disabled={isBulkSaving}
                   >
-                    Bekor qilish
+                    {t('common.cancel')}
                   </button>
                 </div>
               )}
@@ -1619,69 +1652,69 @@ export function TicketsPage() {
                         type="checkbox"
                         checked={paginatedTickets.length > 0 && selectedIds.size === paginatedTickets.length}
                         onChange={toggleSelectAll}
-                        aria-label="Hammasini tanlash"
+                        aria-label={t('tickets.selectAll')}
                       />
                     </th>
-                    <th>№</th>
-                    <th>Mavzu</th>
-                    <th>Tashkilot</th>
-                    <th>Foydalanuvchi</th>
-                    <th>Kategoriya</th>
-                    <th>Muhimlik</th>
-                    <th>Holat</th>
-                    <th>Mas'ul</th>
-                    <th>Yopilish vaqti</th>
-                    <th>Yasaldi</th>
+                    <th>{t('tickets.colNumber')}</th>
+                    <th>{t('tickets.colSubject')}</th>
+                    <th>{t('tickets.colOrganization')}</th>
+                    <th>{t('tickets.colUser')}</th>
+                    <th>{t('tickets.colCategory')}</th>
+                    <th>{t('tickets.colPriority')}</th>
+                    <th>{t('tickets.colStatus')}</th>
+                    <th>{t('tickets.colAssignee')}</th>
+                    <th>{t('tickets.colResolutionTime')}</th>
+                    <th>{t('tickets.colCreatedAt')}</th>
                     {isSuperadmin && <th></th>}
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedTickets.map((t, idx) => (
+                  {paginatedTickets.map((t2, idx) => (
                     <tr
-                      key={t.id}
+                      key={t2.id}
                       className="clickable-row"
-                      onClick={() => navigate(`/dashboard/tickets/${t.id}`)}
+                      onClick={() => navigate(`/dashboard/tickets/${t2.id}`)}
                     >
                       <td onClick={(e) => e.stopPropagation()}>
                         <input
                           type="checkbox"
-                          checked={selectedIds.has(t.id)}
-                          onChange={() => toggleSelectOne(t.id)}
-                          aria-label={`${t.title} tanlash`}
+                          checked={selectedIds.has(t2.id)}
+                          onChange={() => toggleSelectOne(t2.id)}
+                          aria-label={`${t2.title} ${t('tickets.selectRow')}`}
                         />
                       </td>
                       <td className="cell-muted">{(currentPage - 1) * pageSize + idx + 1}</td>
-                      <td className="cell-primary">{truncateWords(t.title, 7)}</td>
-                      <td className="cell-nowrap">{t.organization?.name ?? '—'}</td>
+                      <td className="cell-primary">{truncateWords(t2.title, 7)}</td>
+                      <td className="cell-nowrap">{t2.organization?.name ?? '—'}</td>
                       <td>
                         <div className="cell-user">
-                          <Avatar name={t.requesterName ?? t.createdBy?.fullname} />
+                          <Avatar name={t2.requesterName ?? t2.createdBy?.fullname} />
                           <div className="cell-user-info">
-                            <span>{t.requesterName ?? t.createdBy?.fullname ?? '—'}</span>
-                            {(t.requesterPhone ?? t.createdBy?.phoneNumber) && (
+                            <span>{t2.requesterName ?? t2.createdBy?.fullname ?? '—'}</span>
+                            {(t2.requesterPhone ?? t2.createdBy?.phoneNumber) && (
                               <span className="cell-muted cell-user-phone">
-                                {t.requesterPhone ?? t.createdBy?.phoneNumber}
+                                {t2.requesterPhone ?? t2.createdBy?.phoneNumber}
                               </span>
                             )}
                           </div>
                         </div>
                       </td>
-                      <td className="cell-muted">{t.categoryEntity?.name ?? '—'}</td>
+                      <td className="cell-muted">{t2.categoryEntity?.name ?? '—'}</td>
                       <td>
-                        <span className={`priority priority--${t.priority}`}>{ticketPriorityLabel(t.priority)}</span>
+                        <span className={`priority priority--${t2.priority}`}>{ticketPriorityLabel(t2.priority, t)}</span>
                       </td>
                       <td>
-                        <span className={`status status--${t.status}`}>
-                          {STATUS_OPTIONS.find((o) => o.value === t.status)?.label ?? t.status}
+                        <span className={`status status--${t2.status}`}>
+                          {STATUS_OPTIONS.find((o) => o.value === t2.status)?.label ?? t2.status}
                         </span>
                       </td>
                       <td onClick={(e) => e.stopPropagation()}>
                         <select
                           className="assign-select"
-                          value={t.assignedTo?.id ?? ''}
-                          onChange={(e) => handleAssign(t, e.target.value)}
+                          value={t2.assignedTo?.id ?? ''}
+                          onChange={(e) => handleAssign(t2, e.target.value)}
                         >
-                          <option value="">Tayinlanmagan</option>
+                          <option value="">{t('tickets.unassigned')}</option>
                           {admins.map((a) => (
                             <option key={a.id} value={a.id}>
                               {a.fullname ?? a.id}
@@ -1689,18 +1722,18 @@ export function TicketsPage() {
                           ))}
                         </select>
                       </td>
-                      <td className="cell-muted">{closingDuration(t)}</td>
+                      <td className="cell-muted">{closingDuration(t2)}</td>
                       <td className="cell-muted">
                         <div className="cell-datetime">
-                          <span>{new Date(t.createdAt).toLocaleDateString('uz-UZ')}</span>
-                          <span className="cell-datetime-time">{new Date(t.createdAt).toLocaleTimeString('uz-UZ')}</span>
+                          <span>{new Date(t2.createdAt).toLocaleDateString(dateLocale)}</span>
+                          <span className="cell-datetime-time">{new Date(t2.createdAt).toLocaleTimeString(dateLocale)}</span>
                         </div>
                       </td>
                       {isSuperadmin && (
                         <td className="table-actions" onClick={(e) => e.stopPropagation()}>
-                          <button className="danger ticket-delete-btn" onClick={() => setTicketToDelete(t)}>
+                          <button className="danger ticket-delete-btn" onClick={() => setTicketToDelete(t2)}>
                             <IconTrash width={13} height={13} />
-                            O'chirish
+                            {t('tickets.delete')}
                           </button>
                         </td>
                       )}
@@ -1785,11 +1818,9 @@ export function TicketsPage() {
 
       <ConfirmModal
         isOpen={!!ticketToDelete}
-        title="Murojaatni o'chirish"
+        title={t('tickets.deleteTitle')}
         message={
-          ticketToDelete
-            ? `"${ticketToDelete.title}" murojaatini o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.`
-            : ''
+          ticketToDelete ? t('tickets.deleteConfirmTemplate').replace('{title}', ticketToDelete.title) : ''
         }
         onConfirm={handleDelete}
         onCancel={() => setTicketToDelete(null)}
@@ -1797,8 +1828,8 @@ export function TicketsPage() {
 
       <ConfirmModal
         isOpen={!!bulkStatusToConfirm}
-        title="Tanlangan murojaatlarni yopish"
-        message={`${selectedIds.size} ta murojaatni "Yopilgan" holatiga o'tkazmoqchimisiz?`}
+        title={t('tickets.bulkCloseTitle')}
+        message={t('tickets.bulkCloseConfirmTemplate').replace('{count}', String(selectedIds.size))}
         onConfirm={() => {
           const status = bulkStatusToConfirm;
           setBulkStatusToConfirm(null);

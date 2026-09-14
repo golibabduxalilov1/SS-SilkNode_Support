@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../api/client';
 import { IconClose, IconPlus } from './icons';
+import { useLanguage } from '../i18n/LanguageContext';
 
 export interface RequesterSuggestion {
   key: string;
@@ -50,6 +51,7 @@ export function RequesterFields({
   onApplySuggestion,
   phoneInvalid,
 }: RequesterFieldsProps) {
+  const { t } = useLanguage();
   const [suggestion, setSuggestion] = useState<RequesterSuggestion | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const [applied, setApplied] = useState(false);
@@ -100,29 +102,29 @@ export function RequesterFields({
   return (
     <>
       <label className="modal-field">
-        <span>Murojaatchi F.I.O.</span>
+        <span>{t('requesterFields.fullName')}</span>
         <input
           value={baseName}
           onChange={(e) => setBaseName(e.target.value)}
-          placeholder="Murojaatchining to'liq ismi"
+          placeholder={t('requesterFields.fullNamePlaceholder')}
           required
         />
       </label>
       {extraContacts.map((contact, i) => (
         <label className="modal-field" key={i}>
-          <span>Yana bir kontakt</span>
+          <span>{t('requesterFields.extraContact')}</span>
           <div className="requester-extra-contact-row">
             <input
               value={contact}
               onChange={(e) =>
                 setExtraContacts((prev) => prev.map((c, idx) => (idx === i ? e.target.value : c)))
               }
-              placeholder="Masalan, Aziz aka"
+              placeholder={t('requesterFields.extraContactPlaceholder')}
             />
             <button
               type="button"
               className="requester-extra-contact-remove"
-              aria-label="Kontaktni o'chirish"
+              aria-label={t('requesterFields.removeContact')}
               onClick={() => setExtraContacts((prev) => prev.filter((_, idx) => idx !== i))}
             >
               <IconClose width={13} height={13} />
@@ -136,10 +138,10 @@ export function RequesterFields({
         onClick={() => setExtraContacts((prev) => [...prev, ''])}
       >
         <IconPlus width={13} height={13} />
-        Yana bir kontakt
+        {t('requesterFields.addContact')}
       </button>
       <label className="modal-field">
-        <span>Murojaatchi telefon raqami</span>
+        <span>{t('requesterFields.phoneLabel')}</span>
         <input
           value={phone}
           onChange={(e) => onPhoneChange(formatUzPhone(e.target.value))}
@@ -147,21 +149,21 @@ export function RequesterFields({
           className={phoneInvalid ? 'field-invalid' : undefined}
           required
         />
-        {phoneInvalid && <p className="field-error">Telefon raqami to'liq emas</p>}
+        {phoneInvalid && <p className="field-error">{t('requesterFields.phoneIncomplete')}</p>}
       </label>
       {showSuggestion && suggestion && (
         <div className="requester-suggestion">
           <p>
-            Bu raqam allaqachon mavjud: <b>{suggestion.name ?? 'Nomsiz'}</b>
-            {suggestion.organizationName ? `, ${suggestion.organizationName}` : ''}, {suggestion.ticketsCount} ta
-            murojaat
+            {t('requesterFields.existingRequester')} <b>{suggestion.name ?? t('requesterFields.unnamed')}</b>
+            {suggestion.organizationName ? `, ${suggestion.organizationName}` : ''}, {suggestion.ticketsCount}{' '}
+            {t('requesterFields.ticketsCount')}
           </p>
           <div className="requester-suggestion-actions">
             <button type="button" className="btn btn-secondary btn-sm" onClick={() => setDismissed(true)}>
-              Yangi murojaatchi sifatida davom etish
+              {t('requesterFields.continueAsNew')}
             </button>
             <button type="button" className="btn btn-primary btn-sm" onClick={handleApply}>
-              Shu murojaatchini tanlash
+              {t('requesterFields.selectRequester')}
             </button>
           </div>
         </div>

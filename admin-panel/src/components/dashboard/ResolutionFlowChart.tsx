@@ -1,5 +1,6 @@
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ChartTooltip, formatDayLabel } from '../../pages/Dashboard';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 export interface ResolutionFlowPoint {
   date: string;
@@ -8,12 +9,13 @@ export interface ResolutionFlowPoint {
 }
 
 export function ResolutionFlowChart({ data }: { data: ResolutionFlowPoint[] }) {
+  const { t } = useLanguage();
   const totalOpened = data.reduce((sum, p) => sum + p.opened, 0);
   const totalResolved = data.reduce((sum, p) => sum + p.resolved, 0);
   const hasData = totalOpened > 0 || totalResolved > 0;
 
   if (!hasData) {
-    return <p className="chart-empty-note">Hozircha maʼlumot yoʻq — murojaatlar kelib tushishi bilan grafik to'ladi.</p>;
+    return <p className="chart-empty-note">{t('dashboard.noDataChartNote')}</p>;
   }
 
   return (
@@ -21,11 +23,11 @@ export function ResolutionFlowChart({ data }: { data: ResolutionFlowPoint[] }) {
       <ul className="chart-legend chart-legend--inline">
         <li className="chart-legend-item">
           <span className="chart-legend-swatch" style={{ background: 'var(--primary)' }} />
-          <span className="chart-legend-name">Ochilgan</span>
+          <span className="chart-legend-name">{t('dashboard.seriesOpened')}</span>
         </li>
         <li className="chart-legend-item">
           <span className="chart-legend-swatch" style={{ background: 'var(--success)' }} />
-          <span className="chart-legend-name">Hal qilingan</span>
+          <span className="chart-legend-name">{t('dashboard.seriesResolvedFlow')}</span>
         </li>
       </ul>
       <ResponsiveContainer width="100%" height={260}>
@@ -45,7 +47,7 @@ export function ResolutionFlowChart({ data }: { data: ResolutionFlowPoint[] }) {
           <Line
             type="monotone"
             dataKey="opened"
-            name="Ochilgan"
+            name={t('dashboard.seriesOpened')}
             stroke="var(--primary)"
             strokeWidth={2.5}
             dot={false}
@@ -54,7 +56,7 @@ export function ResolutionFlowChart({ data }: { data: ResolutionFlowPoint[] }) {
           <Line
             type="monotone"
             dataKey="resolved"
-            name="Hal qilingan"
+            name={t('dashboard.seriesResolvedFlow')}
             stroke="var(--success)"
             strokeWidth={2.5}
             dot={false}
@@ -63,8 +65,12 @@ export function ResolutionFlowChart({ data }: { data: ResolutionFlowPoint[] }) {
         </LineChart>
       </ResponsiveContainer>
       <p className="chart-summary-note">
-        {formatDayLabel(data[0].date)}–{formatDayLabel(data[data.length - 1].date)} ({data.length} kun):{' '}
-        <strong>{totalOpened}</strong> ta ochildi, <strong>{totalResolved}</strong> ta hal qilindi
+        {t('dashboard.resolutionFlowRangeTemplate')
+          .replace('{from}', formatDayLabel(data[0].date))
+          .replace('{to}', formatDayLabel(data[data.length - 1].date))
+          .replace('{days}', String(data.length))}{' '}
+        <strong>{totalOpened}</strong> {t('dashboard.openedSuffix')}, <strong>{totalResolved}</strong>{' '}
+        {t('dashboard.resolvedSuffix')}
       </p>
     </>
   );

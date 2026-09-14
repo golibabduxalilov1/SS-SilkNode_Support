@@ -3,6 +3,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
+import { useLanguage } from '../i18n/LanguageContext';
 import {
   IconBell,
   IconBuilding,
@@ -21,16 +22,19 @@ import {
   IconUsers,
 } from './icons';
 import { LIST_POLL_INTERVAL_MS } from '../utils/pollInterval';
+import { TranslationKey } from '../i18n/LanguageContext';
 
 const SIDEBAR_COLLAPSED_KEY = 'sidebarCollapsed';
 
-const STATUS_LABELS: Record<string, string> = {
-  new: 'Yangi',
-  in_progress: 'Jarayonda',
-  waiting_user: 'Javob kutilmoqda',
-  resolved: 'Yechilgan',
-  closed: 'Yopilgan',
-};
+function getStatusLabels(t: (key: TranslationKey) => string): Record<string, string> {
+  return {
+    new: t('appShell.statusNew'),
+    in_progress: t('appShell.statusInProgress'),
+    waiting_user: t('appShell.statusWaitingUser'),
+    resolved: t('appShell.statusResolved'),
+    closed: t('appShell.statusClosed'),
+  };
+}
 
 interface RecentTicket {
   id: string;
@@ -50,21 +54,31 @@ function truncateTitle(title: string, max = 46): string {
   return `${title.slice(0, max).trimEnd()}...`;
 }
 
-function formatRelativeTime(dateStr: string): string {
+function formatRelativeTime(dateStr: string, t: (key: TranslationKey) => string): string {
   const diffMs = Date.now() - new Date(dateStr).getTime();
   const minutes = Math.floor(diffMs / 60000);
-  if (minutes < 1) return 'hozirgina';
-  if (minutes < 60) return `${minutes} daqiqa oldin`;
+  if (minutes < 1) return t('appShell.justNow');
+  if (minutes < 60) return t('appShell.minutesAgo').replace('{n}', String(minutes));
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} soat oldin`;
+  if (hours < 24) return t('appShell.hoursAgo').replace('{n}', String(hours));
   const days = Math.floor(hours / 24);
-  if (days < 30) return `${days} kun oldin`;
+  if (days < 30) return t('appShell.daysAgo').replace('{n}', String(days));
   const months = Math.floor(days / 30);
-  if (months < 12) return `${months} oy oldin`;
-  return `${Math.floor(months / 12)} yil oldin`;
+  if (months < 12) return t('appShell.monthsAgo').replace('{n}', String(months));
+  return t('appShell.yearsAgo').replace('{n}', String(Math.floor(months / 12)));
 }
 
-function BellTicketItem({ ticket, onClick }: { ticket: RecentTicket; onClick: () => void }) {
+function BellTicketItem({
+  ticket,
+  onClick,
+  statusLabels,
+  t,
+}: {
+  ticket: RecentTicket;
+  onClick: () => void;
+  statusLabels: Record<string, string>;
+  t: (key: TranslationKey) => string;
+}) {
   return (
     <button type="button" className="topbar-bell-dropdown-item" onClick={onClick}>
       <div className="topbar-bell-dropdown-item-top">
@@ -73,32 +87,34 @@ function BellTicketItem({ ticket, onClick }: { ticket: RecentTicket; onClick: ()
       </div>
       <span className="topbar-bell-dropdown-item-title">{truncateTitle(ticket.title)}</span>
       <div className="topbar-bell-dropdown-item-bottom">
-        <span className={`status status--${ticket.status}`}>{STATUS_LABELS[ticket.status] ?? ticket.status}</span>
-        <span className="topbar-bell-dropdown-item-time">{formatRelativeTime(ticket.createdAt)}</span>
+        <span className={`status status--${ticket.status}`}>{statusLabels[ticket.status] ?? ticket.status}</span>
+        <span className="topbar-bell-dropdown-item-time">{formatRelativeTime(ticket.createdAt, t)}</span>
       </div>
     </button>
   );
 }
 
-const NAV_GROUPS = [
-  {
-    label: 'Ish faoliyati',
-    items: [
-      { to: '/dashboard', label: 'Dashboard', icon: IconGrid },
-      { to: '/tickets', label: 'Murojaatlar', icon: IconInbox },
-      { to: '/requesters', label: 'Murojaatchilar', icon: IconUser },
-    ],
-  },
-  {
-    label: 'Boshqaruv',
-    items: [
-      { to: '/organizations', label: 'Tashkilotlar', icon: IconBuilding },
-      { to: '/categories', label: 'Kategoriyalar', icon: IconLayers },
-      { to: '/employees', label: 'Xodimlar', icon: IconUsers, superadminOnly: true },
-      { to: '/logs', label: 'Loglar', icon: IconHistory, superadminOnly: true },
-    ],
-  },
-];
+function getNavGroups(t: (key: TranslationKey) => string) {
+  return [
+    {
+      label: t('appShell.groupWork'),
+      items: [
+        { to: '/dashboard', label: t('appShell.navDashboard'), icon: IconGrid },
+        { to: '/tickets', label: t('appShell.navTickets'), icon: IconInbox },
+        { to: '/requesters', label: t('appShell.navRequesters'), icon: IconUser },
+      ],
+    },
+    {
+      label: t('appShell.groupManagement'),
+      items: [
+        { to: '/organizations', label: t('appShell.navOrganizations'), icon: IconBuilding },
+        { to: '/categories', label: t('appShell.navCategories'), icon: IconLayers },
+        { to: '/employees', label: t('appShell.navEmployees'), icon: IconUsers, superadminOnly: true },
+        { to: '/logs', label: t('appShell.navLogs'), icon: IconHistory, superadminOnly: true },
+      ],
+    },
+  ];
+}
 
 interface AppShellProps {
   title: string;
@@ -115,16 +131,19 @@ function initials(name: string | null | undefined): string {
   return letters.join('') || '?';
 }
 
-const ROLE_LABELS: Record<string, string> = {
-  admin: 'Admin',
-  superadmin: 'Superadmin',
-};
-
 export function AppShell({ title, breadcrumb, actions, children, contentClassName }: AppShellProps) {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { language, toggleLanguage, t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const ROLE_LABELS: Record<string, string> = {
+    admin: t('common.admin'),
+    superadmin: t('common.superadmin'),
+  };
+  const STATUS_LABELS = getStatusLabels(t);
+  const NAV_GROUPS = getNavGroups(t);
 
   const [newTicketsCount, setNewTicketsCount] = useState(0);
   const [newRepliesCount, setNewRepliesCount] = useState(0);
@@ -280,7 +299,7 @@ export function AppShell({ title, breadcrumb, actions, children, contentClassNam
           <span className="sidebar-brand-text">Silknode</span>
         </NavLink>
 
-        <nav className="sidebar-nav" aria-label="Asosiy navigatsiya">
+        <nav className="sidebar-nav" aria-label={t('appShell.mainNav')}>
           {NAV_GROUPS.map((group) => {
             const items = group.items.filter(
               (item) => !item.superadminOnly || user?.role === 'superadmin',
@@ -311,7 +330,7 @@ export function AppShell({ title, breadcrumb, actions, children, contentClassNam
           <div className="sidebar-user">
             <span className="avatar avatar--md">{initials(user?.fullname)}</span>
             <div className="sidebar-user-info">
-              <span className="sidebar-user-name">{user?.fullname ?? 'Admin'}</span>
+              <span className="sidebar-user-name">{user?.fullname ?? t('common.admin')}</span>
               <span className="sidebar-user-role">{user?.role ? ROLE_LABELS[user.role] ?? user.role : '—'}</span>
             </div>
           </div>
@@ -319,16 +338,16 @@ export function AppShell({ title, breadcrumb, actions, children, contentClassNam
             type="button"
             className="sidebar-collapse-btn"
             onClick={toggleCollapsed}
-            aria-label={collapsed ? "Sidebar-ni yoyish" : "Sidebar-ni yig'ish"}
+            aria-label={collapsed ? t('appShell.expandSidebar') : t('appShell.collapseSidebar')}
             aria-expanded={!collapsed}
-            title={collapsed ? "Yoyish" : "Yig'ish"}
+            title={collapsed ? t('appShell.expand') : t('appShell.collapse')}
           >
             {collapsed ? <IconPanelLeftOpen width={18} height={18} /> : <IconPanelLeftClose width={18} height={18} />}
-            <span>Yig'ish</span>
+            <span>{t('appShell.collapse')}</span>
           </button>
           <button className="sidebar-logout" onClick={handleLogout}>
             <IconLogout />
-            <span>Chiqish</span>
+            <span>{t('appShell.logout')}</span>
           </button>
         </div>
       </aside>
@@ -339,7 +358,7 @@ export function AppShell({ title, breadcrumb, actions, children, contentClassNam
             type="button"
             className="topbar-menu-btn"
             onClick={() => setSidebarOpen((v) => !v)}
-            aria-label={sidebarOpen ? 'Menyuni yopish' : 'Menyuni ochish'}
+            aria-label={sidebarOpen ? t('appShell.closeMenu') : t('appShell.openMenu')}
             aria-expanded={sidebarOpen}
           >
             {sidebarOpen ? <IconClose width={20} height={20} /> : <IconMenu width={20} height={20} />}
@@ -353,10 +372,19 @@ export function AppShell({ title, breadcrumb, actions, children, contentClassNam
             {user?.role && <span className="role-badge">{ROLE_LABELS[user.role] ?? user.role}</span>}
             <button
               type="button"
+              className="lang-toggle"
+              onClick={toggleLanguage}
+              aria-label={t('appShell.switchLanguage')}
+              title={t('appShell.switchLanguage')}
+            >
+              {language === 'uz' ? 'UZ' : 'RU'}
+            </button>
+            <button
+              type="button"
               className="theme-toggle"
               onClick={toggleTheme}
-              aria-label={theme === 'dark' ? "Yorug' rejimga o'tish" : "Qorong'i rejimga o'tish"}
-              title={theme === 'dark' ? "Yorug' rejim" : "Qorong'i rejim"}
+              aria-label={theme === 'dark' ? t('appShell.switchToLight') : t('appShell.switchToDark')}
+              title={theme === 'dark' ? t('appShell.lightMode') : t('appShell.darkMode')}
             >
               {theme === 'dark' ? <IconSun width={19} height={19} /> : <IconMoon width={19} height={19} />}
             </button>
@@ -365,8 +393,8 @@ export function AppShell({ title, breadcrumb, actions, children, contentClassNam
                 type="button"
                 className="topbar-bell"
                 onClick={() => setBellOpen((v) => !v)}
-                aria-label="Bildirishnomalar"
-                title="Bildirishnomalar"
+                aria-label={t('appShell.notifications')}
+                title={t('appShell.notifications')}
                 aria-expanded={bellOpen}
               >
                 <IconBell width={19} height={19} />
@@ -381,7 +409,7 @@ export function AppShell({ title, breadcrumb, actions, children, contentClassNam
                   {newRepliesCount > 0 && (
                     <>
                       <div className="topbar-bell-dropdown-header">
-                        <span>Yangi javoblar</span>
+                        <span>{t('appShell.newReplies')}</span>
                       </div>
                       <div className="topbar-bell-dropdown-list">
                         {recentTicketsLoading ? (
@@ -391,13 +419,15 @@ export function AppShell({ title, breadcrumb, actions, children, contentClassNam
                             ))}
                           </div>
                         ) : (
-                          replyTickets.map((t) => (
+                          replyTickets.map((ticket) => (
                             <BellTicketItem
-                              key={t.id}
-                              ticket={t}
+                              key={ticket.id}
+                              ticket={ticket}
+                              statusLabels={STATUS_LABELS}
+                              t={t}
                               onClick={() => {
                                 setBellOpen(false);
-                                navigate(`/dashboard/tickets/${t.id}`);
+                                navigate(`/dashboard/tickets/${ticket.id}`);
                               }}
                             />
                           ))
@@ -406,7 +436,7 @@ export function AppShell({ title, breadcrumb, actions, children, contentClassNam
                     </>
                   )}
                   <div className="topbar-bell-dropdown-header">
-                    <span>Yangi murojaatlar</span>
+                    <span>{t('appShell.newTickets')}</span>
                   </div>
                   <div className="topbar-bell-dropdown-list">
                     {recentTicketsLoading ? (
@@ -416,15 +446,17 @@ export function AppShell({ title, breadcrumb, actions, children, contentClassNam
                         ))}
                       </div>
                     ) : recentTickets.length === 0 ? (
-                      <p className="topbar-bell-dropdown-empty">Yangi murojaatlar yo'q</p>
+                      <p className="topbar-bell-dropdown-empty">{t('appShell.noNewTickets')}</p>
                     ) : (
-                      recentTickets.map((t) => (
+                      recentTickets.map((ticket) => (
                         <BellTicketItem
-                          key={t.id}
-                          ticket={t}
+                          key={ticket.id}
+                          ticket={ticket}
+                          statusLabels={STATUS_LABELS}
+                          t={t}
                           onClick={() => {
                             setBellOpen(false);
-                            navigate(`/dashboard/tickets/${t.id}`);
+                            navigate(`/dashboard/tickets/${ticket.id}`);
                           }}
                         />
                       ))
@@ -438,14 +470,14 @@ export function AppShell({ title, breadcrumb, actions, children, contentClassNam
                       navigate('/tickets');
                     }}
                   >
-                    Barchasini ko'rish
+                    {t('appShell.viewAll')}
                   </button>
                 </div>
               )}
             </div>
             <div className="topbar-user">
               <span className="avatar avatar--sm">{initials(user?.fullname)}</span>
-              <span className="topbar-user-name">{user?.fullname ?? 'Admin'}</span>
+              <span className="topbar-user-name">{user?.fullname ?? t('common.admin')}</span>
             </div>
           </div>
         </header>

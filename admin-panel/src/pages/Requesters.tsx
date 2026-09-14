@@ -6,6 +6,7 @@ import { IconSearch, IconUser } from '../components/icons';
 import { Avatar, EmptyState, Pagination, TableSkeleton } from '../components/ui';
 import { usePageSize } from '../utils/usePageSize';
 import { LIST_POLL_INTERVAL_MS } from '../utils/pollInterval';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface Requester {
   key: string;
@@ -90,6 +91,8 @@ function SortableTh({
 
 /** ТЗ band 8: alohida "Requester" jadvali yo'q — ro'yxat tickets jadvalidan hosil qilinadi (backend/src/requesters). */
 export function RequestersPage() {
+  const { language, t } = useLanguage();
+  const dateLocale = language === 'ru' ? 'ru-RU' : 'uz-UZ';
   const navigate = useNavigate();
   const [requesters, setRequesters] = useState<Requester[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -115,7 +118,7 @@ export function RequestersPage() {
         setOrganizations(orgsRes.data.data);
       })
       .catch(() => {
-        if (!background) setError("Murojaatchilar ro'yxatini yuklab bo'lmadi.");
+        if (!background) setError(t('requesters.loadError'));
       })
       .finally(() => {
         if (!background) setIsLoading(false);
@@ -175,7 +178,7 @@ export function RequestersPage() {
   const hasActiveFilters = Boolean(nameSearch || phoneSearch || organizationFilter || minTickets || maxTickets);
 
   return (
-    <AppShell title="Murojaatchilar" breadcrumb="Dashboard / Murojaatchilar" contentClassName="app-content--table-scroll">
+    <AppShell title={t('requesters.title')} breadcrumb={t('requesters.breadcrumb')} contentClassName="app-content--table-scroll">
       {isLoading ? (
         <TableSkeleton rows={6} cols={5} />
       ) : (
@@ -186,7 +189,7 @@ export function RequestersPage() {
               <input
                 value={nameSearch}
                 onChange={(e) => setNameSearch(e.target.value)}
-                placeholder="Ism yoki F.I.O. bo'yicha qidirish"
+                placeholder={t('requesters.searchByName')}
               />
             </div>
             <div className="toolbar-search">
@@ -194,16 +197,16 @@ export function RequestersPage() {
               <input
                 value={phoneSearch}
                 onChange={(e) => setPhoneSearch(e.target.value)}
-                placeholder="Telefon raqami bo'yicha qidirish"
+                placeholder={t('requesters.searchByPhone')}
               />
             </div>
           </div>
 
           <div className="filters">
             <label>
-              Tashkilot
+              {t('requesters.organization')}
               <select value={organizationFilter} onChange={(e) => setOrganizationFilter(e.target.value)}>
-                <option value="">Barchasi</option>
+                <option value="">{t('common.all')}</option>
                 {organizations.map((o) => (
                   <option key={o.id} value={o.id}>
                     {o.name}
@@ -212,7 +215,7 @@ export function RequestersPage() {
               </select>
             </label>
             <label>
-              Murojaatlar soni (dan)
+              {t('requesters.minTickets')}
               <input
                 type="number"
                 min={0}
@@ -222,7 +225,7 @@ export function RequestersPage() {
               />
             </label>
             <label>
-              Murojaatlar soni (gacha)
+              {t('requesters.maxTickets')}
               <input
                 type="number"
                 min={0}
@@ -234,7 +237,7 @@ export function RequestersPage() {
             {hasActiveFilters && (
               <div className="filters-actions">
                 <button type="button" className="btn btn-secondary btn-sm" onClick={clearFilters}>
-                  Filterlarni tozalash
+                  {t('requesters.clearFilters')}
                 </button>
               </div>
             )}
@@ -242,18 +245,16 @@ export function RequestersPage() {
 
           {error && <p className="form-error">{error}</p>}
 
-          <p className="filter-results">{sortedRequesters.length} ta murojaatchi topildi</p>
+          <p className="filter-results">
+            {sortedRequesters.length} {t('requesters.resultsFound')}
+          </p>
 
           {sortedRequesters.length === 0 ? (
             <EmptyState
               icon={<IconUser width={24} height={24} />}
-              title="Hech narsa topilmadi"
-              description={
-                hasActiveFilters
-                  ? 'Filtrlarni o\'zgartirib ko\'ring.'
-                  : 'Murojaat kelib tushgach, murojaatchilar shu yerda ko\'rinadi.'
-              }
-              actionLabel={hasActiveFilters ? 'Filterlarni tozalash' : undefined}
+              title={t('requesters.notFound')}
+              description={hasActiveFilters ? t('requesters.notFoundFiltered') : t('requesters.notFoundEmpty')}
+              actionLabel={hasActiveFilters ? t('requesters.clearFilters') : undefined}
               onAction={hasActiveFilters ? clearFilters : undefined}
             />
           ) : (
@@ -261,12 +262,22 @@ export function RequestersPage() {
               <table className="tickets-table tickets-table--equal">
                 <thead>
                   <tr>
-                    <th>№</th>
-                    <SortableTh label="F.I.O. / nomi" sortKey="name" current={sort} onSort={handleSort} />
-                    <th>Telefon</th>
-                    <th>Tashkilot</th>
-                    <SortableTh label="Murojaatlar soni" sortKey="ticketsCount" current={sort} onSort={handleSort} />
-                    <SortableTh label="Oxirgi murojaat" sortKey="lastTicketAt" current={sort} onSort={handleSort} />
+                    <th>{t('requesters.colNumber')}</th>
+                    <SortableTh label={t('requesters.colName')} sortKey="name" current={sort} onSort={handleSort} />
+                    <th>{t('requesters.colPhone')}</th>
+                    <th>{t('requesters.colOrganization')}</th>
+                    <SortableTh
+                      label={t('requesters.colTicketsCount')}
+                      sortKey="ticketsCount"
+                      current={sort}
+                      onSort={handleSort}
+                    />
+                    <SortableTh
+                      label={t('requesters.colLastTicket')}
+                      sortKey="lastTicketAt"
+                      current={sort}
+                      onSort={handleSort}
+                    />
                   </tr>
                 </thead>
                 <tbody>
@@ -280,7 +291,10 @@ export function RequestersPage() {
                           {r.contactNames.length > 1 && (
                             <span
                               className="requester-group-badge"
-                              title={`Guruh-murojaatchi — shu raqamdan qo'ng'iroq qilgan boshqa ismlar: ${r.contactNames.slice(1).join(', ')}`}
+                              title={t('requesters.groupBadgeTitleTemplate').replace(
+                                '{names}',
+                                r.contactNames.slice(1).join(', '),
+                              )}
                             >
                               +{r.contactNames.length - 1}
                             </span>
@@ -292,9 +306,9 @@ export function RequestersPage() {
                       <td>{r.ticketsCount}</td>
                       <td className="cell-muted">
                         <div className="cell-datetime">
-                          <span>{new Date(r.lastTicketAt).toLocaleDateString('uz-UZ')}</span>
+                          <span>{new Date(r.lastTicketAt).toLocaleDateString(dateLocale)}</span>
                           <span className="cell-datetime-time">
-                            {new Date(r.lastTicketAt).toLocaleTimeString('uz-UZ')}
+                            {new Date(r.lastTicketAt).toLocaleTimeString(dateLocale)}
                           </span>
                         </div>
                       </td>

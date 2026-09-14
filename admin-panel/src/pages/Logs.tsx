@@ -4,6 +4,7 @@ import { AppShell } from '../components/AppShell';
 import { IconHistory } from '../components/icons';
 import { EmptyState, Pagination, TableSkeleton } from '../components/ui';
 import { AuditLogEntry, fetchAuditLogs } from '../api/auditLogs';
+import { TranslationKey, useLanguage } from '../i18n/LanguageContext';
 
 interface AdminUser {
   id: string;
@@ -11,28 +12,32 @@ interface AdminUser {
   role: string;
 }
 
-const ACTION_LABELS: Record<string, string> = {
-  ticket_status_changed: "Murojaat holati o'zgartirildi",
-  ticket_assigned: 'Murojaat tayinlandi',
-  ticket_priority_changed: "Murojaat muhimligi o'zgartirildi",
-  employee_created: "Xodim qo'shildi",
-  employee_updated: 'Xodim tahrirlandi',
-  employee_role_changed: "Xodim roli o'zgartirildi",
-  employee_deleted: "Xodim o'chirildi",
-  organization_created: "Tashkilot qo'shildi",
-  organization_updated: 'Tashkilot tahrirlandi',
-  organization_deleted: "Tashkilot o'chirildi",
-  category_created: "Kategoriya qo'shildi",
-  category_updated: 'Kategoriya tahrirlandi',
-  category_deleted: "Kategoriya o'chirildi",
-};
+function getActionLabels(t: (key: TranslationKey) => string): Record<string, string> {
+  return {
+    ticket_status_changed: t('logs.actionTicketStatusChanged'),
+    ticket_assigned: t('logs.actionTicketAssigned'),
+    ticket_priority_changed: t('logs.actionTicketPriorityChanged'),
+    employee_created: t('logs.actionEmployeeCreated'),
+    employee_updated: t('logs.actionEmployeeUpdated'),
+    employee_role_changed: t('logs.actionEmployeeRoleChanged'),
+    employee_deleted: t('logs.actionEmployeeDeleted'),
+    organization_created: t('logs.actionOrganizationCreated'),
+    organization_updated: t('logs.actionOrganizationUpdated'),
+    organization_deleted: t('logs.actionOrganizationDeleted'),
+    category_created: t('logs.actionCategoryCreated'),
+    category_updated: t('logs.actionCategoryUpdated'),
+    category_deleted: t('logs.actionCategoryDeleted'),
+  };
+}
 
-const ENTITY_TYPE_LABELS: Record<string, string> = {
-  ticket: 'Murojaat',
-  user: 'Xodim',
-  organization: 'Tashkilot',
-  category: 'Kategoriya',
-};
+function getEntityTypeLabels(t: (key: TranslationKey) => string): Record<string, string> {
+  return {
+    ticket: t('logs.entityTicket'),
+    user: t('logs.entityUser'),
+    organization: t('logs.entityOrganization'),
+    category: t('logs.entityCategory'),
+  };
+}
 
 const PAGE_SIZE = 20;
 
@@ -48,6 +53,9 @@ function formatMetadata(metadata: Record<string, unknown> | null): string {
 
 /** Admin panel "Loglar" bo'limi — faqat superadmin uchun (AppShell/route darajasida cheklanadi). */
 export function LogsPage() {
+  const { language, t } = useLanguage();
+  const ACTION_LABELS = getActionLabels(t);
+  const ENTITY_TYPE_LABELS = getEntityTypeLabels(t);
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [total, setTotal] = useState(0);
@@ -85,7 +93,7 @@ export function LogsPage() {
         setLogs(result.data);
         setTotal(result.total);
       })
-      .catch(() => setError("Loglarni yuklab bo'lmadi."))
+      .catch(() => setError(t('logs.loadError')))
       .finally(() => setIsLoading(false));
   }, [page, actionFilter, actorFilter, dateFrom, dateTo]);
 
@@ -97,14 +105,15 @@ export function LogsPage() {
   };
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const dateLocale = language === 'ru' ? 'ru-RU' : 'uz-UZ';
 
   return (
-    <AppShell title="Loglar" breadcrumb="Dashboard / Loglar">
+    <AppShell title={t('logs.title')} breadcrumb={t('logs.breadcrumb')}>
       <div className="filters">
         <label>
-          Amal turi
+          {t('logs.actionType')}
           <select value={actionFilter} onChange={(e) => setActionFilter(e.target.value)}>
-            <option value="">Barchasi</option>
+            <option value="">{t('common.all')}</option>
             {Object.entries(ACTION_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -113,9 +122,9 @@ export function LogsPage() {
           </select>
         </label>
         <label>
-          Admin
+          {t('logs.admin')}
           <select value={actorFilter} onChange={(e) => setActorFilter(e.target.value)}>
-            <option value="">Barchasi</option>
+            <option value="">{t('common.all')}</option>
             {admins.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.fullname ?? a.id}
@@ -124,16 +133,16 @@ export function LogsPage() {
           </select>
         </label>
         <label>
-          Sanadan
+          {t('logs.dateFrom')}
           <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
         </label>
         <label>
-          Sanagacha
+          {t('logs.dateTo')}
           <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
         </label>
         <div className="filters-actions">
           <button type="button" className="btn btn-secondary btn-sm" onClick={clearFilters}>
-            Filterlarni tozalash
+            {t('logs.clearFilters')}
           </button>
         </div>
       </div>
@@ -145,27 +154,29 @@ export function LogsPage() {
       ) : logs.length === 0 ? (
         <EmptyState
           icon={<IconHistory width={24} height={24} />}
-          title="Loglar topilmadi"
-          description="Filtrni o'zgartirib ko'ring."
+          title={t('logs.notFound')}
+          description={t('logs.tryChangeFilter')}
         />
       ) : (
         <>
-          <p className="filter-results">{total} ta yozuv topildi</p>
+          <p className="filter-results">
+            {total} {t('logs.resultsFound')}
+          </p>
           <div className="table-wrap">
             <table className="tickets-table">
               <thead>
                 <tr>
-                  <th>Sana</th>
-                  <th>Kim</th>
-                  <th>Amal</th>
-                  <th>Nimaga tegishli</th>
-                  <th>Tafsilot</th>
+                  <th>{t('logs.colDate')}</th>
+                  <th>{t('logs.colWho')}</th>
+                  <th>{t('logs.colAction')}</th>
+                  <th>{t('logs.colEntity')}</th>
+                  <th>{t('logs.colDetail')}</th>
                 </tr>
               </thead>
               <tbody>
                 {logs.map((log) => (
                   <tr key={log.id}>
-                    <td className="cell-muted">{new Date(log.createdAt).toLocaleString('uz-UZ')}</td>
+                    <td className="cell-muted">{new Date(log.createdAt).toLocaleString(dateLocale)}</td>
                     <td className="cell-primary">{log.actorName}</td>
                     <td>{ACTION_LABELS[log.action] ?? log.action}</td>
                     <td className="cell-muted">

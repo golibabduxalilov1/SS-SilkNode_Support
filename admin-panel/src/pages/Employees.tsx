@@ -6,6 +6,7 @@ import { AppShell } from '../components/AppShell';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { IconClose, IconEdit, IconPlus, IconPower, IconTrash, IconUsers } from '../components/icons';
 import { EmptyState, TableSkeleton } from '../components/ui';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface Organization {
   id: string;
@@ -63,6 +64,7 @@ function EmployeeModal({
   isSaving: boolean;
   error: string | null;
 }) {
+  const { t } = useLanguage();
   const [form, setForm] = useState<EmployeeFormData>(initialData);
   const [newOrgName, setNewOrgName] = useState('');
 
@@ -96,8 +98,8 @@ function EmployeeModal({
           <span className="modal-header-icon">
             <IconUsers width={18} height={18} />
           </span>
-          <h3>{mode === 'create' ? 'Yangi xodim' : 'Xodimni tahrirlash'}</h3>
-          <button type="button" className="modal-close" onClick={onClose} aria-label="Yopish">
+          <h3>{mode === 'create' ? t('employees.createTitle') : t('employees.editTitle')}</h3>
+          <button type="button" className="modal-close" onClick={onClose} aria-label={t('common.close')}>
             <IconClose width={18} height={18} />
           </button>
         </div>
@@ -105,33 +107,33 @@ function EmployeeModal({
           <div className="modal-body">
             {error && <p className="form-error">{error}</p>}
             <label className="modal-field">
-              <span>F.I.Sh</span>
+              <span>{t('employees.fullname')}</span>
               <input
                 value={form.fullname}
                 onChange={(e) => setForm({ ...form, fullname: e.target.value })}
-                placeholder="F.I.Sh"
+                placeholder={t('employees.fullname')}
                 autoFocus
               />
             </label>
             <label className="modal-field">
-              <span>Login</span>
+              <span>{t('employees.login')}</span>
               <input
                 value={form.adminLogin}
                 onChange={(e) => setForm({ ...form, adminLogin: e.target.value })}
-                placeholder="Login"
+                placeholder={t('employees.login')}
               />
             </label>
             <label className="modal-field">
-              <span>{mode === 'edit' ? 'Yangi parol (ixtiyoriy)' : 'Parol'}</span>
+              <span>{mode === 'edit' ? t('employees.newPasswordOptional') : t('employees.password')}</span>
               <input
                 type="password"
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                placeholder={mode === 'edit' ? 'Yangi parol (ixtiyoriy)' : 'Parol'}
+                placeholder={mode === 'edit' ? t('employees.newPasswordOptional') : t('employees.password')}
               />
             </label>
             <label className="modal-field">
-              <span>Telegram ID (ixtiyoriy)</span>
+              <span>{t('employees.telegramIdOptional')}</span>
               <input
                 value={form.telegramId}
                 onChange={(e) => setForm({ ...form, telegramId: e.target.value.replace(/\D/g, '') })}
@@ -140,49 +142,50 @@ function EmployeeModal({
               />
             </label>
             <label className="modal-field">
-              <span>Rol</span>
+              <span>{t('employees.role')}</span>
               <select
                 value={form.role}
                 onChange={(e) => setForm({ ...form, role: e.target.value as 'admin' | 'superadmin' })}
               >
-                <option value="admin">Admin</option>
+                <option value="admin">{t('employees.admin')}</option>
                 <option value="superadmin" disabled={superadminTaken}>
-                  Superadmin{superadminTaken ? ' (band)' : ''}
+                  {t('employees.superadmin')}
+                  {superadminTaken ? ` ${t('employees.taken')}` : ''}
                 </option>
               </select>
             </label>
             <label className="modal-field">
-              <span>Tashkilot</span>
+              <span>{t('employees.organization')}</span>
               <select
                 value={form.organizationId}
                 onChange={(e) => setForm({ ...form, organizationId: e.target.value })}
               >
-                <option value="">Tashkilotsiz</option>
+                <option value="">{t('employees.noOrganization')}</option>
                 {organizations.map((org) => (
                   <option key={org.id} value={org.id}>
                     {org.name}
                   </option>
                 ))}
-                <option value="__other__">Boshqa...</option>
+                <option value="__other__">{t('employees.other')}</option>
               </select>
             </label>
             {form.organizationId === '__other__' && (
               <label className="modal-field">
-                <span>Yangi tashkilot nomi</span>
+                <span>{t('employees.newOrganizationName')}</span>
                 <input
                   value={newOrgName}
                   onChange={(e) => setNewOrgName(e.target.value)}
-                  placeholder="Yangi tashkilot nomi"
+                  placeholder={t('employees.newOrganizationName')}
                 />
               </label>
             )}
           </div>
           <div className="modal-footer">
             <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSaving}>
-              Bekor qilish
+              {t('common.cancel')}
             </button>
             <button className="btn btn-primary" type="submit" disabled={isSaving}>
-              {isSaving ? 'Saqlanmoqda...' : mode === 'edit' ? 'Saqlash' : "Qo'shish"}
+              {isSaving ? t('common.saving') : mode === 'edit' ? t('common.save') : t('employees.createButton')}
             </button>
           </div>
         </form>
@@ -194,6 +197,7 @@ function EmployeeModal({
 
 export function EmployeesPage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const isSuperadmin = user?.role === 'superadmin';
 
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -260,15 +264,15 @@ export function EmployeesPage() {
 
   const handleModalSubmit = async (data: EmployeeFormData, newOrgName: string) => {
     if (!editingId && (!data.fullname.trim() || !data.adminLogin.trim() || data.password.length < 6)) {
-      setModalError("Barcha maydonlarni to'ldiring, parol kamida 6 belgi bo'lishi kerak.");
+      setModalError(t('employees.validationRequired'));
       return;
     }
     if (editingId && !data.adminLogin.trim()) {
-      setModalError('Login bo\'sh bo\'lishi mumkin emas.');
+      setModalError(t('employees.validationLoginRequired'));
       return;
     }
     if (data.organizationId === '__other__' && !newOrgName.trim()) {
-      setModalError('Yangi tashkilot nomini kiriting.');
+      setModalError(t('employees.validationNewOrgRequired'));
       return;
     }
 
@@ -303,7 +307,7 @@ export function EmployeesPage() {
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
-          ?.message ?? "Saqlab bo'lmadi.";
+          ?.message ?? t('employees.saveError');
       setModalError(message);
     } finally {
       setIsSaving(false);
@@ -325,29 +329,29 @@ export function EmployeesPage() {
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
-          ?.message ?? "Xodimni o'chirib bo'lmadi.";
+          ?.message ?? t('employees.deleteError');
       setError(message);
     }
   };
 
   if (!isSuperadmin) {
     return (
-      <AppShell title="Xodimlar" breadcrumb="Dashboard / Xodimlar">
+      <AppShell title={t('employees.title')} breadcrumb={t('employees.breadcrumb')}>
         <EmptyState
           icon={<IconUsers width={24} height={24} />}
-          title="Ruxsat yo'q"
-          description="Bu sahifa faqat superadmin uchun mavjud."
+          title={t('employees.noAccess')}
+          description={t('employees.noAccessDescription')}
         />
       </AppShell>
     );
   }
 
   return (
-    <AppShell title="Xodimlar" breadcrumb="Dashboard / Xodimlar">
+    <AppShell title={t('employees.title')} breadcrumb={t('employees.breadcrumb')}>
       <div className="toolbar">
         <button className="btn btn-primary" type="button" onClick={openCreateModal}>
           <IconPlus width={15} height={15} />
-          Qo'shish
+          {t('employees.add')}
         </button>
       </div>
       {error && <p className="form-error">{error}</p>}
@@ -357,20 +361,20 @@ export function EmployeesPage() {
       ) : employees.length === 0 ? (
         <EmptyState
           icon={<IconUsers width={24} height={24} />}
-          title="Hozircha xodimlar yo'q"
-          description="Yuqoridagi tugma orqali birinchi xodimni qo'shing."
+          title={t('employees.empty')}
+          description={t('employees.emptyDescription')}
         />
       ) : (
         <div className="table-wrap">
           <table className="tickets-table employees-table">
             <thead>
               <tr>
-                <th>F.I.Sh</th>
-                <th>Login</th>
-                <th>Telegram ID</th>
-                <th>Rol</th>
-                <th>Tashkilot</th>
-                <th>Holati</th>
+                <th>{t('employees.colFullname')}</th>
+                <th>{t('employees.colLogin')}</th>
+                <th>{t('employees.colTelegramId')}</th>
+                <th>{t('employees.colRole')}</th>
+                <th>{t('employees.colOrganization')}</th>
+                <th>{t('employees.colStatus')}</th>
                 <th></th>
               </tr>
             </thead>
@@ -387,26 +391,26 @@ export function EmployeesPage() {
                   </td>
                   <td>{emp.adminLogin ?? '—'}</td>
                   <td>{emp.telegramId ?? '—'}</td>
-                  <td>{emp.role === 'superadmin' ? 'Superadmin' : 'Admin'}</td>
+                  <td>{emp.role === 'superadmin' ? t('employees.superadmin') : t('employees.admin')}</td>
                   <td>{emp.organization?.name ?? '—'}</td>
                   <td>
                     <span className={`status status--${emp.isActive ? 'active' : 'inactive'}`}>
-                      {emp.isActive ? 'Faol' : 'Nofaol'}
+                      {emp.isActive ? t('employees.active') : t('employees.inactive')}
                     </span>
                   </td>
                   <td className="table-actions">
                     <button onClick={() => openEditModal(emp)}>
                       <IconEdit width={13} height={13} />
-                      Tahrirlash
+                      {t('employees.edit')}
                     </button>
                     <button onClick={() => handleToggleActive(emp)}>
                       <IconPower width={13} height={13} />
-                      {emp.isActive ? 'Nofaollashtirish' : 'Faollashtirish'}
+                      {emp.isActive ? t('employees.deactivate') : t('employees.activate')}
                     </button>
                     {emp.id !== user?.id && (
                       <button className="danger" onClick={() => setEmployeeToDelete(emp)}>
                         <IconTrash width={13} height={13} />
-                        O'chirish
+                        {t('employees.delete')}
                       </button>
                     )}
                   </td>
@@ -431,10 +435,13 @@ export function EmployeesPage() {
 
       <ConfirmModal
         isOpen={!!employeeToDelete}
-        title="Xodimni o'chirish"
+        title={t('employees.deleteTitle')}
         message={
           employeeToDelete
-            ? `"${employeeToDelete.fullname ?? employeeToDelete.adminLogin}" xodimini o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.`
+            ? t('employees.deleteConfirmTemplate').replace(
+                '{name}',
+                employeeToDelete.fullname ?? employeeToDelete.adminLogin ?? '',
+              )
             : ''
         }
         onConfirm={handleDelete}

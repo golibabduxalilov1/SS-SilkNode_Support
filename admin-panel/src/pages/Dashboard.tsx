@@ -50,6 +50,7 @@ import { ResolutionFlowChart, type ResolutionFlowPoint } from '../components/das
 import { exportTableToExcel } from '../utils/tableExport';
 import { formatDurationMinutes } from '../utils/formatDuration';
 import { LIST_POLL_INTERVAL_MS } from '../utils/pollInterval';
+import { TranslationKey, useLanguage } from '../i18n/LanguageContext';
 
 interface ClosedByPriority {
   low: number;
@@ -193,20 +194,24 @@ interface Assignee {
   fullname: string | null;
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  new: 'Yangi',
-  in_progress: 'Jarayonda',
-  waiting_user: 'Javob kutilmoqda',
-  resolved: 'Yechilgan',
-  closed: 'Yopilgan',
-};
+function getStatusLabels(t: (key: TranslationKey) => string): Record<string, string> {
+  return {
+    new: t('ticketFields.statusNew'),
+    in_progress: t('ticketFields.statusInProgress'),
+    waiting_user: t('ticketFields.statusWaitingUser'),
+    resolved: t('ticketFields.statusResolved'),
+    closed: t('ticketFields.statusClosed'),
+  };
+}
 
-const PRIORITY_LABELS: Record<string, string> = {
-  low: 'Past',
-  medium: "O'rta",
-  high: 'Yuqori',
-  critical: 'Kritik',
-};
+function getPriorityLabels(t: (key: TranslationKey) => string): Record<string, string> {
+  return {
+    low: t('ticketFields.priorityLow'),
+    medium: t('ticketFields.priorityMedium'),
+    high: t('ticketFields.priorityHigh'),
+    critical: t('ticketFields.priorityCritical'),
+  };
+}
 
 const STATUS_ORDER: Array<keyof DashboardStats['statusCounts']> = [
   'new',
@@ -216,34 +221,41 @@ const STATUS_ORDER: Array<keyof DashboardStats['statusCounts']> = [
   'closed',
 ];
 
-const STATUS_OPTIONS = STATUS_ORDER.map((value) => ({ value, label: STATUS_LABELS[value] }));
+function getStatusOptions(t: (key: TranslationKey) => string) {
+  const labels = getStatusLabels(t);
+  return STATUS_ORDER.map((value) => ({ value, label: labels[value] }));
+}
 
 /** T18 — Dashboard'ni 3 tabga bo'lish. Tanlangan tab ?tab= orqali URL'da saqlanadi. */
 type DashboardTab = 'overview' | 'team' | 'orgs';
 
-const DASHBOARD_TABS: { key: DashboardTab; label: string }[] = [
-  { key: 'overview', label: "Umumiy ko'rinish" },
-  { key: 'team', label: 'Jamoa samaradorligi' },
-  { key: 'orgs', label: 'Tashkilotlar kesimi' },
-];
+function getDashboardTabs(t: (key: TranslationKey) => string): { key: DashboardTab; label: string }[] {
+  return [
+    { key: 'overview', label: t('dashboard.tabOverview') },
+    { key: 'team', label: t('dashboard.tabTeam') },
+    { key: 'orgs', label: t('dashboard.tabOrgs') },
+  ];
+}
 
 function parseDashboardTab(value: string | null): DashboardTab {
   return value === 'team' || value === 'orgs' ? value : 'overview';
 }
 
 function DashboardTabs({ active, onChange }: { active: DashboardTab; onChange: (tab: DashboardTab) => void }) {
+  const { t } = useLanguage();
+  const tabs = getDashboardTabs(t);
   return (
     <div className="dashboard-tabs" role="tablist">
-      {DASHBOARD_TABS.map((t) => (
+      {tabs.map((tab) => (
         <button
-          key={t.key}
+          key={tab.key}
           type="button"
           role="tab"
-          aria-selected={active === t.key}
-          className={`dashboard-tab${active === t.key ? ' dashboard-tab--active' : ''}`}
-          onClick={() => onChange(t.key)}
+          aria-selected={active === tab.key}
+          className={`dashboard-tab${active === tab.key ? ' dashboard-tab--active' : ''}`}
+          onClick={() => onChange(tab.key)}
         >
-          {t.label}
+          {tab.label}
         </button>
       ))}
     </div>
@@ -318,28 +330,36 @@ function formatProcessingDuration(minutes: number | null): string {
   return formatDurationMinutes(minutes, '—');
 }
 
-function formatDateTime(value: string | null): string {
+function formatDateTime(value: string | null, dateLocale: string): string {
   if (!value) return '—';
-  return new Date(value).toLocaleString('uz-UZ');
+  return new Date(value).toLocaleString(dateLocale);
 }
 
-const PROCESSED_TICKETS_EXPORT_HEADERS = [
-  '№',
-  'Murojaat raqami',
-  'Xodim',
-  'Tashkilot',
-  'Murojaatchi',
-  'Murojaat mavzusi',
-  'Kategoriya',
-  'Muhimlik',
-  'Holat',
-  'Tushgan sana/vaqt',
-  'Ishga olingan sana/vaqt',
-  'Yakunlangan sana/vaqt',
-  'Qayta ishlash vaqti',
-];
+function getProcessedTicketsExportHeaders(t: (key: TranslationKey) => string): string[] {
+  return [
+    t('dashboard.exportRowNumber'),
+    t('dashboard.exportTicketNumber'),
+    t('dashboard.exportEmployee'),
+    t('dashboard.exportOrganization'),
+    t('dashboard.exportRequester'),
+    t('dashboard.exportSubject'),
+    t('dashboard.exportCategory'),
+    t('dashboard.exportPriority'),
+    t('dashboard.exportStatus'),
+    t('dashboard.exportReceivedAt'),
+    t('dashboard.exportStartedAt'),
+    t('dashboard.exportCompletedAt'),
+    t('dashboard.exportResolutionTime'),
+  ];
+}
 
-function processedTicketsToExportRows(rows: ProcessedTicketRow[]): (string | number)[][] {
+function processedTicketsToExportRows(
+  rows: ProcessedTicketRow[],
+  t: (key: TranslationKey) => string,
+  dateLocale: string,
+): (string | number)[][] {
+  const priorityLabels = getPriorityLabels(t);
+  const statusLabels = getStatusLabels(t);
   return rows.map((row, index) => [
     index + 1,
     row.number,
@@ -348,11 +368,11 @@ function processedTicketsToExportRows(rows: ProcessedTicketRow[]): (string | num
     row.requesterName ?? '—',
     row.title,
     row.categoryName ?? '—',
-    PRIORITY_LABELS[row.priority] ?? row.priority,
-    STATUS_LABELS[row.status] ?? row.status,
-    formatDateTime(row.receivedAt),
-    formatDateTime(row.processingStartedAt) + (row.processingStartedAtIsFallback ? ' *' : ''),
-    formatDateTime(row.completedAt),
+    priorityLabels[row.priority] ?? row.priority,
+    statusLabels[row.status] ?? row.status,
+    formatDateTime(row.receivedAt, dateLocale),
+    formatDateTime(row.processingStartedAt, dateLocale) + (row.processingStartedAtIsFallback ? ' *' : ''),
+    formatDateTime(row.completedAt, dateLocale),
     formatProcessingDuration(row.durationMinutes),
   ]);
 }
@@ -426,9 +446,10 @@ function ReopenedBadge({ reopenedRate }: { reopenedRate: number }) {
 }
 
 function PriorityStackedBar({ data }: { data: ClosedByPriority }) {
+  const { t } = useLanguage();
   const total = data.low + data.medium + data.high + data.critical;
   if (total === 0) {
-    return <span className="priority-stack priority-stack--empty" title="Yopilgan murojaatlar yo'q" />;
+    return <span className="priority-stack priority-stack--empty" title={t('dashboard.emptyPriorityStack')} />;
   }
   const title = PRIORITY_SEGMENTS.map((s) => `${s.label}: ${data[s.key]}`).join(' · ');
   return (
@@ -445,11 +466,14 @@ function PriorityStackedBar({ data }: { data: ClosedByPriority }) {
 }
 
 function OrganizationRatioBar({ closedCount, openCount }: { closedCount: number; openCount: number }) {
+  const { t } = useLanguage();
   const total = closedCount + openCount;
   if (total === 0) {
-    return <span className="priority-stack priority-stack--empty" title="Murojaatlar yo'q" />;
+    return <span className="priority-stack priority-stack--empty" title={t('dashboard.emptyOrgRatio')} />;
   }
-  const title = `Yopilgan: ${closedCount} · Ochiq: ${openCount}`;
+  const title = t('dashboard.orgRatioTitleTemplate')
+    .replace('{closed}', String(closedCount))
+    .replace('{open}', String(openCount));
   return (
     <span className="priority-stack" title={title}>
       {closedCount > 0 && (
@@ -627,6 +651,7 @@ function AssigneeMobileCard({
   onSelect: () => void;
   onToggleExpand: () => void;
 }) {
+  const { t } = useLanguage();
   const hasClosedTrendSignal = !(a.ticketsClosed === 0 && a.trendVsPreviousPeriod.ticketsClosedDelta === 0);
   return (
     <div className={`assignee-card${isSelected ? ' assignee-card--selected' : ''}`}>
@@ -637,55 +662,55 @@ function AssigneeMobileCard({
 
       <div className="assignee-card-metrics">
         <div className="assignee-card-metric">
-          <span className="assignee-card-metric-label">Joriy yuklama</span>
+          <span className="assignee-card-metric-label">{t('dashboard.colCurrentWorkload')}</span>
           <WorkloadBadge openCount={a.ticketsOpenNow} />
         </div>
         <div className="assignee-card-metric">
-          <span className="assignee-card-metric-label">Yopilgan</span>
+          <span className="assignee-card-metric-label">{t('dashboard.colClosed')}</span>
           <span className="assignee-closed-cell">
             {a.ticketsClosed}
             {hasClosedTrendSignal && (
               <TrendBadge
                 curr={a.trendVsPreviousPeriod.ticketsClosedCurr}
                 prev={a.trendVsPreviousPeriod.ticketsClosedPrev}
-                title="Oldingi teng davrga nisbatan yopilgan murojaatlar"
+                title={t('dashboard.closedTrendTitle')}
               />
             )}
           </span>
         </div>
         <div className="assignee-card-metric">
-          <span className="assignee-card-metric-label">Muddat muvofiqligi</span>
+          <span className="assignee-card-metric-label">{t('dashboard.colSlaCompliance')}</span>
           <SlaBadge complianceRate={a.slaComplianceRate} />
         </div>
         <div className="assignee-card-metric">
-          <span className="assignee-card-metric-label">Samaradorlik</span>
+          <span className="assignee-card-metric-label">{t('dashboard.colProductivity')}</span>
           <ProductivityBadge score={a.productivityScore} />
         </div>
 
         {isExpanded && (
           <>
             <div className="assignee-card-metric">
-              <span className="assignee-card-metric-label">Muhimlik taqsimoti</span>
+              <span className="assignee-card-metric-label">{t('dashboard.colPriorityBreakdown')}</span>
               <PriorityStackedBar data={a.closedByPriority} />
             </div>
             <div className="assignee-card-metric">
-              <span className="assignee-card-metric-label">Jami tayinlangan</span>
+              <span className="assignee-card-metric-label">{t('dashboard.colTotalAssigned')}</span>
               <span>{a.ticketsAssignedTotal}</span>
             </div>
             <div className="assignee-card-metric">
-              <span className="assignee-card-metric-label">O'rtacha qayta ishlash vaqti</span>
+              <span className="assignee-card-metric-label">{t('dashboard.colAvgResolutionTime')}</span>
               <span>{formatProcessingDuration(a.avgResolutionMinutes)}</span>
             </div>
             <div className="assignee-card-metric">
-              <span className="assignee-card-metric-label">Umumiy qayta ishlash vaqti</span>
+              <span className="assignee-card-metric-label">{t('dashboard.colTotalResolutionTime')}</span>
               <span>{formatProcessingDuration(a.totalResolutionMinutes)}</span>
             </div>
             <div className="assignee-card-metric">
-              <span className="assignee-card-metric-label">Foydali ish %</span>
+              <span className="assignee-card-metric-label">{t('dashboard.colCloseRate')}</span>
               <ProductivityBadge score={a.closeRate} />
             </div>
             <div className="assignee-card-metric">
-              <span className="assignee-card-metric-label">Qayta ochilgan %</span>
+              <span className="assignee-card-metric-label">{t('dashboard.colReopenedRate')}</span>
               <ReopenedBadge reopenedRate={a.reopenedRate} />
             </div>
           </>
@@ -693,7 +718,7 @@ function AssigneeMobileCard({
       </div>
 
       <button type="button" className="assignee-card-toggle" onClick={onToggleExpand}>
-        {isExpanded ? 'Yashirish' : 'Batafsil'}
+        {isExpanded ? t('dashboard.hideButton') : t('dashboard.detailsButton')}
       </button>
     </div>
   );
@@ -749,13 +774,15 @@ function FilterBar({
   onClearAll: () => void;
   isRefreshing: boolean;
 }) {
+  const { t } = useLanguage();
+  const STATUS_OPTIONS = getStatusOptions(t);
   return (
     <div className="filter-panel">
       <div className="filter-panel-row">
         <label className="filter-field">
-          <span className="filter-field-label">Ijrochi</span>
+          <span className="filter-field-label">{t('dashboard.assigneeLabel')}</span>
           <select value={assigneeFilter} onChange={(e) => onAssigneeChange(e.target.value)}>
-            <option value="">Barchasi</option>
+            <option value="">{t('dashboard.all')}</option>
             {assignees.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.fullname ?? a.id}
@@ -765,9 +792,9 @@ function FilterBar({
         </label>
 
         <label className="filter-field">
-          <span className="filter-field-label">Tashkilot</span>
+          <span className="filter-field-label">{t('dashboard.organizationLabel')}</span>
           <select value={organizationFilter} onChange={(e) => onOrganizationChange(e.target.value)}>
-            <option value="">Barchasi</option>
+            <option value="">{t('dashboard.all')}</option>
             {organizations.map((o) => (
               <option key={o.id} value={o.id}>
                 {o.name}
@@ -777,17 +804,17 @@ function FilterBar({
         </label>
 
         <label className="filter-field">
-          <span className="filter-field-label">Kategoriya</span>
+          <span className="filter-field-label">{t('dashboard.categoryLabel')}</span>
           <select value={categoryFilter} onChange={(e) => onCategoryChange(e.target.value)}>
-            <option value="">Barchasi</option>
+            <option value="">{t('dashboard.all')}</option>
             <CategoryOptionGroups categories={categories} />
           </select>
         </label>
 
         <label className="filter-field">
-          <span className="filter-field-label">Holat</span>
+          <span className="filter-field-label">{t('dashboard.statusLabel')}</span>
           <select value={statusFilter} onChange={(e) => onStatusChange(e.target.value)}>
-            <option value="">Barchasi</option>
+            <option value="">{t('dashboard.all')}</option>
             {STATUS_OPTIONS.map((s) => (
               <option key={s.value} value={s.value}>
                 {s.label}
@@ -797,7 +824,7 @@ function FilterBar({
         </label>
 
         <div className="filter-field filter-field--range">
-          <span className="filter-field-label">Sana oralig'i</span>
+          <span className="filter-field-label">{t('dashboard.dateRangeLabel')}</span>
           <div className="filter-date-range">
             <input type="date" value={dateFrom} onChange={(e) => onDateFromChange(e.target.value)} />
             <span className="filter-date-range-sep">—</span>
@@ -809,13 +836,13 @@ function FilterBar({
           {isRefreshing && (
             <span className="filter-panel-refresh">
               <IconSpinner width={13} height={13} className="filter-panel-refresh-icon" />
-              Yangilanmoqda…
+              {t('dashboard.updating')}
             </span>
           )}
           {hasActiveFilters && (
             <button type="button" className="btn btn-secondary btn-sm filter-clear-btn" onClick={onClearAll}>
               <IconClose width={13} height={13} />
-              Filterlarni tozalash
+              {t('dashboard.clearFilters')}
             </button>
           )}
         </div>
@@ -833,6 +860,9 @@ function FilterBar({
 }
 
 export function DashboardPage() {
+  const { language, t } = useLanguage();
+  const dateLocale = language === 'ru' ? 'ru-RU' : 'uz-UZ';
+  const STATUS_LABELS = getStatusLabels(t);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = parseDashboardTab(searchParams.get('tab'));
   const handleTabChange = (tab: DashboardTab) => {
@@ -1003,7 +1033,7 @@ export function DashboardPage() {
     if (selectedAssigneeId) {
       chips.push({
         key: 'assignee',
-        label: `Ijrochi: ${selectedAssigneeName}`,
+        label: `${t('dashboard.assigneeLabel')}: ${selectedAssigneeName}`,
         onClear: () => setSelectedAssigneeId(null),
       });
     }
@@ -1011,7 +1041,7 @@ export function DashboardPage() {
       const org = organizations.find((o) => o.id === organizationFilter);
       chips.push({
         key: 'org',
-        label: `Tashkilot: ${org?.name ?? organizationFilter}`,
+        label: `${t('dashboard.organizationLabel')}: ${org?.name ?? organizationFilter}`,
         onClear: () => setOrganizationFilter(''),
       });
     }
@@ -1019,19 +1049,24 @@ export function DashboardPage() {
       const category = categories.find((c) => c.id === categoryFilter);
       chips.push({
         key: 'category',
-        label: `Kategoriya: ${category?.name ?? categoryFilter}`,
+        label: `${t('dashboard.categoryLabel')}: ${category?.name ?? categoryFilter}`,
         onClear: () => setCategoryFilter(''),
       });
     }
     if (statusFilter) {
       chips.push({
         key: 'status',
-        label: `Holat: ${STATUS_LABELS[statusFilter] ?? statusFilter}`,
+        label: `${t('dashboard.statusLabel')}: ${STATUS_LABELS[statusFilter] ?? statusFilter}`,
         onClear: () => setStatusFilter(''),
       });
     }
     if (dateFrom || dateTo) {
-      const label = dateFrom && dateTo ? `Sana: ${dateFrom} — ${dateTo}` : dateFrom ? `Sana: ${dateFrom} dan` : `Sana: ${dateTo} gacha`;
+      const label =
+        dateFrom && dateTo
+          ? `${t('dashboard.dateLabel')}: ${dateFrom} — ${dateTo}`
+          : dateFrom
+            ? `${t('dashboard.dateLabel')}: ${dateFrom} ${t('dashboard.dateFromSuffix')}`
+            : `${t('dashboard.dateLabel')}: ${dateTo} ${t('dashboard.dateToSuffix')}`;
       chips.push({
         key: 'date',
         label,
@@ -1052,6 +1087,8 @@ export function DashboardPage() {
     dateTo,
     organizations,
     categories,
+    STATUS_LABELS,
+    t,
   ]);
 
   const clearAllFilters = () => {
@@ -1071,7 +1108,7 @@ export function DashboardPage() {
       value: stats.statusCounts[key],
       fill: `var(--status-${key})`,
     })).filter((d) => d.value > 0);
-  }, [stats]);
+  }, [stats, STATUS_LABELS]);
 
   const statusTotal = useMemo(
     () => (stats ? Object.values(stats.statusCounts).reduce((a, b) => a + b, 0) : 0),
@@ -1080,7 +1117,10 @@ export function DashboardPage() {
 
   const noFilteredData = hasPanelFilters && !!stats && statusTotal === 0 && stats.allOpen === 0;
 
-  const donutData = pieData.length > 0 ? pieData : [{ key: 'empty', name: 'Maʼlumot yoʻq', value: 1, fill: 'var(--border-strong)' }];
+  const donutData =
+    pieData.length > 0
+      ? pieData
+      : [{ key: 'empty', name: t('dashboard.noDataShort'), value: 1, fill: 'var(--border-strong)' }];
 
   const assigneeSummary = useMemo(() => {
     if (!stats || stats.byAssignee.length === 0) return null;
@@ -1193,7 +1233,7 @@ export function DashboardPage() {
   const scopeLabel = useMemo(() => {
     const parts: string[] = [];
     if (selectedAssigneeId) {
-      parts.push(`${selectedAssigneeName} uchun`);
+      parts.push(t('dashboard.assigneeForTemplate').replace('{name}', String(selectedAssigneeName)));
     }
     if (organizationFilter) {
       const org = organizations.find((o) => o.id === organizationFilter);
@@ -1207,7 +1247,13 @@ export function DashboardPage() {
       parts.push(STATUS_LABELS[statusFilter] ?? statusFilter);
     }
     if (dateFrom || dateTo) {
-      parts.push(dateFrom && dateTo ? `${dateFrom}–${dateTo}` : dateFrom ? `${dateFrom} dan` : `${dateTo} gacha`);
+      parts.push(
+        dateFrom && dateTo
+          ? `${dateFrom}–${dateTo}`
+          : dateFrom
+            ? `${dateFrom} ${t('dashboard.dateFromSuffix')}`
+            : `${dateTo} ${t('dashboard.dateToSuffix')}`,
+      );
     }
     return parts.length > 0 ? parts.join(', ') : null;
   }, [
@@ -1220,19 +1266,25 @@ export function DashboardPage() {
     dateTo,
     organizations,
     categories,
+    STATUS_LABELS,
+    t,
   ]);
 
-  const periodLabel = dateFrom || dateTo ? 'Tanlangan davrda' : 'Oxirgi 30 kunda';
+  const periodLabel = dateFrom || dateTo ? t('dashboard.selectedPeriod') : t('dashboard.last30Days');
 
   async function handleExportProcessedTickets() {
     setIsExportingProcessed(true);
     try {
-      const filterSummary = scopeLabel ? `Kesim: ${scopeLabel}` : "Umumiy ko'rinish";
+      const filterSummary = scopeLabel
+        ? `${t('dashboard.exportScopePrefix')}: ${scopeLabel}`
+        : t('dashboard.exportScopeOverview');
       await exportTableToExcel({
-        title: 'Xodimlar va bajarilgan murojaatlar',
-        subtitle: `Yaratildi: ${new Date().toLocaleString('uz-UZ')} • Jami: ${sortedProcessedRows.length} ta • ${filterSummary}`,
-        headers: PROCESSED_TICKETS_EXPORT_HEADERS,
-        rows: processedTicketsToExportRows(sortedProcessedRows),
+        title: t('dashboard.processedTicketsTitle'),
+        subtitle: `${t('dashboard.exportCreatedLabel')}: ${new Date().toLocaleString(dateLocale)} • ${t(
+          'dashboard.exportTotalLabel',
+        )}: ${sortedProcessedRows.length} ${t('dashboard.exportUnit')} • ${filterSummary}`,
+        headers: getProcessedTicketsExportHeaders(t),
+        rows: processedTicketsToExportRows(sortedProcessedRows, t, dateLocale),
         fileName: `obrabotannye_zayavki_${new Date().toISOString().slice(0, 10)}.xlsx`,
       });
     } finally {
@@ -1300,7 +1352,7 @@ export function DashboardPage() {
           key: 'total',
           icon: <IconInbox width={17} height={17} />,
           value: statusTotal,
-          label: 'Jami murojaatlar',
+          label: t('dashboard.kpiTotal'),
           accent: 'var(--primary)',
           accentSoft: 'var(--primary-soft)',
           trend: null,
@@ -1309,7 +1361,7 @@ export function DashboardPage() {
           key: 'resolved',
           icon: <IconCheck width={17} height={17} />,
           value: stats.statusCounts.resolved,
-          label: 'Yechilgan',
+          label: t('dashboard.kpiResolved'),
           accent: 'var(--status-resolved)',
           accentSoft: 'var(--status-resolved-soft)',
           trend: null,
@@ -1318,7 +1370,7 @@ export function DashboardPage() {
           key: 'in_progress',
           icon: <IconSpinner width={17} height={17} />,
           value: stats.statusCounts.in_progress,
-          label: 'Jarayonda',
+          label: t('dashboard.kpiInProgress'),
           accent: 'var(--status-in_progress)',
           accentSoft: 'var(--status-in_progress-soft)',
           trend: null,
@@ -1327,7 +1379,7 @@ export function DashboardPage() {
           key: 'closed',
           icon: <IconLock width={17} height={17} />,
           value: stats.statusCounts.closed,
-          label: 'Yopilgan',
+          label: t('dashboard.kpiClosed'),
           accent: 'var(--status-closed)',
           accentSoft: 'var(--status-closed-soft)',
           trend: null,
@@ -1336,7 +1388,7 @@ export function DashboardPage() {
           key: 'new',
           icon: <IconTicketNew width={17} height={17} />,
           value: stats.statusCounts.new,
-          label: 'Yangi',
+          label: t('dashboard.kpiNew'),
           accent: 'var(--status-new)',
           accentSoft: 'var(--status-new-soft)',
           trend:
@@ -1344,7 +1396,7 @@ export function DashboardPage() {
               ? {
                   curr: trendDelta.createdCurr,
                   prev: trendDelta.createdPrev,
-                  title: 'Bugun yasalgan murojaatlar, kechaga nisbatan',
+                  title: t('dashboard.trendCreatedTitle'),
                 }
               : null,
         },
@@ -1352,7 +1404,7 @@ export function DashboardPage() {
           key: 'waiting_user',
           icon: <IconWait width={17} height={17} />,
           value: stats.statusCounts.waiting_user,
-          label: 'Foydalanuvchi javobi kutilmoqda',
+          label: t('dashboard.kpiWaitingUser'),
           accent: 'var(--status-waiting_user)',
           accentSoft: 'var(--status-waiting_user-soft)',
           trend: null,
@@ -1361,7 +1413,7 @@ export function DashboardPage() {
           key: 'closedToday',
           icon: <IconCheck width={17} height={17} />,
           value: stats.closedToday,
-          label: 'Bugun yopilgan',
+          label: t('dashboard.kpiClosedToday'),
           accent: 'var(--status-closed)',
           accentSoft: 'var(--status-closed-soft)',
           trend:
@@ -1369,7 +1421,7 @@ export function DashboardPage() {
               ? {
                   curr: trendDelta.closedCurr,
                   prev: trendDelta.closedPrev,
-                  title: 'Bugun yopilgan murojaatlar, kechaga nisbatan',
+                  title: t('dashboard.trendClosedTitle'),
                 }
               : null,
         },
@@ -1377,7 +1429,10 @@ export function DashboardPage() {
     : [];
 
   return (
-    <AppShell title="Dashboard" breadcrumb={scopeLabel ? `Kesim: ${scopeLabel}` : "Umumiy ko'rinish — barcha vaqt"}>
+    <AppShell
+      title={t('dashboard.title')}
+      breadcrumb={scopeLabel ? `${t('dashboard.scopeCut')}: ${scopeLabel}` : t('dashboard.overviewAllTime')}
+    >
       <MobileFilterDrawer activeCount={filterChips.length}>
         <FilterBar
           assignees={assignees}
@@ -1405,10 +1460,10 @@ export function DashboardPage() {
       <div className={`scope-banner ${scopeLabel ? 'scope-banner--active' : 'scope-banner--neutral'}`}>
         {scopeLabel ? (
           <>
-            Kesim: <strong>{scopeLabel}</strong>
+            {t('dashboard.scopeCut')}: <strong>{scopeLabel}</strong>
           </>
         ) : (
-          "Umumiy ko'rinish — barcha tashkilot, kategoriya va ijrochilar, barcha vaqt"
+          t('dashboard.scopeBannerNeutral')
         )}
       </div>
 
@@ -1435,16 +1490,16 @@ export function DashboardPage() {
       ) : hasError ? (
         <EmptyState
           icon={<IconAlert width={24} height={24} />}
-          title="Statistikani yuklab bo'lmadi"
-          description="Server bilan bog'lanishda xatolik yuz berdi. Sahifani qayta yuklab ko'ring."
+          title={t('dashboard.statsLoadError')}
+          description={t('dashboard.serverErrorDescription')}
         />
       ) : (
         stats &&
         (noFilteredData ? (
           <EmptyState
             icon={<IconSearch width={24} height={24} />}
-            title="Ushbu filtr bo'yicha ma'lumot topilmadi"
-            description="Tanlangan ijrochi, tashkilot, kategoriya, holat yoki sana oralig'ida murojaatlar mavjud emas. Filtrlarni tozalab ko'ring."
+            title={t('dashboard.noFilteredDataTitle')}
+            description={t('dashboard.noFilteredDataDescription')}
           />
         ) : (
           <div className={`dashboard-content${isRefreshing ? ' is-refreshing' : ''}`}>
@@ -1470,8 +1525,8 @@ export function DashboardPage() {
             <div className="bento-grid">
               <div className="chart-card span-12 trend-chart-card">
                 <SectionHeader
-                  title="Murojaatlarni yasash va hal qilish dinamikasi"
-                  subtitle="Yasalgan, yopilgan va ochiq qolganlar (kumulyativ) — davr filtrga mos"
+                  title={t('dashboard.trendDynamicsTitle')}
+                  subtitle={t('dashboard.trendDynamicsSubtitle')}
                   filterContext={scopeLabel}
                 />
                 <TrendChart data={stats.dailyTrend} periodLabel={periodLabel} />
@@ -1479,8 +1534,8 @@ export function DashboardPage() {
 
               <div className="chart-card span-5">
                 <SectionHeader
-                  title="Holat bo'yicha taqsimot"
-                  subtitle="Barcha murojaatlar joriy holat kesimida"
+                  title={t('dashboard.statusDistributionTitle')}
+                  subtitle={t('dashboard.statusDistributionSubtitle')}
                   filterContext={scopeLabel}
                 />
                 <div className="donut-layout">
@@ -1510,7 +1565,7 @@ export function DashboardPage() {
                     </ResponsiveContainer>
                     <div className="donut-center">
                       <span className="donut-center-value">{statusTotal}</span>
-                      <span className="donut-center-label">Jami</span>
+                      <span className="donut-center-label">{t('dashboard.donutTotal')}</span>
                     </div>
                   </div>
                   {pieData.length > 0 ? (
@@ -1527,19 +1582,19 @@ export function DashboardPage() {
                       ))}
                     </ul>
                   ) : (
-                    <p className="chart-empty-note chart-empty-note--inline">Hozircha murojaatlar yo'q.</p>
+                    <p className="chart-empty-note chart-empty-note--inline">{t('dashboard.noTicketsYet')}</p>
                   )}
                 </div>
                 <p className="chart-summary-note">
-                  <strong>{statusTotal}</strong> ta murojaat asosida hisoblangan
-                  {scopeLabel && " — joriy kesim bo'yicha"}
+                  <strong>{statusTotal}</strong> {t('dashboard.basedOnTickets')}
+                  {scopeLabel && t('dashboard.perCurrentScope')}
                 </p>
               </div>
 
               <div className="chart-card span-7">
                 <SectionHeader
-                  title="Kategoriya bo'yicha taqsimot"
-                  subtitle="Murojaatlar eng ko'p tushgan top kategoriyalar"
+                  title={t('dashboard.categoryDistributionTitle')}
+                  subtitle={t('dashboard.categoryDistributionSubtitle')}
                   filterContext={scopeLabel}
                 />
                 {categoryChartData.length > 0 ? (
@@ -1549,20 +1604,26 @@ export function DashboardPage() {
                       <XAxis type="number" allowDecimals={false} stroke="var(--text-tertiary)" fontSize={11} />
                       <YAxis type="category" dataKey="name" width={140} stroke="var(--text-tertiary)" fontSize={11} />
                       <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--surface-alt)' }} />
-                      <Bar dataKey="value" name="Murojaatlar soni" fill="var(--indigo-600)" radius={[0, 6, 6, 0]} barSize={28}>
+                      <Bar
+                        dataKey="value"
+                        name={t('dashboard.ticketsCountSeries')}
+                        fill="var(--indigo-600)"
+                        radius={[0, 6, 6, 0]}
+                        barSize={28}
+                      >
                         <LabelList dataKey="value" position="right" className="bar-value-label" />
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <p className="chart-empty-note">Hozircha kategoriya bo'yicha ma'lumot yo'q.</p>
+                  <p className="chart-empty-note">{t('dashboard.noCategoryData')}</p>
                 )}
               </div>
 
               <div className="chart-card span-12 trend-chart-card">
                 <SectionHeader
-                  title="Murojaatlarni ochilishi va hal qilinishi"
-                  subtitle="Doim so'nggi 14 kunlik oyna — sana filtridagi boshlanish sanasiga bog'liq emas, faqat 'gacha' sanasi hisobga olinadi"
+                  title={t('dashboard.resolutionFlowTitle')}
+                  subtitle={t('dashboard.resolutionFlowSubtitle')}
                   filterContext={scopeLabel}
                 />
                 <ResolutionFlowChart data={stats.resolutionFlow} />
@@ -1575,11 +1636,11 @@ export function DashboardPage() {
               <div className="bento-grid">
               <div className="chart-card span-12">
                 <SectionHeader
-                  title="Ijrochilar bo'yicha hal qilish dinamikasi"
+                  title={t('dashboard.assigneeTrendTitle')}
                   subtitle={
                     selectedAssigneeId
-                      ? 'Tanlangan ijrochi vs boshqalar (jami), vaqt bo\'yicha yopilgan tiketlar'
-                      : "Eng faol 5 ijrochi, qolganlari 'Boshqalar' sifatida yig'ilgan"
+                      ? t('dashboard.assigneeTrendSubtitleSelected')
+                      : t('dashboard.assigneeTrendSubtitleAll')
                   }
                   filterContext={scopeLabel}
                 />
@@ -1595,24 +1656,22 @@ export function DashboardPage() {
             {activeTab === 'team' && (
             <div className="section-card assignee-analytics" ref={assigneeSectionRef}>
               <SectionHeader
-                title="Ijrochilar bo'yicha"
+                title={t('dashboard.byAssigneeTitle')}
                 subtitle={
-                  selectedAssigneeId
-                    ? "Tanlangan ijrochining batafsil profili"
-                    : "Har bir xodimning ish sifati va yuklamasi bo'yicha chuqur tahlil"
+                  selectedAssigneeId ? t('dashboard.byAssigneeSubtitleSelected') : t('dashboard.byAssigneeSubtitleAll')
                 }
                 filterContext={hasPanelFilters ? scopeLabel : null}
                 action={
                   selectedAssigneeId ? (
                     <span className="dashboard-filter-banner">
-                      Filtr: <strong>{selectedAssigneeName}</strong>
+                      {t('dashboard.filterPrefix')}: <strong>{selectedAssigneeName}</strong>
                       <button
                         type="button"
                         className="dashboard-filter-banner-clear"
                         onClick={() => setSelectedAssigneeId(null)}
                       >
                         <IconClose width={12} height={12} />
-                        Tozalash
+                        {t('dashboard.clear')}
                       </button>
                     </span>
                   ) : undefined
@@ -1622,8 +1681,8 @@ export function DashboardPage() {
               {stats.byAssignee.length === 0 ? (
                 <EmptyState
                   icon={<IconUsers width={24} height={24} />}
-                  title="Hali hech kimga murojaat tayinlanmagan"
-                  description="Xodimlar bo'yicha tahlil murojaatlar tayinlangach shu yerda paydo bo'ladi."
+                  title={t('dashboard.noAssigneeDataTitle')}
+                  description={t('dashboard.noAssigneeDataDescription')}
                 />
               ) : (
                 <>
@@ -1631,43 +1690,58 @@ export function DashboardPage() {
                     <table className="tickets-table">
                       <thead>
                         <tr>
-                          <SortableTh label="Xodim" sortKey="name" current={assigneeSort} onSort={handleAssigneeSort} />
-                          <SortableTh label="Joriy yuklama" sortKey="ticketsOpenNow" current={assigneeSort} onSort={handleAssigneeSort} />
-                          <SortableTh label="Yopilgan" sortKey="ticketsClosed" current={assigneeSort} onSort={handleAssigneeSort} />
-                          <th>Muhimlik taqsimoti</th>
+                          <SortableTh label={t('dashboard.colEmployee')} sortKey="name" current={assigneeSort} onSort={handleAssigneeSort} />
                           <SortableTh
-                            label="Jami tayinlangan"
+                            label={t('dashboard.colCurrentWorkload')}
+                            sortKey="ticketsOpenNow"
+                            current={assigneeSort}
+                            onSort={handleAssigneeSort}
+                          />
+                          <SortableTh
+                            label={t('dashboard.colClosed')}
+                            sortKey="ticketsClosed"
+                            current={assigneeSort}
+                            onSort={handleAssigneeSort}
+                          />
+                          <th>{t('dashboard.colPriorityBreakdown')}</th>
+                          <SortableTh
+                            label={t('dashboard.colTotalAssigned')}
                             sortKey="ticketsAssignedTotal"
                             current={assigneeSort}
                             onSort={handleAssigneeSort}
                           />
                           <SortableTh
-                            label="O'rtacha qayta ishlash vaqti"
+                            label={t('dashboard.colAvgResolutionTime')}
                             sortKey="avgResolutionMinutes"
                             current={assigneeSort}
                             onSort={handleAssigneeSort}
                           />
                           <SortableTh
-                            label="Umumiy qayta ishlash vaqti"
+                            label={t('dashboard.colTotalResolutionTime')}
                             sortKey="totalResolutionMinutes"
                             current={assigneeSort}
                             onSort={handleAssigneeSort}
                           />
                           <SortableTh
-                            label="Muddat muvofiqligi"
+                            label={t('dashboard.colSlaCompliance')}
                             sortKey="slaComplianceRate"
                             current={assigneeSort}
                             onSort={handleAssigneeSort}
                           />
                           <SortableTh
-                            label="Samaradorlik"
+                            label={t('dashboard.colProductivity')}
                             sortKey="productivityScore"
                             current={assigneeSort}
                             onSort={handleAssigneeSort}
                           />
-                          <SortableTh label="Foydali ish %" sortKey="closeRate" current={assigneeSort} onSort={handleAssigneeSort} />
                           <SortableTh
-                            label="Qayta ochilgan %"
+                            label={t('dashboard.colCloseRate')}
+                            sortKey="closeRate"
+                            current={assigneeSort}
+                            onSort={handleAssigneeSort}
+                          />
+                          <SortableTh
+                            label={t('dashboard.colReopenedRate')}
                             sortKey="reopenedRate"
                             current={assigneeSort}
                             onSort={handleAssigneeSort}
@@ -1700,7 +1774,7 @@ export function DashboardPage() {
                                     <TrendBadge
                                       curr={a.trendVsPreviousPeriod.ticketsClosedCurr}
                                       prev={a.trendVsPreviousPeriod.ticketsClosedPrev}
-                                      title="Oldingi teng davrga nisbatan yopilgan murojaatlar"
+                                      title={t('dashboard.closedTrendTitle')}
                                     />
                                   )}
                                 </span>
@@ -1732,7 +1806,7 @@ export function DashboardPage() {
                                     handleSelectAssignee(a.userId);
                                   }}
                                 >
-                                  Batafsil
+                                  {t('dashboard.detailsButton')}
                                 </button>
                               </td>
                             </tr>
@@ -1757,7 +1831,7 @@ export function DashboardPage() {
 
                   <div className="bento-grid assignee-charts">
                     <div className="chart-card span-6">
-                      <SectionHeader title="Muddat muvofiqligi reytingi" subtitle="Yopilgan tiketlar nisbatida, pastdan yuqoriga saralangan" />
+                      <SectionHeader title={t('dashboard.slaRankingTitle')} subtitle={t('dashboard.slaRankingSubtitle')} />
                       <ResponsiveContainer width="100%" height={Math.max(160, assigneeSlaChartData.length * 38)}>
                         <BarChart data={assigneeSlaChartData} layout="vertical" margin={{ left: 8, right: 40 }}>
                           <CartesianGrid horizontal={false} stroke="var(--border)" strokeDasharray="3 5" />
@@ -1770,7 +1844,7 @@ export function DashboardPage() {
                           />
                           <YAxis type="category" dataKey="name" width={120} stroke="var(--text-tertiary)" fontSize={11} />
                           <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--surface-alt)' }} />
-                          <Bar dataKey="value" name="Muddat muvofiqligi" radius={[0, 6, 6, 0]} barSize={28}>
+                          <Bar dataKey="value" name={t('dashboard.slaComplianceSeries')} radius={[0, 6, 6, 0]} barSize={28}>
                             {assigneeSlaChartData.map((entry) => (
                               <Cell key={entry.userId} fill={TIER_COLOR[getSlaTier(entry.value)]} />
                             ))}
@@ -1786,7 +1860,10 @@ export function DashboardPage() {
                     </div>
 
                     <div className="chart-card span-6">
-                      <SectionHeader title="Ish yuki taqsimoti" subtitle="Hozirgi ochiq tiketlar, o'rtacha chiziqqa nisbatan" />
+                      <SectionHeader
+                        title={t('dashboard.workloadDistributionTitle')}
+                        subtitle={t('dashboard.workloadDistributionSubtitle')}
+                      />
                       <ResponsiveContainer
                         width="100%"
                         height={Math.max(200, 40 + assigneeWorkloadChartData.length * 34)}
@@ -1817,9 +1894,9 @@ export function DashboardPage() {
                             y={assigneeSummary?.avgWorkload ?? 0}
                             stroke="var(--text-muted)"
                             strokeDasharray="4 4"
-                            label={{ value: "O'rtacha", position: 'insideTopRight', fill: 'var(--text-muted)', fontSize: 11 }}
+                            label={{ value: t('dashboard.average'), position: 'insideTopRight', fill: 'var(--text-muted)', fontSize: 11 }}
                           />
-                          <Bar dataKey="value" name="Ochiq tiketlar" radius={[6, 6, 0, 0]} barSize={32}>
+                          <Bar dataKey="value" name={t('dashboard.openTicketsSeries')} radius={[6, 6, 0, 0]} barSize={32}>
                             {assigneeWorkloadChartData.map((entry) => (
                               <Cell key={entry.userId} fill={TIER_COLOR[getWorkloadTier(entry.value)]} />
                             ))}
@@ -1830,8 +1907,8 @@ export function DashboardPage() {
 
                     <div className="chart-card span-12">
                       <SectionHeader
-                        title="Ijrochi bo'yicha umumiy yuklama"
-                        subtitle="Tayinlangan tiketlar joriy holati bo'yicha: biriktirilgan, jarayonda, yechilgan"
+                        title={t('dashboard.overallWorkloadTitle')}
+                        subtitle={t('dashboard.overallWorkloadSubtitle')}
                       />
                       <ResponsiveContainer width="100%" height={Math.max(180, assigneeStatusStackedData.length * 38)}>
                         <BarChart data={assigneeStatusStackedData} layout="vertical" margin={{ left: 8, right: 16 }}>
@@ -1840,17 +1917,17 @@ export function DashboardPage() {
                           <YAxis type="category" dataKey="name" width={120} stroke="var(--text-tertiary)" fontSize={11} />
                           <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--surface-alt)' }} />
                           <Legend wrapperStyle={{ fontSize: 12 }} />
-                          <Bar dataKey="pending" name="Biriktirilgan" stackId="status" fill="var(--status-new)" barSize={28} />
+                          <Bar dataKey="pending" name={t('dashboard.seriesPending')} stackId="status" fill="var(--status-new)" barSize={28} />
                           <Bar
                             dataKey="inProgress"
-                            name="Jarayonda"
+                            name={t('dashboard.seriesInProgress')}
                             stackId="status"
                             fill="var(--status-in_progress)"
                             barSize={28}
                           />
                           <Bar
                             dataKey="resolved"
-                            name="Yechilgan"
+                            name={t('dashboard.seriesResolved')}
                             stackId="status"
                             fill="var(--status-resolved)"
                             radius={[0, 6, 6, 0]}
@@ -1862,11 +1939,11 @@ export function DashboardPage() {
 
                     <div className="chart-card span-12">
                       <SectionHeader
-                        title="Ijrochilar bo'yicha hal qilish"
+                        title={t('dashboard.resolutionByAssigneeTitle')}
                         subtitle={
                           selectedAssigneeId
-                            ? 'Tanlangan ijrochi uchun yopilgan tiketlar soni va foydali ish %'
-                            : "Har bir ijrochi yopgan tiketlar soni — ustun yonida foydali ish % ko'rsatilgan"
+                            ? t('dashboard.resolutionByAssigneeSubtitleSelected')
+                            : t('dashboard.resolutionByAssigneeSubtitleAll')
                         }
                       />
                       <ResponsiveContainer width="100%" height={Math.max(160, assigneeCloseRateChartData.length * 38)}>
@@ -1875,7 +1952,7 @@ export function DashboardPage() {
                           <XAxis type="number" allowDecimals={false} stroke="var(--text-tertiary)" fontSize={11} />
                           <YAxis type="category" dataKey="name" width={120} stroke="var(--text-tertiary)" fontSize={11} />
                           <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--surface-alt)' }} />
-                          <Bar dataKey="value" name="Yopilgan tiketlar" radius={[0, 6, 6, 0]} barSize={28}>
+                          <Bar dataKey="value" name={t('dashboard.closedTicketsSeries')} radius={[0, 6, 6, 0]} barSize={28}>
                             {assigneeCloseRateChartData.map((entry) => (
                               <Cell key={entry.userId} fill={TIER_COLOR[getCloseRateTier(entry.closeRate)]} />
                             ))}
@@ -1898,16 +1975,16 @@ export function DashboardPage() {
             {activeTab === 'orgs' && stats.byOrganization.length === 0 && (
               <EmptyState
                 icon={<IconUsers width={24} height={24} />}
-                title="Tashkilotlar bo'yicha ma'lumot yo'q"
-                description="Murojaatlar tashkilotga bog'langach, shu yerda taqsimot ko'rinadi."
+                title={t('dashboard.noOrgDataTitle')}
+                description={t('dashboard.noOrgDataDescription')}
               />
             )}
 
             {activeTab === 'orgs' && stats.byOrganization.length > 0 && (
               <div className="section-card">
                 <SectionHeader
-                  title="Tashkilotlar bo'yicha"
-                  subtitle="Eng ko'p murojaat tushirgan top 5 tashkilot"
+                  title={t('dashboard.byOrganizationTitle')}
+                  subtitle={t('dashboard.byOrganizationSubtitle')}
                   filterContext={scopeLabel}
                 />
                 {mostActiveOrganization && leastActiveOrganization && (
@@ -1917,14 +1994,18 @@ export function DashboardPage() {
                       accent="var(--success)"
                       accentSoft="var(--success-tint)"
                       organizationName={mostActiveOrganization.organizationName}
-                      detail={`Eng faol tashkilot — ${mostActiveOrganization.ticketsCount} ta murojaat (${mostActiveOrganization.sharePercent}%)`}
+                      detail={t('dashboard.mostActiveOrgDetailTemplate')
+                        .replace('{count}', String(mostActiveOrganization.ticketsCount))
+                        .replace('{percent}', String(mostActiveOrganization.sharePercent))}
                     />
                     <OrgHighlightCard
                       icon={<IconTrendDown width={15} height={15} />}
                       accent="var(--text-tertiary)"
                       accentSoft="var(--veil)"
                       organizationName={leastActiveOrganization.organizationName}
-                      detail={`Eng kam faol tashkilot — ${leastActiveOrganization.ticketsCount} ta murojaat (${leastActiveOrganization.sharePercent}%)`}
+                      detail={t('dashboard.leastActiveOrgDetailTemplate')
+                        .replace('{count}', String(leastActiveOrganization.ticketsCount))
+                        .replace('{percent}', String(leastActiveOrganization.sharePercent))}
                     />
                   </div>
                 )}
@@ -1946,7 +2027,7 @@ export function DashboardPage() {
                       <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--surface-alt)' }} />
                       <Bar
                         dataKey="value"
-                        name="Murojaatlar soni"
+                        name={t('dashboard.ticketsCountSeries')}
                         fill="url(#orgBarGradient)"
                         filter="url(#orgBarSoftShadow)"
                         radius={[0, 6, 6, 0]}
@@ -1960,10 +2041,10 @@ export function DashboardPage() {
                     <table className="tickets-table">
                       <thead>
                         <tr>
-                          <th>Tashkilot</th>
-                          <th>Murojaatlar soni</th>
-                          <th>Ulush</th>
-                          <th>Yopilgan / Ochiq</th>
+                          <th>{t('dashboard.colOrganization')}</th>
+                          <th>{t('dashboard.colTicketsCount')}</th>
+                          <th>{t('dashboard.colShare')}</th>
+                          <th>{t('dashboard.colClosedOpen')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1990,8 +2071,8 @@ export function DashboardPage() {
             {activeTab === 'team' && (
             <div className="section-card">
               <SectionHeader
-                title="Xodimlar va bajarilgan murojaatlar"
-                subtitle="Har bir murojaat: qaysi xodim, qaysi tashkilotdan, qachon oldi va qancha vaqtda yakunladi"
+                title={t('dashboard.processedTicketsTitle')}
+                subtitle={t('dashboard.processedTicketsSubtitle')}
                 filterContext={scopeLabel}
                 action={
                   !isProcessedLoading && !hasProcessedError && sortedProcessedRows.length > 0 ? (
@@ -2002,7 +2083,7 @@ export function DashboardPage() {
                       disabled={isExportingProcessed}
                     >
                       <IconDownload width={14} height={14} />
-                      {isExportingProcessed ? 'Tayyorlanmoqda...' : "Excel'ga yuklab olish"}
+                      {isExportingProcessed ? t('dashboard.preparing') : t('dashboard.exportToExcel')}
                     </button>
                   ) : undefined
                 }
@@ -2013,14 +2094,14 @@ export function DashboardPage() {
               ) : hasProcessedError ? (
                 <EmptyState
                   icon={<IconAlert width={24} height={24} />}
-                  title="Ma'lumotni yuklab bo'lmadi"
-                  description="Server bilan bog'lanishda xatolik yuz berdi. Sahifani qayta yuklab ko'ring."
+                  title={t('dashboard.processedLoadError')}
+                  description={t('dashboard.serverErrorDescription')}
                 />
               ) : !processedReport || processedReport.rows.length === 0 ? (
                 <EmptyState
                   icon={<IconUsers width={24} height={24} />}
-                  title="Hozircha bajarilgan yoki jarayondagi murojaatlar yo'q"
-                  description="Murojaat ijrochiga tayinlanib ishga olingach, shu yerda ko'rinadi."
+                  title={t('dashboard.noProcessedDataTitle')}
+                  description={t('dashboard.noProcessedDataDescription')}
                 />
               ) : (
                 <>
@@ -2029,21 +2110,26 @@ export function DashboardPage() {
                       <table className="tickets-table">
                         <thead>
                           <tr>
-                            <SortableTh label="Xodim" sortKey="name" current={employeeSummarySort} onSort={handleEmployeeSummarySort} />
                             <SortableTh
-                              label="Jami bajarilgan"
+                              label={t('dashboard.colEmployee')}
+                              sortKey="name"
+                              current={employeeSummarySort}
+                              onSort={handleEmployeeSummarySort}
+                            />
+                            <SortableTh
+                              label={t('dashboard.colTotalCompleted')}
                               sortKey="ticketsCompleted"
                               current={employeeSummarySort}
                               onSort={handleEmployeeSummarySort}
                             />
                             <SortableTh
-                              label="O'rtacha qayta ishlash vaqti"
+                              label={t('dashboard.colAvgResolutionTime')}
                               sortKey="avgDurationMinutes"
                               current={employeeSummarySort}
                               onSort={handleEmployeeSummarySort}
                             />
                             <SortableTh
-                              label="Umumiy sarflangan vaqt"
+                              label={t('dashboard.colTotalSpentTime')}
                               sortKey="totalDurationMinutes"
                               current={employeeSummarySort}
                               onSort={handleEmployeeSummarySort}
@@ -2068,26 +2154,26 @@ export function DashboardPage() {
                     <table className="tickets-table">
                       <thead>
                         <tr>
-                          <th>№</th>
+                          <th>{t('dashboard.colNumber')}</th>
                           <SortableTh
-                            label="Xodim"
+                            label={t('dashboard.colEmployee')}
                             sortKey="employeeName"
                             current={processedRowSort}
                             onSort={handleProcessedRowSort}
                           />
                           <SortableTh
-                            label="Tashkilot"
+                            label={t('dashboard.colOrganization')}
                             sortKey="organizationName"
                             current={processedRowSort}
                             onSort={handleProcessedRowSort}
                           />
-                          <th>Murojaat</th>
-                          <th>Holat</th>
-                          <th>Tushgan sana/vaqt</th>
-                          <th>Ishga olingan sana/vaqt</th>
-                          <th>Yakunlangan sana/vaqt</th>
+                          <th>{t('dashboard.colTicket')}</th>
+                          <th>{t('dashboard.statusLabel')}</th>
+                          <th>{t('dashboard.colReceivedAt')}</th>
+                          <th>{t('dashboard.colStartedAt')}</th>
+                          <th>{t('dashboard.colCompletedAt')}</th>
                           <SortableTh
-                            label="Qayta ishlash vaqti"
+                            label={t('dashboard.colResolutionTime')}
                             sortKey="durationMinutes"
                             current={processedRowSort}
                             onSort={handleProcessedRowSort}
@@ -2106,27 +2192,25 @@ export function DashboardPage() {
                               <span className="cell-muted">{row.title}</span>
                             </td>
                             <td>{STATUS_LABELS[row.status] ?? row.status}</td>
-                            <td>{formatDateTime(row.receivedAt)}</td>
+                            <td>{formatDateTime(row.receivedAt, dateLocale)}</td>
                             <td
                               title={
                                 row.processingStartedAtIsFallback
-                                  ? "Audit tarixida \"ishga olingan\" belgisi topilmadi — tushgan vaqt asosida taxminiy ko'rsatilgan"
+                                  ? t('dashboard.fallbackStartedAtTitle')
                                   : undefined
                               }
                             >
-                              {formatDateTime(row.processingStartedAt)}
+                              {formatDateTime(row.processingStartedAt, dateLocale)}
                               {row.processingStartedAtIsFallback && ' *'}
                             </td>
-                            <td>{formatDateTime(row.completedAt)}</td>
+                            <td>{formatDateTime(row.completedAt, dateLocale)}</td>
                             <td>{formatProcessingDuration(row.durationMinutes)}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
-                  <p className="chart-summary-note">
-                    * — audit tarixida "ishga olingan" belgisi topilmagan murojaatlar uchun tushgan vaqt taxminiy sifatida ko'rsatilgan.
-                  </p>
+                  <p className="chart-summary-note">{t('dashboard.fallbackFootnote')}</p>
                 </>
               )}
             </div>

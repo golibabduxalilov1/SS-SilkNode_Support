@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { IconAlert, IconClose } from './icons';
+import { useLanguage } from '../i18n/LanguageContext';
 
 export function ConfirmModal({
   isOpen,
@@ -15,6 +16,8 @@ export function ConfirmModal({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const { t } = useLanguage();
+
   useEffect(() => {
     if (!isOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
@@ -34,7 +37,7 @@ export function ConfirmModal({
             <IconAlert width={18} height={18} />
           </span>
           <h3>{title}</h3>
-          <button type="button" className="modal-close" onClick={onCancel} aria-label="Yopish">
+          <button type="button" className="modal-close" onClick={onCancel} aria-label={t('common.close')}>
             <IconClose width={18} height={18} />
           </button>
         </div>
@@ -43,10 +46,10 @@ export function ConfirmModal({
         </div>
         <div className="modal-footer">
           <button type="button" className="btn btn-danger" onClick={onConfirm}>
-            O'chirish
+            {t('common.delete')}
           </button>
           <button type="button" className="btn btn-secondary" onClick={onCancel}>
-            Bekor qilish
+            {t('common.cancel')}
           </button>
         </div>
       </div>
