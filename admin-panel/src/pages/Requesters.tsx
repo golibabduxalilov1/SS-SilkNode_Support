@@ -259,7 +259,7 @@ export function RequestersPage() {
             />
           ) : (
             <div className="table-wrap">
-              <table className="tickets-table tickets-table--equal">
+              <table className="tickets-table tickets-table--equal requesters-table">
                 <thead>
                   <tr>
                     <th>{t('requesters.colNumber')}</th>

@@ -2723,6 +2723,36 @@ button {
   table-layout: fixed;
 }
 
+.requesters-table th:nth-child(1),
+.requesters-table td:nth-child(1) {
+  width: 4%;
+}
+
+.requesters-table th:nth-child(2),
+.requesters-table td:nth-child(2) {
+  width: 30%;
+}
+
+.requesters-table th:nth-child(3),
+.requesters-table td:nth-child(3) {
+  width: 16%;
+}
+
+.requesters-table th:nth-child(4),
+.requesters-table td:nth-child(4) {
+  width: 16%;
+}
+
+.requesters-table th:nth-child(5),
+.requesters-table td:nth-child(5) {
+  width: 16%;
+}
+
+.requesters-table th:nth-child(6),
+.requesters-table td:nth-child(6) {
+  width: 18%;
+}
+
 .cell-user {
   display: flex;
   align-items: center;
