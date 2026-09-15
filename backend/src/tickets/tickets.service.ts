@@ -595,8 +595,40 @@ export class TicketsService {
       .addSelect(['messages.id', 'messages.visibility', 'messages.createdAt'])
       .leftJoin('messages.sender', 'messageSender')
       .addSelect(['messageSender.id', 'messageSender.role'])
-      .addSelect(`CASE WHEN ticket.status = 'new' THEN 0 ELSE 1 END`, 'status_rank')
+      .addSelect(
+        `CASE ticket.status
+           WHEN :statusNew THEN 0
+           WHEN :statusInProgress THEN 1
+           WHEN :statusWaitingUser THEN 2
+           WHEN :statusResolved THEN 3
+           WHEN :statusClosed THEN 4
+           ELSE 5
+         END`,
+        'status_rank',
+      )
+      .addSelect(
+        `CASE ticket.priority
+           WHEN :priorityCritical THEN 0
+           WHEN :priorityHigh THEN 1
+           WHEN :priorityMedium THEN 2
+           WHEN :priorityLow THEN 3
+           ELSE 4
+         END`,
+        'priority_rank',
+      )
+      .setParameters({
+        statusNew: TicketStatus.NEW,
+        statusInProgress: TicketStatus.IN_PROGRESS,
+        statusWaitingUser: TicketStatus.WAITING_USER,
+        statusResolved: TicketStatus.RESOLVED,
+        statusClosed: TicketStatus.CLOSED,
+        priorityCritical: TicketPriority.CRITICAL,
+        priorityHigh: TicketPriority.HIGH,
+        priorityMedium: TicketPriority.MEDIUM,
+        priorityLow: TicketPriority.LOW,
+      })
       .orderBy('status_rank', 'ASC')
+      .addOrderBy('priority_rank', 'ASC')
       .addOrderBy('ticket.createdAt', 'DESC')
       .getMany();
 
