@@ -4151,6 +4151,26 @@ select.priority-select--low {
   background: var(--veil);
 }
 
+.table-wrap--pin-actions .tickets-table tbody tr.row--status-new td.table-actions {
+  background: var(--status-new-soft);
+}
+
+.table-wrap--pin-actions .tickets-table tbody tr.row--status-in_progress td.table-actions {
+  background: var(--status-in_progress-soft);
+}
+
+.table-wrap--pin-actions .tickets-table tbody tr.row--status-waiting_user td.table-actions {
+  background: var(--status-waiting_user-soft);
+}
+
+.table-wrap--pin-actions .tickets-table tbody tr.row--status-resolved td.table-actions {
+  background: var(--status-resolved-soft);
+}
+
+.table-wrap--pin-actions .tickets-table tbody tr.row--status-closed td.table-actions {
+  background: var(--status-closed-soft);
+}
+
 .table-wrap--pin-actions .tickets-table tbody tr:hover td.table-actions,
 .table-wrap--pin-actions .tickets-table tbody tr.clickable-row:hover td.table-actions {
   background: var(--row-hover);
