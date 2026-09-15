@@ -1,12 +1,11 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { AppShell } from '../components/AppShell';
 import { ConfirmModal } from '../components/ConfirmModal';
 import {
-  IconCheck,
   IconChevronDown,
   IconClose,
   IconDownload,
@@ -32,63 +31,8 @@ import {
 import { usePageSize } from '../utils/usePageSize';
 import { exportTableToExcel, exportTableToPdf } from '../utils/tableExport';
 import { formatDurationMinutes } from '../utils/formatDuration';
-import { formatSlaClosedDuration, formatSlaRemaining } from '../utils/formatSla';
-import { getTicketRowState, isTicketUnopened } from '../utils/ticketRowState';
 import { LIST_POLL_INTERVAL_MS } from '../utils/pollInterval';
 import { TranslationKey, useLanguage } from '../i18n/LanguageContext';
-
-/** TZ band 5 — SLA ustuni har 60 soniyada mijoz tomonda qayta hisoblanadi (so'rovsiz). */
-const SLA_REFRESH_INTERVAL_MS = 60_000;
-
-type SortDirection = 'asc' | 'desc';
-
-/** TZ band 7 — ustun sarlavhasini bosib tartiblash uchun ruxsat etilgan maydonlar. */
-type SortField =
-  | 'number'
-  | 'title'
-  | 'organization'
-  | 'user'
-  | 'category'
-  | 'priority'
-  | 'status'
-  | 'assignee'
-  | 'sla'
-  | 'createdAt';
-
-const PRIORITY_SORT_RANK: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
-const STATUS_SORT_RANK: Record<string, number> = {
-  new: 0,
-  in_progress: 1,
-  waiting_user: 2,
-  resolved: 3,
-  closed: 4,
-};
-
-const VALID_SORT_FIELDS = new Set<string>([
-  'number',
-  'title',
-  'organization',
-  'user',
-  'category',
-  'priority',
-  'status',
-  'assignee',
-  'sla',
-  'createdAt',
-]);
-
-const SORT_FIELD_LABELS: Record<SortField, TranslationKey> = {
-  number: 'tickets.colNumber',
-  title: 'tickets.colSubject',
-  organization: 'tickets.colOrganization',
-  user: 'tickets.colUser',
-  category: 'tickets.colCategory',
-  priority: 'tickets.colPriority',
-  status: 'tickets.colStatus',
-  assignee: 'tickets.colAssignee',
-  sla: 'tickets.colResolutionTime',
-  createdAt: 'tickets.colCreatedAt',
-};
 
 type T = (key: TranslationKey) => string;
 
@@ -115,11 +59,6 @@ interface Ticket {
   requesterPhone?: string | null;
   assignedTo?: { id: string; fullname: string | null } | null;
   messages?: Message[];
-  /** TZ band 6 — birinchi marta tafsilot ochilganda o'rnatiladi, ro'yxatni ko'rish hisoblanmaydi. */
-  openedAt?: string | null;
-  /** TZ band 5 — "SLA" ustuni uchun. */
-  slaDueAt?: string | null;
-  slaTotalMinutes?: number | null;
 }
 
 interface Organization {
@@ -229,51 +168,6 @@ function filterTickets(tickets: Ticket[], filters: TicketFilters): Ticket[] {
       matchesTo &&
       matchesTerm
     );
-  });
-}
-
-/**
- * TZ band 7 — foydalanuvchi ustun sarlavhasini bosganda standart tartiblashni (band 2)
- * to'liq almashtiradi. Ro'yxat butunlay mijoz xotirasida yuklangani uchun (server tomonda
- * sahifalash yo'q) tartiblash ham mijoz tomonda amalga oshiriladi.
- */
-function getSortValue(ticket: Ticket, field: SortField): string | number {
-  switch (field) {
-    case 'number':
-      return ticket.number;
-    case 'title':
-      return ticket.title.toLowerCase();
-    case 'organization':
-      return (ticket.organization?.name ?? '').toLowerCase();
-    case 'user':
-      return (ticket.requesterName ?? ticket.createdBy?.fullname ?? '').toLowerCase();
-    case 'category':
-      return (ticket.categoryEntity?.name ?? '').toLowerCase();
-    case 'priority':
-      return PRIORITY_SORT_RANK[ticket.priority] ?? 99;
-    case 'status':
-      return STATUS_SORT_RANK[ticket.status] ?? 99;
-    case 'assignee':
-      return (ticket.assignedTo?.fullname ?? '').toLowerCase();
-    case 'sla':
-      return ticket.status === 'closed'
-        ? (ticket.resolutionMinutes ?? Number.MAX_SAFE_INTEGER)
-        : (ticket.slaDueAt ? new Date(ticket.slaDueAt).getTime() : Number.MAX_SAFE_INTEGER);
-    case 'createdAt':
-      return new Date(ticket.createdAt).getTime();
-    default:
-      return 0;
-  }
-}
-
-function sortTickets(tickets: Ticket[], field: SortField, direction: SortDirection): Ticket[] {
-  const sign = direction === 'asc' ? 1 : -1;
-  return [...tickets].sort((a, b) => {
-    const va = getSortValue(a, field);
-    const vb = getSortValue(b, field);
-    if (va < vb) return -1 * sign;
-    if (va > vb) return 1 * sign;
-    return 0;
   });
 }
 
@@ -1161,37 +1055,6 @@ export function TicketsPage() {
   const [legacyModalOpen, setLegacyModalOpen] = useState(false);
   const [isCreatingLegacy, setIsCreatingLegacy] = useState(false);
   const [legacyError, setLegacyError] = useState<string | null>(null);
-
-  // TZ band 5 — SLA ustuni har 60 soniyada so'rovsiz qayta hisoblanadi.
-  const [nowMs, setNowMs] = useState(() => Date.now());
-  useEffect(() => {
-    const intervalId = window.setInterval(() => setNowMs(Date.now()), SLA_REFRESH_INTERVAL_MS);
-    return () => window.clearInterval(intervalId);
-  }, []);
-
-  // TZ band 7 — ustun bo'yicha tartiblash query string'da saqlanadi (?sort=&dir=), shu bilan
-  // bir qatorda localStorage'ga ham yoziladi. Parametrsiz ochilganda standart tartib ishlatiladi.
-  const [searchParams, setSearchParams] = useSearchParams();
-  const rawSortField = searchParams.get('sort');
-  const sortField = rawSortField && VALID_SORT_FIELDS.has(rawSortField) ? (rawSortField as SortField) : null;
-  const sortDirection: SortDirection = searchParams.get('dir') === 'asc' ? 'asc' : 'desc';
-
-  const applySort = (field: SortField) => {
-    const nextDirection: SortDirection = field === sortField && sortDirection === 'desc' ? 'asc' : 'desc';
-    const next = new URLSearchParams(searchParams);
-    next.set('sort', field);
-    next.set('dir', nextDirection);
-    setSearchParams(next, { replace: true });
-    localStorage.setItem('tickets_sort', JSON.stringify({ field, direction: nextDirection }));
-  };
-
-  const resetSort = () => {
-    const next = new URLSearchParams(searchParams);
-    next.delete('sort');
-    next.delete('dir');
-    setSearchParams(next, { replace: true });
-  };
-
   // background=true — fonda avtomatik yangilanish uchun (yangi murojaat kelganda jadval qo'lda
   // yangilamasdan ham yangilanadi): joriy filtr/sahifa/tanlovlarga tegmasdan, skeletonsiz.
   const load = (background = false) => {
@@ -1537,20 +1400,11 @@ export function TicketsPage() {
     createdTo,
     searchTerm,
     pageSize,
-    sortField,
-    sortDirection,
   ]);
 
-  // Band 2: backend ro'yxatni standart tartibda qaytaradi (filterTickets tartibni saqlaydi).
-  // Band 7: foydalanuvchi ustun tanlasa, bu tartibni to'liq almashtiradi.
-  const sortedTickets = useMemo(
-    () => (sortField ? sortTickets(filteredTickets, sortField, sortDirection) : filteredTickets),
-    [filteredTickets, sortField, sortDirection],
-  );
-
-  const totalPages = Math.max(1, Math.ceil(sortedTickets.length / pageSize));
+  const totalPages = Math.max(1, Math.ceil(filteredTickets.length / pageSize));
   const currentPage = Math.min(page, totalPages);
-  const paginatedTickets = sortedTickets.slice(
+  const paginatedTickets = filteredTickets.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize,
   );
@@ -1743,25 +1597,9 @@ export function TicketsPage() {
 
           {error && <p className="form-error">{error}</p>}
 
-          <div className="filter-results-row">
-            <p className="filter-results">
-              {filteredTickets.length} {t('tickets.resultsFound')}
-            </p>
-            <span className="sort-indicator">
-              {sortField ? (
-                <>
-                  {t('tickets.sortLabelTemplate')
-                    .replace('{column}', t(SORT_FIELD_LABELS[sortField]))
-                    .replace('{arrow}', sortDirection === 'asc' ? '↑' : '↓')}
-                  <button type="button" onClick={resetSort} aria-label={t('tickets.sortReset')}>
-                    <IconClose width={12} height={12} />
-                  </button>
-                </>
-              ) : (
-                t('tickets.sortDefault')
-              )}
-            </span>
-          </div>
+          <p className="filter-results">
+            {filteredTickets.length} {t('tickets.resultsFound')}
+          </p>
 
           {filteredTickets.length === 0 ? (
             <EmptyState
@@ -1829,65 +1667,30 @@ export function TicketsPage() {
                 <thead>
                   <tr>
                     <th></th>
-                    {(
-                      [
-                        ['number', 'tickets.colNumber'],
-                        ['title', 'tickets.colSubject'],
-                        ['organization', 'tickets.colOrganization'],
-                        ['user', 'tickets.colUser'],
-                        ['category', 'tickets.colCategory'],
-                        ['priority', 'tickets.colPriority'],
-                        ['status', 'tickets.colStatus'],
-                        ['assignee', 'tickets.colAssignee'],
-                        ['sla', 'tickets.colResolutionTime'],
-                        ['createdAt', 'tickets.colCreatedAt'],
-                      ] as [SortField, TranslationKey][]
-                    ).map(([field, labelKey]) => (
-                      <th
-                        key={field}
-                        className="is-sortable"
-                        onClick={() => applySort(field)}
-                        aria-sort={sortField === field ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
-                      >
-                        {t(labelKey)}
-                        {sortField === field && (
-                          <span className="sort-arrow">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                        )}
-                      </th>
-                    ))}
+                    <th>{t('tickets.colNumber')}</th>
+                    <th>{t('tickets.colSubject')}</th>
+                    <th>{t('tickets.colOrganization')}</th>
+                    <th>{t('tickets.colUser')}</th>
+                    <th>{t('tickets.colCategory')}</th>
+                    <th>{t('tickets.colPriority')}</th>
+                    <th>{t('tickets.colStatus')}</th>
+                    <th>{t('tickets.colAssignee')}</th>
+                    <th>{t('tickets.colResolutionTime')}</th>
+                    <th>{t('tickets.colCreatedAt')}</th>
                     {isSuperadmin && <th></th>}
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedTickets.map((t2, idx) => {
-                    // TZ band 2-3 — qator holati (bar/tint) va "Unopened" modifikatori.
-                    const rowState = getTicketRowState(t2.status, t2.slaDueAt, nowMs);
-                    const isUnopened = isTicketUnopened(t2.openedAt, t2.status);
-                    const isSelected = selectedIds.has(t2.id);
-                    const rowClassName = [
-                      'clickable-row',
-                      'ticket-row',
-                      `ticket-row--${rowState}`,
-                      isSelected && 'is-selected',
-                      isUnopened && 'is-unopened',
-                    ]
-                      .filter(Boolean)
-                      .join(' ');
-                    const sla =
-                      t2.status === 'closed'
-                        ? formatSlaClosedDuration(t2.resolutionMinutes)
-                        : formatSlaRemaining(t2.slaDueAt, t2.slaTotalMinutes, nowMs);
-
-                    return (
+                  {paginatedTickets.map((t2, idx) => (
                     <tr
                       key={t2.id}
-                      className={rowClassName}
+                      className="clickable-row"
                       onClick={() => navigate(`/dashboard/tickets/${t2.id}`)}
                     >
                       <td onClick={(e) => e.stopPropagation()}>
                         <input
                           type="checkbox"
-                          checked={isSelected}
+                          checked={selectedIds.has(t2.id)}
                           onChange={() => toggleSelectOne(t2.id)}
                           aria-label={`${t2.title} ${t('tickets.selectRow')}`}
                         />
@@ -1913,22 +1716,13 @@ export function TicketsPage() {
                         <span className={`priority priority--${t2.priority}`}>{ticketPriorityLabel(t2.priority, t)}</span>
                       </td>
                       <td>
-                        {rowState === 'overdue' ? (
-                          <span className={`status status--${t2.status} ticket-status-overdue`}>
-                            {t('ticketFields.statusOverdueLabel')}
-                          </span>
-                        ) : (
-                          <span className={`status status--${t2.status}`}>
-                            {t2.status === 'closed' && (
-                              <IconCheck width={12} height={12} className="ticket-status-closed-icon" />
-                            )}
-                            {STATUS_OPTIONS.find((o) => o.value === t2.status)?.label ?? t2.status}
-                          </span>
-                        )}
+                        <span className={`status status--${t2.status}`}>
+                          {STATUS_OPTIONS.find((o) => o.value === t2.status)?.label ?? t2.status}
+                        </span>
                       </td>
                       <td onClick={(e) => e.stopPropagation()}>
                         <select
-                          className={`assign-select${t2.assignedTo ? '' : ' ticket-assignee-select--unassigned'}`}
+                          className="assign-select"
                           value={t2.assignedTo?.id ?? ''}
                           onChange={(e) => handleAssign(t2, e.target.value)}
                         >
@@ -1940,7 +1734,7 @@ export function TicketsPage() {
                           ))}
                         </select>
                       </td>
-                      <td className={`ticket-sla ticket-sla--${sla.tone}`}>{sla.text}</td>
+                      <td className="cell-muted">{closingDuration(t2)}</td>
                       <td className="cell-muted">
                         <div className="cell-datetime">
                           <span>{new Date(t2.createdAt).toLocaleDateString(dateLocale)}</span>
@@ -1956,8 +1750,7 @@ export function TicketsPage() {
                         </td>
                       )}
                     </tr>
-                    );
-                  })}
+                  ))}
                 </tbody>
               </table>
             </div>
