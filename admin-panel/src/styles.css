@@ -82,16 +82,16 @@
   --danger-soft-text: var(--error-text);
 
   /* Ticket status → semantic color mapping */
-  --status-new: var(--info-text);
-  --status-new-soft: var(--info-tint);
-  --status-in_progress: var(--indigo-700);
-  --status-in_progress-soft: var(--indigo-50);
+  --status-new: var(--error-text);
+  --status-new-soft: var(--error-tint);
+  --status-in_progress: #b45309;
+  --status-in_progress-soft: #fffbeb;
   --status-waiting_user: #f97316;
   --status-waiting_user-soft: #fff7ed;
   --status-resolved: var(--success-text);
   --status-resolved-soft: var(--success-tint);
-  --status-closed: var(--neutral-text);
-  --status-closed-soft: var(--neutral-tint);
+  --status-closed: var(--info-text);
+  --status-closed-soft: var(--info-tint);
   --status-active: var(--success-text);
   --status-active-soft: var(--success-tint);
   --status-inactive: var(--error-text);
@@ -206,9 +206,9 @@
     --info-tint: rgba(52, 152, 219, 0.15);
     --info-text: #3498db;
 
+    --status-in_progress: #f39c12;
+    --status-in_progress-soft: rgba(243, 156, 18, 0.16);
     --status-waiting_user-soft: rgba(249, 115, 22, 0.16);
-    --status-closed: #2ecc71;
-    --status-closed-soft: rgba(46, 204, 113, 0.15);
 
     --priority-high: #f39c12;
 
@@ -274,9 +274,9 @@
   --info-tint: rgba(52, 152, 219, 0.15);
   --info-text: #3498db;
 
+  --status-in_progress: #f39c12;
+  --status-in_progress-soft: rgba(243, 156, 18, 0.16);
   --status-waiting_user-soft: rgba(249, 115, 22, 0.16);
-  --status-closed: #2ecc71;
-  --status-closed-soft: rgba(46, 204, 113, 0.15);
 
   --priority-high: #f39c12;
 
@@ -2768,6 +2768,31 @@ button {
 
 .clickable-row:hover {
   background: var(--row-hover) !important;
+}
+
+.tickets-table tbody tr.row--status-new,
+.tickets-table tbody tr.row--status-new:nth-child(even) {
+  background: var(--status-new-soft);
+}
+
+.tickets-table tbody tr.row--status-in_progress,
+.tickets-table tbody tr.row--status-in_progress:nth-child(even) {
+  background: var(--status-in_progress-soft);
+}
+
+.tickets-table tbody tr.row--status-waiting_user,
+.tickets-table tbody tr.row--status-waiting_user:nth-child(even) {
+  background: var(--status-waiting_user-soft);
+}
+
+.tickets-table tbody tr.row--status-resolved,
+.tickets-table tbody tr.row--status-resolved:nth-child(even) {
+  background: var(--status-resolved-soft);
+}
+
+.tickets-table tbody tr.row--status-closed,
+.tickets-table tbody tr.row--status-closed:nth-child(even) {
+  background: var(--status-closed-soft);
 }
 
 .tickets-table--equal {

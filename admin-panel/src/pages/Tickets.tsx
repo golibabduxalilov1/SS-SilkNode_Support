@@ -1684,7 +1684,7 @@ export function TicketsPage() {
                   {paginatedTickets.map((t2, idx) => (
                     <tr
                       key={t2.id}
-                      className="clickable-row"
+                      className={`clickable-row row--status-${t2.status}`}
                       onClick={() => navigate(`/dashboard/tickets/${t2.id}`)}
                     >
                       <td onClick={(e) => e.stopPropagation()}>
