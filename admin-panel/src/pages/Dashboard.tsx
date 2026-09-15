@@ -22,6 +22,7 @@ import {
   IconAlert,
   IconCheck,
   IconChevronDown,
+  IconClock,
   IconClose,
   IconDownload,
   IconFilter,
@@ -132,6 +133,7 @@ interface DashboardStats {
   closedThisWeek: number;
   closedThisMonth: number;
   avgResolutionMinutes: number | null;
+  totalResolutionMinutes: number;
   avgProductivityScore: number | null;
   byAssignee: AssigneeStats[];
   byOrganization: OrganizationStats[];
@@ -522,15 +524,16 @@ function SectionHeader({
 interface KpiCardData {
   key: string;
   icon: ReactNode;
-  value: number;
+  value: number | string;
   suffix?: string;
   label: string;
   accent?: string | null;
   accentSoft?: string | null;
   trend?: { curr: number; prev: number; title: string } | null;
+  compact?: boolean;
 }
 
-function KpiCard({ icon, value, suffix, label, accent, accentSoft, trend }: Omit<KpiCardData, 'key'>) {
+function KpiCard({ icon, value, suffix, label, accent, accentSoft, trend, compact }: Omit<KpiCardData, 'key'>) {
   return (
     <div className="stat-card">
       <div className="stat-card-top">
@@ -539,7 +542,7 @@ function KpiCard({ icon, value, suffix, label, accent, accentSoft, trend }: Omit
         </span>
         {trend && <TrendBadge curr={trend.curr} prev={trend.prev} title={trend.title} />}
       </div>
-      <span className="stat-value">
+      <span className={`stat-value${compact ? ' stat-value--compact' : ''}`}>
         {value}
         {suffix}
       </span>
@@ -1428,6 +1431,16 @@ export function DashboardPage() {
                 }
               : null,
         },
+        {
+          key: 'totalTimeSpent',
+          icon: <IconClock width={17} height={17} />,
+          value: formatDurationMinutes(stats.totalResolutionMinutes),
+          label: t('dashboard.kpiTotalTimeSpent'),
+          accent: 'var(--primary)',
+          accentSoft: 'var(--primary-soft)',
+          trend: null,
+          compact: true,
+        },
       ]
     : [];
 
@@ -1489,7 +1502,7 @@ export function DashboardPage() {
       {isLoading ? (
         <>
           <div className="stat-cards">
-            {Array.from({ length: 7 }).map((_, i) => (
+            {Array.from({ length: 8 }).map((_, i) => (
               <StatCardSkeleton key={i} />
             ))}
           </div>
@@ -1537,6 +1550,7 @@ export function DashboardPage() {
                   accent={card.accent}
                   accentSoft={card.accentSoft}
                   trend={card.trend}
+                  compact={card.compact}
                 />
               ))}
             </div>

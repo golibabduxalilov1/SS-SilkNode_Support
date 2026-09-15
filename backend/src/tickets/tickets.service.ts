@@ -121,6 +121,8 @@ export interface DashboardStats {
   closedThisWeek: number;
   closedThisMonth: number;
   avgResolutionMinutes: number | null;
+  /** Yopilgan tiketlar bo'yicha resolutionMinutes'lar yig'indisi — avgResolutionMinutes'dan farqli, o'rtacha emas, umumiy sarflangan vaqt. */
+  totalResolutionMinutes: number;
   /** byAssignee[].productivityScore'lar o'rtachasi — barcha ijrochilar bo'yicha umumiy KPI. */
   avgProductivityScore: number | null;
   byAssignee: AssigneeStats[];
@@ -952,9 +954,11 @@ export class TicketsService {
     const closedThisWeek = closedTickets.filter((t) => t.closedAt! >= weekStart).length;
     const closedThisMonth = closedTickets.filter((t) => t.closedAt! >= monthStart).length;
 
-    const avgResolutionMinutes = average(
-      closedTickets.map((t) => effectiveResolutionMinutes(t)).filter((m): m is number => m != null),
-    );
+    const closedResolutionMinutes = closedTickets
+      .map((t) => effectiveResolutionMinutes(t))
+      .filter((m): m is number => m != null);
+    const avgResolutionMinutes = average(closedResolutionMinutes);
+    const totalResolutionMinutes = closedResolutionMinutes.reduce((sum, m) => sum + m, 0);
 
     const openStatuses = [
       TicketStatus.NEW,
@@ -1157,6 +1161,7 @@ export class TicketsService {
       closedThisWeek,
       closedThisMonth,
       avgResolutionMinutes,
+      totalResolutionMinutes,
       avgProductivityScore,
       byAssignee,
       byOrganization,
