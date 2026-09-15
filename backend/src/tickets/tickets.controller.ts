@@ -206,10 +206,11 @@ export class TicketsController {
     return { success: true, data: { count } };
   }
 
+  /** GET /api/v1/admin/tickets/:id — murojaat tafsiloti; birinchi ochilganda opened_at belgilanadi (TZ band 6). */
   @Get('admin/tickets/:id')
   @UseGuards(AdminJwtAuthGuard)
   async findOneForAdmin(@Param('id') id: string) {
-    const ticket = await this.ticketsService.findById(id);
+    const ticket = await this.ticketsService.findByIdAndMarkOpened(id);
     return { success: true, data: ticket };
   }
 

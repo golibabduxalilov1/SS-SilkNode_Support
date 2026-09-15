@@ -29,6 +29,12 @@ export enum TicketStatus {
   CLOSED = 'closed',
 }
 
+/**
+ * TZ "Ticket list: sorting and row highlighting" band 2 — standart tartiblash uchun.
+ * Faqat status/sla_due_at/priority/created_at bo'yicha filtrlab-tartiblovchi so'rovlar
+ * uchun (TZ jadval index talabi), qiymatlari migratsiyada ham qayta yaratiladi.
+ */
+@Index('idx_tickets_default_sort', ['status', 'slaDueAt', 'priority', 'createdAt'])
 @Entity('tickets')
 export class Ticket {
   @PrimaryGeneratedColumn('increment', { type: 'bigint' })
@@ -119,4 +125,22 @@ export class Ticket {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
+
+  /**
+   * TZ band 6 "Unopened" belgisi — birinchi marta GET /admin/tickets/:id (agent/admin)
+   * chaqirilganda bir marta yoziladi. Ro'yxatni ko'rish "ochish" hisoblanmaydi.
+   */
+  @Column({ name: 'opened_at', type: 'timestamptz', nullable: true })
+  openedAt: Date | null;
+
+  /**
+   * TZ band 5 "SLA" ustuni uchun — yaratilishda createdAt + slaTotalMinutes sifatida
+   * hisoblanadi (hozircha ustuvorlikdan qat'iy nazar bitta SLA oynasi, SLA_RESOLUTION_MINUTES
+   * bilan bir xil, dashboard'dagi mavjud SLA chegarasiga mos).
+   */
+  @Column({ name: 'sla_due_at', type: 'timestamptz', nullable: true })
+  slaDueAt: Date | null;
+
+  @Column({ name: 'sla_total_minutes', type: 'int', nullable: true })
+  slaTotalMinutes: number | null;
 }

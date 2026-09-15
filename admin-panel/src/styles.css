@@ -127,6 +127,22 @@
   --row-hover: #eff6ff;
   --skeleton-shine: rgba(255, 255, 255, 0.8);
 
+  /* ---- Murojaatlar jadvali: qator holati va ustuvor tartiblash (TZ "Ticket list: sorting
+     and row highlighting") ---- Eslatma: TZ'dagi --row-hover/--row-selected nomlari yuqoridagi
+     umumiy --row-hover bilan to'qnashmasligi uchun --ticket-row-* deb qayta nomlangan — bu
+     ikkitasi faqat murojaatlar jadvalidagi holat rangli qatorlarning ustiga overlay sifatida
+     qo'llanadi, boshqa jadvallarga (Murojaatchilar, Tashkilotlar va h.k.) ta'sir qilmaydi. */
+  --row-bar-new: #378add;
+  --row-bg-new: rgba(55, 138, 221, 0.09);
+  --row-bar-late: #e24b4a;
+  --row-bg-late: rgba(226, 75, 74, 0.14);
+  --row-bar-work: #ef9f27;
+  --row-ink-done: #8a93a0;
+  --row-ink-late: #a32d2d;
+  --row-ink-warn: #854f0b;
+  --ticket-row-hover: rgba(22, 32, 46, 0.04);
+  --ticket-row-selected: rgba(47, 111, 219, 0.1);
+
   /* Button variants that flip shape (not just hue) between themes */
   --btn-secondary-bg: var(--panel);
   --btn-secondary-text: var(--text-secondary);
@@ -216,6 +232,17 @@
     --row-hover: #203677;
     --skeleton-shine: rgba(255, 255, 255, 0.12);
 
+    --row-bar-new: #6fa1f0;
+    --row-bg-new: rgba(111, 161, 240, 0.12);
+    --row-bar-late: #f06d6c;
+    --row-bg-late: rgba(240, 109, 108, 0.16);
+    --row-bar-work: #f2b54b;
+    --row-ink-done: #7c8696;
+    --row-ink-late: #f7a3a2;
+    --row-ink-warn: #f2b54b;
+    --ticket-row-hover: rgba(232, 236, 242, 0.05);
+    --ticket-row-selected: rgba(111, 161, 240, 0.14);
+
     --btn-secondary-bg: var(--sunken);
     --btn-secondary-text: var(--text);
     --btn-danger-bg: transparent;
@@ -283,6 +310,17 @@
   --bg-hover: #203677;
   --row-hover: #203677;
   --skeleton-shine: rgba(255, 255, 255, 0.12);
+
+  --row-bar-new: #6fa1f0;
+  --row-bg-new: rgba(111, 161, 240, 0.12);
+  --row-bar-late: #f06d6c;
+  --row-bg-late: rgba(240, 109, 108, 0.16);
+  --row-bar-work: #f2b54b;
+  --row-ink-done: #7c8696;
+  --row-ink-late: #f7a3a2;
+  --row-ink-warn: #f2b54b;
+  --ticket-row-hover: rgba(232, 236, 242, 0.05);
+  --ticket-row-selected: rgba(111, 161, 240, 0.14);
 
   --btn-secondary-bg: var(--sunken);
   --btn-secondary-text: var(--text);
@@ -1849,9 +1887,19 @@ button {
 }
 
 .filter-results {
-  margin: 0 0 12px;
+  margin: 0;
   font-size: 13px;
   color: var(--text-muted);
+}
+
+/* TZ band 7 — natijalar soni bilan bir qatorda joriy tartiblashni ko'rsatish. */
+.filter-results-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 12px;
 }
 
 /* T13 — saqlangan filtrlar qatori. */
@@ -2772,6 +2820,180 @@ button {
 
 .tickets-table--equal {
   table-layout: fixed;
+}
+
+/* ==========================================================================
+   Murojaatlar jadvali — qator holati va ustuvorlik (TZ "Ticket list: sorting
+   and row highlighting"). Faqat .ticket-row (Tickets.tsx) uchun — boshqa
+   .tickets-table ishlatuvchi sahifalarga (Murojaatchilar, Tashkilotlar va h.k.)
+   ta'sir qilmaydi.
+
+   Holat rangi (--row-tint) .ticket-row--* modifikator klassi orqali o'rnatiladi
+   va box-shadow inset sifatida har bir <td>'da chiziladi — shunday qilib u
+   zebra chizig'i (nth-child even) ustiga to'g'ri joylashadi va hover/selected
+   qatlamlari (pastda) uni olib tashlamasdan, ustiga qo'shilib qorayadi.
+   ========================================================================== */
+
+.ticket-row {
+  --row-tint: transparent;
+  background: transparent;
+}
+
+.ticket-row td {
+  box-shadow: inset 0 0 0 999px var(--row-tint);
+}
+
+.tickets-table tbody tr.ticket-row.clickable-row:hover {
+  background: transparent;
+}
+
+.ticket-row:hover td {
+  box-shadow:
+    inset 0 0 0 999px var(--row-tint),
+    inset 0 0 0 999px var(--ticket-row-hover);
+}
+
+.ticket-row.is-selected td {
+  box-shadow:
+    inset 0 0 0 999px var(--row-tint),
+    inset 0 0 0 999px var(--ticket-row-selected);
+}
+
+.ticket-row.is-selected:hover td {
+  box-shadow:
+    inset 0 0 0 999px var(--row-tint),
+    inset 0 0 0 999px var(--ticket-row-selected),
+    inset 0 0 0 999px var(--ticket-row-hover);
+}
+
+.ticket-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* 4px chap chiziq — jadvalning birinchi ustuni (checkbox katagi) orqali. */
+.ticket-row td:first-child {
+  border-left: 4px solid var(--row-bar, transparent);
+}
+
+.ticket-row--overdue {
+  --row-tint: var(--row-bg-late);
+  --row-bar: var(--row-bar-late);
+}
+
+.ticket-row--new {
+  --row-tint: var(--row-bg-new);
+  --row-bar: var(--row-bar-new);
+}
+
+.ticket-row--in-progress {
+  --row-bar: var(--row-bar-work);
+}
+
+.ticket-row--closed td {
+  color: var(--row-ink-done);
+}
+
+/* "Unopened" — hali ochilmagan murojaat: butun qator matni yarim qalin (600),
+   ochilgandan keyin (yoki closed bo'lsa) oddiy og'irlikka qaytadi. */
+.ticket-row td {
+  font-weight: 400;
+}
+
+.ticket-row.is-unopened td {
+  font-weight: 600;
+}
+
+/* Muhimlik badge'i kechikkan qatorda kontur (outline) ko'rinishida — bitta
+   qatorda to'rtta qizil element bo'lib ketmasligi uchun (TZ band 3). */
+.ticket-row--overdue .priority {
+  background: transparent;
+  border-color: var(--row-bar-late);
+  color: var(--row-ink-late);
+}
+
+/* Holat katagi — kechikkan qatorda "Muddati o'tdi" qizil matn bilan. */
+.ticket-status-overdue {
+  color: var(--row-ink-late);
+  font-weight: 700;
+}
+
+.ticket-status-closed-icon {
+  display: inline-flex;
+  vertical-align: -2px;
+  margin-right: 4px;
+  color: var(--row-ink-done);
+}
+
+/* Mas'ul katagi — "Tayinlanmagan" kulrang, tayinlangan ijrochi nomi oddiy rangda. */
+.ticket-assignee-select--unassigned {
+  color: var(--text-muted);
+}
+
+/* SLA ustuni — muddatga qarab rang. */
+.ticket-sla {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ticket-sla--normal {
+  color: var(--text);
+}
+
+.ticket-sla--warn {
+  color: var(--row-ink-warn);
+}
+
+.ticket-sla--late {
+  color: var(--row-ink-late);
+}
+
+.ticket-sla--muted {
+  color: var(--row-ink-done);
+  font-weight: 400;
+}
+
+/* Band 7 — foydalanuvchi ustun bo'yicha tartiblagan holatni ko'rsatish. */
+.sort-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.sort-indicator button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.sort-indicator button:hover {
+  color: var(--text);
+}
+
+.tickets-table th.is-sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.tickets-table th.is-sortable:hover {
+  color: var(--accent);
+}
+
+.tickets-table th .sort-arrow {
+  margin-left: 4px;
+  display: inline-block;
 }
 
 .requesters-table th:nth-child(1),

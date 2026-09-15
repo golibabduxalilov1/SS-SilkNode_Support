@@ -490,6 +490,7 @@ export class TicketsService {
   }
 
   async create(dto: CreateTicketDto, createdBy: User): Promise<Ticket> {
+    const now = new Date();
     const ticket = this.ticketsRepository.create({
       number: this.generateTicketNumber(),
       title: dto.title,
@@ -500,6 +501,10 @@ export class TicketsService {
       createdById: createdBy.id,
       requesterName: dto.requesterName ?? null,
       requesterPhone: dto.requesterPhone ?? null,
+      // TZ "SLA" ustuni (band 5) — hisobot davri bo'yicha bitta SLA oynasi, dashboard'dagi
+      // mavjud SLA_RESOLUTION_MINUTES chegarasi bilan bir xil.
+      slaTotalMinutes: SLA_RESOLUTION_MINUTES,
+      slaDueAt: new Date(now.getTime() + SLA_RESOLUTION_MINUTES * 60000),
     });
     return this.ticketsRepository.save(ticket);
   }
@@ -546,6 +551,11 @@ export class TicketsService {
       // Eski (arxiv) murojaatlarda "ishga olingan vaqt" haqida audit tarixi yo'q —
       // sof qayta ishlash vaqti createdAt'ga fallback qilinadi.
       processingResolutionMinutes: closedAt ? diffMinutes(createdAt, closedAt) : null,
+      slaTotalMinutes: SLA_RESOLUTION_MINUTES,
+      slaDueAt: new Date(createdAt.getTime() + SLA_RESOLUTION_MINUTES * 60000),
+      // Backfill migratsiyasi bilan bir xil qoida: status "yangi" bo'lmasa, allaqachon
+      // ko'rilgan hisoblanadi — TZ band 6 release'dan keyin eski murojaatlar qalinlashmasligi.
+      openedAt: status !== TicketStatus.NEW ? (closedAt ?? createdAt) : null,
     });
     const saved = await this.ticketsRepository.save(ticket);
 
@@ -580,6 +590,39 @@ export class TicketsService {
     return ticket;
   }
 
+  /**
+   * TZ "Ticket list: sorting and row highlighting" band 2 — standart tartiblash, 4 ta
+   * kalit ketma-ketlikda. Loyihaning haqiqiy TicketStatus'ida TZ'dagi 4 statusdan farqli
+   * 5 tasi bor (waiting_user/resolved) — quyidagicha moslashtirilgan (aniq talab yo'q,
+   * eng yaqin talqin sifatida tanlangan, hisobotda qayd etiladi):
+   *  - "pending" -> waiting_user (nomigacha mos)
+   *  - "resolved" — TZ'da yo'q, lekin closed emas va hali ishlanayotgani uchun
+   *    in_progress bilan bir guruhga (status_rank 3, amber holat) qo'shilgan.
+   * SLA kechikkanlik faqat ochiq (status <> closed) murojaatlarga tekshiriladi (band 2, kalit 2).
+   */
+  private static readonly DEFAULT_ORDER_STATUS_RANK = `
+    CASE ticket.status
+      WHEN 'new' THEN 0
+      WHEN 'in_progress' THEN 1
+      WHEN 'waiting_user' THEN 2
+      WHEN 'resolved' THEN 3
+      ELSE 4
+    END
+  `;
+
+  private static readonly DEFAULT_ORDER_SLA_RANK = `
+    CASE WHEN ticket.status <> 'closed' AND ticket.slaDueAt < NOW() THEN 0 ELSE 1 END
+  `;
+
+  private static readonly DEFAULT_ORDER_PRIORITY_RANK = `
+    CASE ticket.priority
+      WHEN 'critical' THEN 0
+      WHEN 'high' THEN 1
+      WHEN 'medium' THEN 2
+      ELSE 3
+    END
+  `;
+
   async findAllForAdmin(): Promise<(Ticket & { hasNewCustomerReply: boolean })[]> {
     const tickets = await this.ticketsRepository
       .createQueryBuilder('ticket')
@@ -595,9 +638,18 @@ export class TicketsService {
       .addSelect(['messages.id', 'messages.visibility', 'messages.createdAt'])
       .leftJoin('messages.sender', 'messageSender')
       .addSelect(['messageSender.id', 'messageSender.role'])
-      .addSelect(`CASE WHEN ticket.status = 'new' THEN 0 ELSE 1 END`, 'status_rank')
+      .addSelect(TicketsService.DEFAULT_ORDER_STATUS_RANK, 'status_rank')
+      .addSelect(TicketsService.DEFAULT_ORDER_SLA_RANK, 'sla_rank')
+      .addSelect(TicketsService.DEFAULT_ORDER_PRIORITY_RANK, 'priority_rank')
       .orderBy('status_rank', 'ASC')
-      .addOrderBy('ticket.createdAt', 'DESC')
+      .addOrderBy('sla_rank', 'ASC')
+      .addOrderBy('priority_rank', 'ASC')
+      // Ochiq: eng eski birinchi. Yopilgan: eng so'nggi yopilgan birinchi.
+      .addOrderBy(`CASE WHEN ticket.status <> 'closed' THEN ticket.createdAt END`, 'ASC')
+      .addOrderBy(`CASE WHEN ticket.status = 'closed' THEN ticket.closedAt END`, 'DESC')
+      // Sahifalash barqarorligi uchun — bir xil tartiblash kalitlariga ega ikkita tiket
+      // turli sahifalarda takrorlanib qolmasligi kerak.
+      .addOrderBy('ticket.id', 'DESC')
       .getMany();
 
     return tickets.map((ticket) => ({
@@ -643,6 +695,20 @@ export class TicketsService {
       where: { id },
       relations: ['organization', 'categoryEntity', 'createdBy', 'assignedTo', 'messages'],
     });
+  }
+
+  /**
+   * TZ band 6 "Unopened" belgisi — GET /admin/tickets/:id (agent/admin) birinchi marta
+   * chaqirilganda opened_at bir martalik o'rnatiladi, keyingi chaqiriqlarda o'zgarmaydi.
+   */
+  async findByIdAndMarkOpened(id: string): Promise<Ticket | null> {
+    const ticket = await this.findById(id);
+    if (!ticket) return null;
+    if (!ticket.openedAt) {
+      await this.ticketsRepository.update(id, { openedAt: new Date() });
+      return this.findById(id);
+    }
+    return ticket;
   }
 
   async updateStatus(id: string, status: TicketStatus, actor: User): Promise<Ticket> {
