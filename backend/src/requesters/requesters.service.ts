@@ -1,7 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { Ticket } from '../tickets/entities/ticket.entity';
+import { UpdateRequesterDto } from './dto/update-requester.dto';
+
+/** Murojaatchi o'chirilganda (requesterHiddenAt to'ldirilganda) uni guruhlashdan chiqarib tashlash uchun. */
+const NOT_HIDDEN = { requesterHiddenAt: IsNull() };
 
 export interface RequesterSummary {
   /** Guruhlash kaliti (telefon yoki foydalanuvchi id) — jadval qatori uchun barqaror id sifatida ishlatiladi. */
@@ -71,6 +75,7 @@ export class RequestersService {
 
   async findAll(): Promise<RequesterSummary[]> {
     const tickets = await this.ticketsRepository.find({
+      where: NOT_HIDDEN,
       relations: ['organization', 'createdBy'],
       order: { createdAt: 'DESC' },
     });
@@ -97,16 +102,37 @@ export class RequestersService {
     const digits = normalizePhone(phoneQuery).replace(/^\+/, '');
     if (digits.length < 7) return [];
 
+    return this.searchTickets((ticket) => {
+      const phone = ticket.requesterPhone ?? ticket.createdBy?.phoneNumber ?? null;
+      return !!phone && normalizePhone(phone).replace(/^\+/, '').includes(digits);
+    });
+  }
+
+  /**
+   * Ism (F.I.O.) bo'yicha qisman moslik qidiruvi — murojaat yaratishda F.I.O. maydoni uchun
+   * autocomplete. Kamida 2 ta belgi talab qilinadi (frontend debounce bilan ta'minlanadi).
+   */
+  async searchByName(nameQuery: string): Promise<RequesterSummary[]> {
+    const query = nameQuery.trim().toLowerCase();
+    if (query.length < 2) return [];
+
+    return this.searchTickets((ticket) => {
+      const name = nameForTicket(ticket);
+      return !!name && name.toLowerCase().includes(query);
+    });
+  }
+
+  /** search() va searchByName() uchun umumiy filtrlash + guruhlash + saralash oqimi. */
+  private async searchTickets(predicate: (ticket: Ticket) => boolean): Promise<RequesterSummary[]> {
     const tickets = await this.ticketsRepository.find({
+      where: NOT_HIDDEN,
       relations: ['organization', 'createdBy'],
       order: { createdAt: 'DESC' },
     });
 
     const groups = new Map<string, Ticket[]>();
     for (const ticket of tickets) {
-      const phone = ticket.requesterPhone ?? ticket.createdBy?.phoneNumber ?? null;
-      if (!phone) continue;
-      if (!normalizePhone(phone).replace(/^\+/, '').includes(digits)) continue;
+      if (!predicate(ticket)) continue;
       const key = keyForTicket(ticket);
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(ticket);
@@ -118,6 +144,7 @@ export class RequestersService {
 
   async findOne(key: string): Promise<RequesterDetail> {
     const tickets = await this.ticketsRepository.find({
+      where: NOT_HIDDEN,
       relations: ['organization', 'createdBy', 'categoryEntity', 'assignedTo'],
       order: { createdAt: 'DESC' },
     });
@@ -131,6 +158,60 @@ export class RequestersService {
       requester: this.summarize(key, matching),
       tickets: matching,
     };
+  }
+
+  /**
+   * PATCH — superadmin murojaatchi ism/telefonini tahrirlaydi. Alohida requester jadvali
+   * yo'qligi sababli, o'zgarish shu murojaatchiga tegishli BARCHA tickets'dagi
+   * requesterName/requesterPhone ustunlariga yoziladi (User entity'ga tegilmaydi — u
+   * Telegram orqali tasdiqlangan haqiqiy foydalanuvchi ma'lumoti, TALAB 1 tekshiruvi uchun
+   * ishlatiladi). `user:`-key'li (Mini App) murojaatchilar uchun telefon o'zgartirilmaydi —
+   * aks holda ticket.requesterPhone to'ldirilib, keyForTicket uni "phone:"-guruhga
+   * ko'chirib, murojaatchi tarixini bo'lib yuboradi.
+   */
+  async update(key: string, dto: UpdateRequesterDto): Promise<RequesterSummary> {
+    if (dto.phone !== undefined && !key.startsWith('phone:')) {
+      throw new BadRequestException(
+        "Ushbu murojaatchi uchun telefon raqamini tahrirlab bo'lmaydi.",
+      );
+    }
+
+    const tickets = await this.ticketsRepository.find({
+      where: NOT_HIDDEN,
+      relations: ['organization', 'createdBy'],
+      order: { createdAt: 'DESC' },
+    });
+    const matching = tickets.filter((ticket) => keyForTicket(ticket) === key);
+    if (matching.length === 0) {
+      throw new NotFoundException('Murojaatchi topilmadi');
+    }
+
+    for (const ticket of matching) {
+      if (dto.name !== undefined) ticket.requesterName = dto.name.trim() || null;
+      if (dto.phone !== undefined) ticket.requesterPhone = dto.phone;
+    }
+    await this.ticketsRepository.save(matching);
+
+    return this.summarize(key, matching);
+  }
+
+  /**
+   * DELETE — superadmin murojaatchini o'chiradi. Tickets butunlay o'chirilmaydi (ma'lumot
+   * yo'qolmasligi uchun) — buning o'rniga requesterHiddenAt to'ldiriladi va shu murojaatchi
+   * findAll/search/findOne/update natijalaridan (NOT_HIDDEN filtri orqali) chiqarib tashlanadi.
+   * Tickets o'zi boshqa joylarda (umumiy Tickets ro'yxati, dashboard) odatdagidek ko'rinishda qoladi.
+   */
+  async remove(key: string): Promise<void> {
+    const tickets = await this.ticketsRepository.find({ where: NOT_HIDDEN });
+    const matching = tickets.filter((ticket) => keyForTicket(ticket) === key);
+    if (matching.length === 0) {
+      throw new NotFoundException('Murojaatchi topilmadi');
+    }
+    const hiddenAt = new Date();
+    for (const ticket of matching) {
+      ticket.requesterHiddenAt = hiddenAt;
+    }
+    await this.ticketsRepository.save(matching);
   }
 
   private summarize(key: string, tickets: Ticket[]): RequesterSummary {

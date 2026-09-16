@@ -56,12 +56,20 @@ export function RequesterFields({
   const [dismissed, setDismissed] = useState(false);
   const [applied, setApplied] = useState(false);
   const debounceRef = useRef<number | null>(null);
+  // Ism va telefon bo'yicha takliflar bir-birini o'zaro qayta ishga tushirib yubormasligi uchun:
+  // biri tanlanib ikkinchi maydon dasturiy to'ldirilganda, shu maydonning o'z qidiruvi bir marta o'tkazib yuboriladi.
+  const skipPhoneSearchRef = useRef(false);
+  const skipNameSearchRef = useRef(false);
 
   // T20 (minimal versiya) — "+ Yana bir kontakt": bitta telefon uchun bir nechta ism, joriy
   // sodda F.I.O. matn maydoniga ", " bilan qo'shib yuboriladi (to'liq ma'lumot modeli/migratsiya
   // TZ doirasidan tashqarida — shu sababli alohida jadval emas, mavjud bitta maydon ishlatiladi).
   const [baseName, setBaseName] = useState(name);
   const [extraContacts, setExtraContacts] = useState<string[]>([]);
+
+  const [nameSuggestions, setNameSuggestions] = useState<RequesterSuggestion[]>([]);
+  const [showNameSuggestions, setShowNameSuggestions] = useState(false);
+  const nameDebounceRef = useRef<number | null>(null);
 
   useEffect(() => {
     const combined = [baseName, ...extraContacts.map((c) => c.trim()).filter(Boolean)].join(', ');
@@ -70,6 +78,10 @@ export function RequesterFields({
   }, [baseName, extraContacts]);
 
   useEffect(() => {
+    if (skipPhoneSearchRef.current) {
+      skipPhoneSearchRef.current = false;
+      return;
+    }
     setDismissed(false);
     setApplied(false);
     const digits = phone.replace(/\D/g, '');
@@ -90,25 +102,83 @@ export function RequesterFields({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phone]);
 
+  useEffect(() => {
+    if (skipNameSearchRef.current) {
+      skipNameSearchRef.current = false;
+      return;
+    }
+    const query = baseName.trim();
+    if (query.length < 2) {
+      setNameSuggestions([]);
+      setShowNameSuggestions(false);
+      return;
+    }
+    if (nameDebounceRef.current) window.clearTimeout(nameDebounceRef.current);
+    nameDebounceRef.current = window.setTimeout(() => {
+      api
+        .get('/admin/requesters/search', { params: { name: query } })
+        .then((res) => {
+          setNameSuggestions(res.data.data as RequesterSuggestion[]);
+          setShowNameSuggestions(true);
+        })
+        .catch(() => setNameSuggestions([]));
+    }, 400);
+    return () => {
+      if (nameDebounceRef.current) window.clearTimeout(nameDebounceRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseName]);
+
   const handleApply = () => {
     if (!suggestion) return;
-    if (suggestion.name) setBaseName(suggestion.name);
+    if (suggestion.name) {
+      skipNameSearchRef.current = true;
+      setBaseName(suggestion.name);
+    }
     onApplySuggestion?.(suggestion);
     setApplied(true);
   };
 
+  const handleSelectName = (s: RequesterSuggestion) => {
+    skipNameSearchRef.current = true;
+    setBaseName(s.name ?? '');
+    if (s.phone) {
+      skipPhoneSearchRef.current = true;
+      onPhoneChange(s.phone);
+    }
+    onApplySuggestion?.(s);
+    setShowNameSuggestions(false);
+    setNameSuggestions([]);
+  };
+
   const showSuggestion = !!suggestion && !dismissed && !applied;
+  const showNameDropdown = showNameSuggestions && nameSuggestions.length > 0;
 
   return (
     <>
-      <label className="modal-field">
+      <label className="modal-field requester-name-field">
         <span>{t('requesterFields.fullName')}</span>
         <input
           value={baseName}
           onChange={(e) => setBaseName(e.target.value)}
+          onFocus={() => nameSuggestions.length > 0 && setShowNameSuggestions(true)}
+          onBlur={() => window.setTimeout(() => setShowNameSuggestions(false), 150)}
           placeholder={t('requesterFields.fullNamePlaceholder')}
+          autoComplete="off"
           required
         />
+        {showNameDropdown && (
+          <ul className="requester-name-suggestions">
+            {nameSuggestions.map((s) => (
+              <li key={s.key}>
+                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => handleSelectName(s)}>
+                  <span className="requester-name-suggestions-name">{s.name ?? t('requesterFields.unnamed')}</span>
+                  {s.phone && <span className="requester-name-suggestions-phone">{s.phone}</span>}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </label>
       {extraContacts.map((contact, i) => (
         <label className="modal-field" key={i}>

@@ -113,6 +113,15 @@ export class Ticket {
   @Column({ name: 'reopened_count', type: 'int', default: 0 })
   reopenedCount: number;
 
+  /**
+   * Superadmin "Murojaatchilar" sahifasida murojaatchini o'chirganda to'ldiriladi — ticket
+   * o'zi o'chirilmaydi (ma'lumot yo'qolmasin uchun), faqat requesters.service'dagi
+   * guruhlashdan chiqarib tashlanadi (soft-hide). Boshqa joyda (umumiy Tickets ro'yxati,
+   * dashboard) tickets odatdagidek ko'rinishda qoladi.
+   */
+  @Column({ name: 'requester_hidden_at', type: 'timestamptz', nullable: true })
+  requesterHiddenAt: Date | null;
+
   @Index('idx_tickets_created_at')
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

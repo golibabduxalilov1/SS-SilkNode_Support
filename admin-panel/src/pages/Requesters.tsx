@@ -1,8 +1,19 @@
-import { useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
+import { useAuth } from '../auth/AuthContext';
 import { AppShell } from '../components/AppShell';
-import { IconChevronDown, IconFilter, IconSearch, IconUser } from '../components/icons';
+import { ConfirmModal } from '../components/ConfirmModal';
+import {
+  IconChevronDown,
+  IconClose,
+  IconEdit,
+  IconFilter,
+  IconSearch,
+  IconTrash,
+  IconUser,
+} from '../components/icons';
 import { Avatar, EmptyState, Pagination, TableSkeleton } from '../components/ui';
 import { usePageSize } from '../utils/usePageSize';
 import { LIST_POLL_INTERVAL_MS } from '../utils/pollInterval';
@@ -89,11 +100,110 @@ function SortableTh({
   );
 }
 
+interface RequesterFormData {
+  name: string;
+  phone: string;
+}
+
+/** Alohida requester jadvali yo'qligi sababli telefon faqat "phone:"-key'li (admin qo'lda kiritgan) murojaatchilar uchun tahrirlanadi — bo'lim requesters.service.ts update(). */
+function RequesterEditModal({
+  isOpen,
+  requester,
+  onClose,
+  onSubmit,
+  isSaving,
+  error,
+}: {
+  isOpen: boolean;
+  requester: Requester | null;
+  onClose: () => void;
+  onSubmit: (data: RequesterFormData) => void;
+  isSaving: boolean;
+  error: string | null;
+}) {
+  const { t } = useLanguage();
+  const [form, setForm] = useState<RequesterFormData>({ name: '', phone: '' });
+  const isPhoneEditable = requester ? requester.key.startsWith('phone:') : false;
+
+  useEffect(() => {
+    if (isOpen && requester) {
+      setForm({ name: requester.name ?? '', phone: requester.phone ?? '' });
+    }
+  }, [isOpen, requester]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen || !requester) return null;
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    onSubmit(form);
+  };
+
+  return createPortal(
+    <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal-card">
+        <div className="modal-header">
+          <span className="modal-header-icon">
+            <IconUser width={18} height={18} />
+          </span>
+          <h3>{t('requesters.editTitle')}</h3>
+          <button type="button" className="modal-close" onClick={onClose} aria-label={t('common.close')}>
+            <IconClose width={18} height={18} />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            {error && <p className="form-error">{error}</p>}
+            <label className="modal-field">
+              <span>{t('requesters.fieldName')}</span>
+              <input
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder={t('requesters.fieldName')}
+                autoFocus
+              />
+            </label>
+            <label className="modal-field">
+              <span>{t('requesters.fieldPhone')}</span>
+              <input
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                placeholder={t('requesters.fieldPhone')}
+                disabled={!isPhoneEditable}
+              />
+            </label>
+            {!isPhoneEditable && <p className="field-hint">{t('requesters.phoneNotEditableHint')}</p>}
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSaving}>
+              {t('common.cancel')}
+            </button>
+            <button className="btn btn-primary" type="submit" disabled={isSaving}>
+              {isSaving ? t('common.saving') : t('common.save')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 /** ТЗ band 8: alohida "Requester" jadvali yo'q — ro'yxat tickets jadvalidan hosil qilinadi (backend/src/requesters). */
 export function RequestersPage() {
   const { language, t } = useLanguage();
   const dateLocale = language === 'ru' ? 'ru-RU' : 'uz-UZ';
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isSuperadmin = user?.role === 'superadmin';
   const [requesters, setRequesters] = useState<Requester[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -107,6 +217,10 @@ export function RequestersPage() {
   const [isToolbarOpen, setIsToolbarOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = usePageSize();
+  const [editingRequester, setEditingRequester] = useState<Requester | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
+  const [requesterToDelete, setRequesterToDelete] = useState<Requester | null>(null);
 
   // background=true — yangi murojaat kelganda ro'yxat qo'lda yangilamasdan ham yangilanadi;
   // joriy filtr/sahifaga tegmasdan, skeletonsiz fonda yangilanadi.
@@ -168,6 +282,50 @@ export function RequestersPage() {
   function handleRowClick(requester: Requester) {
     navigate(`/requesters/${encodeURIComponent(requester.key)}`);
   }
+
+  const closeEditModal = () => {
+    if (isSaving) return;
+    setEditingRequester(null);
+  };
+
+  const handleModalSubmit = async (data: RequesterFormData) => {
+    if (!editingRequester) return;
+    if (!data.name.trim()) {
+      setModalError(t('requesters.validationNameRequired'));
+      return;
+    }
+    setIsSaving(true);
+    setModalError(null);
+    try {
+      const payload: Record<string, string> = { name: data.name.trim() };
+      if (editingRequester.key.startsWith('phone:')) payload.phone = data.phone.trim();
+      await api.patch(`/admin/requesters/${encodeURIComponent(editingRequester.key)}`, payload);
+      setEditingRequester(null);
+      load();
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
+          ?.message ?? t('requesters.saveError');
+      setModalError(message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!requesterToDelete) return;
+    const requester = requesterToDelete;
+    setRequesterToDelete(null);
+    try {
+      await api.delete(`/admin/requesters/${encodeURIComponent(requester.key)}`);
+      load();
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
+          ?.message ?? t('requesters.deleteError');
+      setError(message);
+    }
+  };
 
   const totalPages = Math.max(1, Math.ceil(sortedRequesters.length / pageSize));
   const currentPage = Math.min(page, totalPages);
@@ -302,6 +460,7 @@ export function RequestersPage() {
                       current={sort}
                       onSort={handleSort}
                     />
+                    {isSuperadmin && <th>{t('requesters.colActions')}</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -336,6 +495,23 @@ export function RequestersPage() {
                           </span>
                         </div>
                       </td>
+                      {isSuperadmin && (
+                        <td className="table-actions" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => {
+                              setModalError(null);
+                              setEditingRequester(r);
+                            }}
+                          >
+                            <IconEdit width={13} height={13} />
+                            {t('requesters.edit')}
+                          </button>
+                          <button className="danger" onClick={() => setRequesterToDelete(r)}>
+                            <IconTrash width={13} height={13} />
+                            {t('requesters.delete')}
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -353,6 +529,29 @@ export function RequestersPage() {
           />
         </>
       )}
+
+      <RequesterEditModal
+        isOpen={!!editingRequester}
+        requester={editingRequester}
+        onClose={closeEditModal}
+        onSubmit={handleModalSubmit}
+        isSaving={isSaving}
+        error={modalError}
+      />
+
+      <ConfirmModal
+        isOpen={!!requesterToDelete}
+        title={t('requesters.deleteTitle')}
+        message={
+          requesterToDelete
+            ? t('requesters.deleteConfirmTemplate')
+                .replace('{name}', requesterToDelete.name ?? requesterToDelete.phone ?? '')
+                .replace('{count}', String(requesterToDelete.ticketsCount))
+            : ''
+        }
+        onConfirm={handleDelete}
+        onCancel={() => setRequesterToDelete(null)}
+      />
     </AppShell>
   );
 }
