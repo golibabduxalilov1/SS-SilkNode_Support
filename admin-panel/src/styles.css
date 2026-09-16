@@ -530,7 +530,7 @@ button {
   background: var(--canvas);
 }
 
-.login-lang-toggle {
+.login-page .login-lang-toggle {
   position: absolute;
   top: 20px;
   right: 20px;
