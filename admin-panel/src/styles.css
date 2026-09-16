@@ -2815,34 +2815,98 @@ button {
   table-layout: fixed;
 }
 
+/* Har bir ustun faqat o'z kontentiga zarur joyni oladi (Telefon, Tashkilot,
+   Murojaatlar soni, Oxirgi murojaat, Amallar — mazmunga qarab piksellarda);
+   F.I.O. / Nomi ustuni yagona "moslashuvchan" ustun bo'lib, table-layout: fixed
+   rejimida ekranning qolgan bo'sh joyini o'zi egallaydi (col-flex kabi).
+   Jadval o'zi min-width bilan cheklangan — shu tufayli F.I.O. ustuni juda
+   tor ekranlarda "0"ga qisilib qolmaydi; undan tor ekranlarda table-wrap
+   allaqachon gorizontal scroll bilan ishlaydi (mobil uchun ham xuddi shunday). */
+.requesters-table {
+  min-width: 1000px;
+}
+
 .requesters-table th:nth-child(1),
 .requesters-table td:nth-child(1) {
-  width: 4%;
+  width: 48px;
+  padding-left: 16px;
+  padding-right: 6px;
 }
 
 .requesters-table th:nth-child(2),
 .requesters-table td:nth-child(2) {
-  width: 30%;
+  width: auto;
+  min-width: 220px;
 }
 
 .requesters-table th:nth-child(3),
 .requesters-table td:nth-child(3) {
-  width: 16%;
+  width: 158px;
+  padding-left: 12px;
+  padding-right: 12px;
 }
 
 .requesters-table th:nth-child(4),
 .requesters-table td:nth-child(4) {
-  width: 16%;
+  width: 140px;
 }
 
 .requesters-table th:nth-child(5),
 .requesters-table td:nth-child(5) {
-  width: 16%;
+  width: 92px;
+  padding-left: 12px;
+  padding-right: 12px;
 }
 
 .requesters-table th:nth-child(6),
 .requesters-table td:nth-child(6) {
-  width: 18%;
+  width: 104px;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.requesters-table th:nth-child(7),
+.requesters-table td:nth-child(7) {
+  width: 240px;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+/* Sarlavhalar (ayniqsa "Murojaatlar soni" / "Oxirgi murojaat") ustun
+   kengligidan uzunroq bo'lishi mumkin — ularni bitta qatorga majburlash
+   o'rniga ikki qatorga o'rashga ruxsat beramiz, shunda ustun faqat
+   ma'lumot kengligiga mos qoladi. */
+.requesters-table th {
+  white-space: normal;
+  line-height: 1.3;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+/* Telefon va Tashkilot — bitta qatorda, uzun tashkilot nomlari ellipsis
+   bilan qisqartiriladi. */
+.requesters-table td.cell-nowrap {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* F.I.O. / Nomi ustuni endi moslashuvchan bo'lgani uchun 2 qatorli
+   line-clamp o'rniga bitta qatorli ellipsis qo'llaniladi. */
+.requesters-table span.cell-primary {
+  display: block;
+  min-width: 0;
+  flex: 1 1 auto;
+  max-width: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  -webkit-line-clamp: initial;
+  -webkit-box-orient: initial;
+}
+
+.requesters-table .requester-group-badge {
+  flex-shrink: 0;
 }
 
 .cell-user {
@@ -4147,49 +4211,6 @@ select.priority-select--low {
   flex-wrap: nowrap;
   gap: 8px;
   justify-content: flex-end;
-}
-
-/* Keep row actions reachable without horizontal scrolling: pin the
-   actions column to the right edge of the scrollable table area.
-   Scoped to .table-wrap--pin-actions (Tickets page), which is wide
-   enough to need horizontal scroll. Categories/Employees/Organizations
-   tables don't need this since their actions column already stays
-   in view without scrolling. */
-.table-wrap--pin-actions .tickets-table td.table-actions,
-.table-wrap--pin-actions .tickets-table th:empty {
-  position: sticky;
-  right: 0;
-  z-index: 1;
-  background: var(--panel);
-}
-
-.table-wrap--pin-actions .tickets-table tbody tr:nth-child(even) td.table-actions {
-  background: var(--veil);
-}
-
-.table-wrap--pin-actions .tickets-table tbody tr.row--status-new td.table-actions {
-  background: var(--status-new-soft);
-}
-
-.table-wrap--pin-actions .tickets-table tbody tr.row--status-in_progress td.table-actions {
-  background: var(--status-in_progress-soft);
-}
-
-.table-wrap--pin-actions .tickets-table tbody tr.row--status-waiting_user td.table-actions {
-  background: var(--status-waiting_user-soft);
-}
-
-.table-wrap--pin-actions .tickets-table tbody tr.row--status-resolved td.table-actions {
-  background: var(--status-resolved-soft);
-}
-
-.table-wrap--pin-actions .tickets-table tbody tr.row--status-closed td.table-actions {
-  background: var(--status-closed-soft);
-}
-
-.table-wrap--pin-actions .tickets-table th:empty {
-  z-index: 2;
-  background: var(--sunken);
 }
 
 .table-actions button {
