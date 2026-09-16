@@ -2682,6 +2682,21 @@ button {
   text-overflow: ellipsis;
 }
 
+/* Mavzu ustuni yagona "moslashuvchan" ustun — table-layout: fixed rejimida
+   ekranning bo'sh joyi shu ustunga tushadi, qolgan ustunlar aniq kengligicha qoladi. */
+.table-wrap--pin-actions .tickets-table col.col-flex {
+  width: auto;
+}
+
+.table-wrap--pin-actions .tickets-table td.cell-primary {
+  max-width: none;
+  min-width: 200px;
+}
+
+.table-wrap--pin-actions .tickets-table th:nth-child(3) {
+  min-width: 200px;
+}
+
 .section-card .tickets-table {
   border: none;
   border-radius: 0;

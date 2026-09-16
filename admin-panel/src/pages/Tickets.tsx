@@ -25,10 +25,8 @@ import {
   CategoryOptionGroups,
   EmptyState,
   MobileFilterDrawer,
-  Pagination,
   TableSkeleton,
 } from '../components/ui';
-import { usePageSize } from '../utils/usePageSize';
 import { exportTableToExcel, exportTableToPdf } from '../utils/tableExport';
 import { formatDurationMinutes } from '../utils/formatDuration';
 import { LIST_POLL_INTERVAL_MS } from '../utils/pollInterval';
@@ -104,16 +102,18 @@ function getPriorityOptions(t: T) {
   ];
 }
 
-const TICKET_COLUMN_WIDTHS = [40, 56, 260, 140, 210, 120, 100, 120, 190, 110, 160];
-const TICKET_COLUMN_WIDTHS_WITH_ACTIONS = [...TICKET_COLUMN_WIDTHS, 140];
+// Mavzu ustuni (index 2) uchun `null` — kenglik belgilanmaydi, table-layout: fixed
+// qolgan (aniq kenglikka ega) ustunlarni siqmasdan, bo'sh ekran joyini shu ustunga beradi.
+const TICKET_COLUMN_WIDTHS: (number | null)[] = [36, 44, null, 130, 190, 110, 96, 110, 170, 100, 140];
+const TICKET_COLUMN_WIDTHS_WITH_ACTIONS: (number | null)[] = [...TICKET_COLUMN_WIDTHS, 120];
 
 function TicketTableColgroup({ isSuperadmin }: { isSuperadmin: boolean }) {
   const widths = isSuperadmin ? TICKET_COLUMN_WIDTHS_WITH_ACTIONS : TICKET_COLUMN_WIDTHS;
   return (
     <colgroup>
-      {widths.map((w, i) => (
-        <col key={i} style={{ width: `${w}px` }} />
-      ))}
+      {widths.map((w, i) =>
+        w === null ? <col key={i} className="col-flex" /> : <col key={i} style={{ width: `${w}px` }} />,
+      )}
     </colgroup>
   );
 }
@@ -1045,8 +1045,6 @@ export function TicketsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkSaving, setIsBulkSaving] = useState(false);
   const [bulkStatusToConfirm, setBulkStatusToConfirm] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = usePageSize();
   const [choiceModalOpen, setChoiceModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -1147,10 +1145,6 @@ export function TicketsPage() {
 
   useEffect(load, []);
   useEffect(loadSavedFilters, []);
-
-  useEffect(() => {
-    setSelectedIds(new Set());
-  }, [page]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -1386,27 +1380,6 @@ export function TicketsPage() {
       createdTo,
       searchTerm,
     ],
-  );
-
-  useEffect(() => {
-    setPage(1);
-  }, [
-    organizationFilter,
-    statusFilter,
-    priorityFilter,
-    categoryFilter,
-    assignedToFilter,
-    createdFrom,
-    createdTo,
-    searchTerm,
-    pageSize,
-  ]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredTickets.length / pageSize));
-  const currentPage = Math.min(page, totalPages);
-  const paginatedTickets = filteredTickets.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize,
   );
 
   return (
@@ -1681,7 +1654,7 @@ export function TicketsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedTickets.map((t2, idx) => (
+                  {filteredTickets.map((t2, idx) => (
                     <tr
                       key={t2.id}
                       className={`clickable-row row--status-${t2.status}`}
@@ -1695,7 +1668,7 @@ export function TicketsPage() {
                           aria-label={`${t2.title} ${t('tickets.selectRow')}`}
                         />
                       </td>
-                      <td className="cell-muted">{(currentPage - 1) * pageSize + idx + 1}</td>
+                      <td className="cell-muted">{idx + 1}</td>
                       <td className="cell-primary">{truncateWords(t2.title, 7)}</td>
                       <td className="cell-nowrap">{t2.organization?.name ?? '—'}</td>
                       <td>
@@ -1755,15 +1728,6 @@ export function TicketsPage() {
               </table>
             </div>
           )}
-
-          <Pagination
-            page={currentPage}
-            totalPages={totalPages}
-            onChange={setPage}
-            totalItems={filteredTickets.length}
-            pageSize={pageSize}
-            onPageSizeChange={setPageSize}
-          />
         </>
       )}
 
