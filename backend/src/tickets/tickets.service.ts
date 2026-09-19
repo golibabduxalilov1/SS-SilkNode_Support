@@ -881,12 +881,18 @@ export class TicketsService {
       description: ticket.description,
       categoryId: ticket.categoryId,
       priority: ticket.priority,
+      organizationId: ticket.organizationId,
+      requesterName: ticket.requesterName,
+      requesterPhone: ticket.requesterPhone,
     };
 
     if (dto.title !== undefined) ticket.title = dto.title.trim();
     if (dto.description !== undefined) ticket.description = dto.description.trim();
     if (dto.categoryId !== undefined) ticket.categoryId = dto.categoryId;
     if (dto.priority !== undefined) ticket.priority = dto.priority;
+    if (dto.organizationId !== undefined) ticket.organizationId = dto.organizationId;
+    if (dto.requesterName !== undefined) ticket.requesterName = dto.requesterName.trim();
+    if (dto.requesterPhone !== undefined) ticket.requesterPhone = dto.requesterPhone;
 
     await this.ticketsRepository.save(ticket);
 
@@ -898,7 +904,15 @@ export class TicketsService {
       id,
       {
         from: previous,
-        to: { title: ticket.title, description: ticket.description, categoryId: ticket.categoryId, priority: ticket.priority },
+        to: {
+          title: ticket.title,
+          description: ticket.description,
+          categoryId: ticket.categoryId,
+          priority: ticket.priority,
+          organizationId: ticket.organizationId,
+          requesterName: ticket.requesterName,
+          requesterPhone: ticket.requesterPhone,
+        },
       },
     );
 

@@ -458,11 +458,27 @@ interface EditTicketForm {
   description: string;
   categoryId: string;
   priority: string;
+  organizationId: string;
+  customOrgName: string;
+  requesterName: string;
+  requesterPhone: string;
 }
+
+const EMPTY_EDIT_FORM: EditTicketForm = {
+  title: '',
+  description: '',
+  categoryId: '',
+  priority: 'medium',
+  organizationId: '',
+  customOrgName: '',
+  requesterName: '',
+  requesterPhone: '',
+};
 
 function EditTicketModal({
   isOpen,
   ticket,
+  organizations,
   categories,
   onClose,
   onSubmit,
@@ -471,6 +487,7 @@ function EditTicketModal({
 }: {
   isOpen: boolean;
   ticket: Ticket | null;
+  organizations: Organization[];
   categories: Category[];
   onClose: () => void;
   onSubmit: (form: EditTicketForm) => void;
@@ -479,7 +496,8 @@ function EditTicketModal({
 }) {
   const { t } = useLanguage();
   const PRIORITY_OPTIONS = getPriorityOptions(t);
-  const [form, setForm] = useState<EditTicketForm>({ title: '', description: '', categoryId: '', priority: 'medium' });
+  const [form, setForm] = useState<EditTicketForm>(EMPTY_EDIT_FORM);
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
   useEffect(() => {
     if (isOpen && ticket) {
@@ -488,7 +506,12 @@ function EditTicketModal({
         description: ticket.description ?? '',
         categoryId: ticket.categoryEntity?.id ?? '',
         priority: ticket.priority,
+        organizationId: ticket.organization?.id ?? '',
+        customOrgName: '',
+        requesterName: ticket.requesterName ?? ticket.createdBy?.fullname ?? '',
+        requesterPhone: ticket.requesterPhone ?? ticket.createdBy?.phoneNumber ?? '',
       });
+      setAttemptedSubmit(false);
     }
   }, [isOpen, ticket]);
 
@@ -503,10 +526,22 @@ function EditTicketModal({
 
   if (!isOpen || !ticket) return null;
 
-  const disabled = isSaving || !form.title.trim() || !form.description.trim() || !form.categoryId;
+  const isOtherOrg = form.organizationId === '__other__';
+  const isOrgMissing = !form.organizationId || (isOtherOrg && !form.customOrgName.trim());
+  const isPhoneMissing = !form.requesterPhone.trim() || !isPhoneComplete(form.requesterPhone);
+
+  const disabled =
+    isSaving ||
+    !form.title.trim() ||
+    !form.description.trim() ||
+    !form.categoryId ||
+    !form.requesterName.trim() ||
+    isPhoneMissing ||
+    isOrgMissing;
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    setAttemptedSubmit(true);
     if (disabled) return;
     onSubmit(form);
   };
@@ -526,6 +561,16 @@ function EditTicketModal({
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
             {error && <p className="form-error">{error}</p>}
+            <RequesterFields
+              name={form.requesterName}
+              phone={form.requesterPhone}
+              onNameChange={(value) => setForm((f) => ({ ...f, requesterName: value }))}
+              onPhoneChange={(value) => setForm((f) => ({ ...f, requesterPhone: value }))}
+              onApplySuggestion={(s) =>
+                setForm((f) => ({ ...f, organizationId: s.organizationId ?? f.organizationId }))
+              }
+              phoneInvalid={attemptedSubmit && isPhoneMissing}
+            />
             <label className="modal-field">
               <span>{t('tickets.subject')}</span>
               <input
@@ -533,7 +578,6 @@ function EditTicketModal({
                 onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
                 placeholder={t('tickets.subjectPlaceholder')}
                 required
-                autoFocus
               />
             </label>
             <label className="modal-field">
@@ -569,6 +613,33 @@ function EditTicketModal({
                   </option>
                 ))}
               </select>
+            </label>
+            <label className="modal-field">
+              <span>{t('tickets.organization')}</span>
+              <select
+                value={form.organizationId}
+                onChange={(e) => setForm((f) => ({ ...f, organizationId: e.target.value }))}
+                className={attemptedSubmit && isOrgMissing ? 'field-invalid' : undefined}
+                required
+              >
+                <option value="">{t('tickets.choose')}</option>
+                {organizations.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.name}
+                  </option>
+                ))}
+                <option value="__other__">{t('tickets.other')}</option>
+              </select>
+              {isOtherOrg && (
+                <input
+                  value={form.customOrgName}
+                  onChange={(e) => setForm((f) => ({ ...f, customOrgName: e.target.value }))}
+                  placeholder={t('tickets.orgNamePlaceholder')}
+                  className={attemptedSubmit && isOrgMissing ? 'field-invalid' : undefined}
+                  required
+                />
+              )}
+              {attemptedSubmit && isOrgMissing && <p className="field-error">{t('tickets.orgRequired')}</p>}
             </label>
           </div>
           <div className="modal-footer">
@@ -1374,11 +1445,26 @@ export function TicketsPage() {
     setIsSavingEdit(true);
     setEditError(null);
     try {
+      let resolvedOrganizationId = form.organizationId;
+      if (form.organizationId === '__other__') {
+        try {
+          const orgRes = await api.post('/admin/organizations', { name: form.customOrgName.trim() });
+          resolvedOrganizationId = orgRes.data.data.id;
+        } catch {
+          setEditError(t('tickets.createOrgError'));
+          setIsSavingEdit(false);
+          return;
+        }
+      }
+
       const res = await api.patch(`/admin/tickets/${ticketToEdit.id}`, {
         title: form.title.trim(),
         description: form.description.trim(),
         categoryId: form.categoryId,
         priority: form.priority,
+        organizationId: resolvedOrganizationId,
+        requesterName: form.requesterName.trim(),
+        requesterPhone: form.requesterPhone.trim(),
       });
       const updated = res.data.data;
       setTickets((prev) => prev.map((t2) => (t2.id === ticketToEdit.id ? { ...t2, ...updated } : t2)));
@@ -1926,6 +2012,7 @@ export function TicketsPage() {
       <EditTicketModal
         isOpen={!!ticketToEdit}
         ticket={ticketToEdit}
+        organizations={organizations}
         categories={categories}
         onClose={() => {
           if (isSavingEdit) return;
