@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { Ticket } from '../tickets/entities/ticket.entity';
+import { UserRole } from '../users/entities/user.entity';
 import { UpdateRequesterDto } from './dto/update-requester.dto';
 
 /** Murojaatchi o'chirilganda (requesterHiddenAt to'ldirilganda) uni guruhlashdan chiqarib tashlash uchun. */
@@ -36,10 +37,22 @@ function normalizePhone(phone: string): string {
   return phone.replace(/[^\d+]/g, '');
 }
 
+/**
+ * Telefon yo'q bo'lsa, faqat murojaatchining o'zi (Mini App orqali, role=USER) kiritgan
+ * tiketlar uchun createdBy'ga tayaniladi. Admin panelda xodim (ADMIN/SUPERADMIN) boshqa
+ * shaxs nomidan qo'lda kiritgan, telefonsiz tiketlarda createdBy — yozgan xodim, murojaatchi
+ * emas; shu holatda xodim id'siga tayanish turli (hatto bir xil ismli) murojaatchilarni bitta
+ * qatorga birlashtirib yuborardi, shu sababli har bir shunday tiket o'zining alohida kaliti
+ * (tiket id) bilan ajratiladi.
+ */
 function keyForTicket(ticket: Ticket): string {
-  return ticket.requesterPhone
-    ? `phone:${normalizePhone(ticket.requesterPhone)}`
-    : `user:${ticket.createdById}`;
+  if (ticket.requesterPhone) {
+    return `phone:${normalizePhone(ticket.requesterPhone)}`;
+  }
+  if (ticket.createdBy?.role === UserRole.USER) {
+    return `user:${ticket.createdById}`;
+  }
+  return `ticket:${ticket.id}`;
 }
 
 function nameForTicket(ticket: Ticket): string | null {
@@ -202,7 +215,7 @@ export class RequestersService {
    * Tickets o'zi boshqa joylarda (umumiy Tickets ro'yxati, dashboard) odatdagidek ko'rinishda qoladi.
    */
   async remove(key: string): Promise<void> {
-    const tickets = await this.ticketsRepository.find({ where: NOT_HIDDEN });
+    const tickets = await this.ticketsRepository.find({ where: NOT_HIDDEN, relations: ['createdBy'] });
     const matching = tickets.filter((ticket) => keyForTicket(ticket) === key);
     if (matching.length === 0) {
       throw new NotFoundException('Murojaatchi topilmadi');

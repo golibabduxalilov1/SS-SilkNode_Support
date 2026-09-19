@@ -1,6 +1,6 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { Organization } from './entities/organization.entity';
 import { Ticket } from '../tickets/entities/ticket.entity';
 import { User } from '../users/entities/user.entity';
@@ -38,18 +38,55 @@ export class OrganizationsService {
     return this.organizationsRepository.findOne({ where: { id } });
   }
 
+  /** Nomlar bo'yicha katta-kichik harf va bo'sh joylarni e'tiborga olmasdan tekshiradi. */
+  private async findDuplicateByName(
+    manager: EntityManager,
+    name: string,
+    excludeId?: string,
+  ): Promise<Organization | null> {
+    const qb = manager
+      .createQueryBuilder(Organization, 'organization')
+      .where('LOWER(organization.name) = LOWER(:name)', { name });
+    if (excludeId) {
+      qb.andWhere('organization.id != :excludeId', { excludeId });
+    }
+    return qb.getOne();
+  }
+
+  /**
+   * Bir xil nomli tashkilot bir vaqtning o'zida ikki marta yaratilishining (masalan,
+   * formani ikki marta yuborish orqali) oldini olish uchun shu nom bo'yicha Postgres
+   * advisory lock olinadi — parallel so'rovlar navbat bilan, bittalab tekshiriladi.
+   */
+  private async assertNameAvailable(manager: EntityManager, name: string, excludeId?: string): Promise<void> {
+    await manager.query('SELECT pg_advisory_xact_lock(hashtext(LOWER($1))::bigint)', [name]);
+    const duplicate = await this.findDuplicateByName(manager, name, excludeId);
+    if (duplicate) {
+      throw new ConflictException("Bu nomdagi tashkilot allaqachon mavjud.");
+    }
+  }
+
   async create(
     name: string,
     actor?: User,
     extra?: { description?: string | null; colorTag?: string | null },
   ): Promise<Organization> {
-    const organization = await this.organizationsRepository.save(
-      this.organizationsRepository.create({
-        name,
-        description: extra?.description ?? null,
-        colorTag: extra?.colorTag ?? null,
-      }),
-    );
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      throw new BadRequestException("Tashkilot nomi bo'sh bo'lishi mumkin emas.");
+    }
+
+    const organization = await this.organizationsRepository.manager.transaction(async (manager) => {
+      await this.assertNameAvailable(manager, trimmedName);
+      return manager.save(
+        Organization,
+        manager.create(Organization, {
+          name: trimmedName,
+          description: extra?.description ?? null,
+          colorTag: extra?.colorTag ?? null,
+        }),
+      );
+    });
 
     if (actor) {
       await this.auditLogService.log(
@@ -70,15 +107,25 @@ export class OrganizationsService {
     data: { name?: string; isActive?: boolean; description?: string | null; colorTag?: string | null },
     actor?: User,
   ): Promise<Organization> {
-    const organization = await this.findById(id);
-    if (!organization) throw new NotFoundException('Tashkilot topilmadi.');
+    const trimmedName = data.name !== undefined ? data.name.trim() : undefined;
+    if (trimmedName !== undefined && !trimmedName) {
+      throw new BadRequestException("Tashkilot nomi bo'sh bo'lishi mumkin emas.");
+    }
 
-    if (data.name !== undefined) organization.name = data.name;
-    if (data.isActive !== undefined) organization.isActive = data.isActive;
-    if (data.description !== undefined) organization.description = data.description;
-    if (data.colorTag !== undefined) organization.colorTag = data.colorTag;
+    const updated = await this.organizationsRepository.manager.transaction(async (manager) => {
+      const organization = await manager.findOne(Organization, { where: { id } });
+      if (!organization) throw new NotFoundException('Tashkilot topilmadi.');
 
-    const updated = await this.organizationsRepository.save(organization);
+      if (trimmedName !== undefined) {
+        await this.assertNameAvailable(manager, trimmedName, id);
+        organization.name = trimmedName;
+      }
+      if (data.isActive !== undefined) organization.isActive = data.isActive;
+      if (data.description !== undefined) organization.description = data.description;
+      if (data.colorTag !== undefined) organization.colorTag = data.colorTag;
+
+      return manager.save(Organization, organization);
+    });
 
     if (actor) {
       await this.auditLogService.log(
