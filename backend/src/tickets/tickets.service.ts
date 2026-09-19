@@ -5,6 +5,7 @@ import { Ticket, TicketPriority, TicketStatus } from './entities/ticket.entity';
 import { MessageVisibility } from '../messages/entities/message.entity';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { CreateLegacyTicketDto } from './dto/create-legacy-ticket.dto';
+import { UpdateTicketDetailsDto } from './dto/update-ticket-details.dto';
 import { User, UserRole } from '../users/entities/user.entity';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { AuditAction } from '../audit-log/entities/audit-log.entity';
@@ -863,6 +864,42 @@ export class TicketsService {
       'ticket',
       id,
       { from: previousPriority, to: priority },
+    );
+
+    const updated = await this.findById(id);
+    if (!updated) throw new NotFoundException('Murojaat topilmadi.');
+    return updated;
+  }
+
+  /** Murojaat kartochkasidan mavzu/tavsif/kategoriya/muhimlikni birgalikda tahrirlash (Update tugmasi). */
+  async updateDetails(id: string, dto: UpdateTicketDetailsDto, actor: User): Promise<Ticket> {
+    const ticket = await this.ticketsRepository.findOne({ where: { id } });
+    if (!ticket) throw new NotFoundException('Murojaat topilmadi.');
+
+    const previous = {
+      title: ticket.title,
+      description: ticket.description,
+      categoryId: ticket.categoryId,
+      priority: ticket.priority,
+    };
+
+    if (dto.title !== undefined) ticket.title = dto.title.trim();
+    if (dto.description !== undefined) ticket.description = dto.description.trim();
+    if (dto.categoryId !== undefined) ticket.categoryId = dto.categoryId;
+    if (dto.priority !== undefined) ticket.priority = dto.priority;
+
+    await this.ticketsRepository.save(ticket);
+
+    await this.auditLogService.log(
+      actor.id,
+      actor.fullname ?? actor.adminLogin ?? actor.id,
+      AuditAction.TICKET_UPDATED,
+      'ticket',
+      id,
+      {
+        from: previous,
+        to: { title: ticket.title, description: ticket.description, categoryId: ticket.categoryId, priority: ticket.priority },
+      },
     );
 
     const updated = await this.findById(id);

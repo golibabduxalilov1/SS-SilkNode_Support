@@ -5,6 +5,7 @@ export enum AuditAction {
   TICKET_ASSIGNED = 'ticket_assigned',
   TICKET_CLOSED_AT_CHANGED = 'ticket_closed_at_changed',
   TICKET_PRIORITY_CHANGED = 'ticket_priority_changed',
+  TICKET_UPDATED = 'ticket_updated',
   EMPLOYEE_CREATED = 'employee_created',
   EMPLOYEE_UPDATED = 'employee_updated',
   EMPLOYEE_ROLE_CHANGED = 'employee_role_changed',

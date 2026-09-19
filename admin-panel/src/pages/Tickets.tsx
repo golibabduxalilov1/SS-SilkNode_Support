@@ -9,6 +9,7 @@ import {
   IconChevronDown,
   IconClose,
   IconDownload,
+  IconEdit,
   IconFileSpreadsheet,
   IconFileText,
   IconFilter,
@@ -44,6 +45,7 @@ interface Ticket {
   id: string;
   number: string;
   title: string;
+  description?: string;
   categoryEntity?: { id: string; name: string } | null;
   priority: string;
   status: string;
@@ -442,6 +444,139 @@ function CreateTicketModal({
             </button>
             <button className="btn btn-primary" type="submit" disabled={disabled}>
               {isSaving ? t('tickets.creating') : t('tickets.createButton')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+interface EditTicketForm {
+  title: string;
+  description: string;
+  categoryId: string;
+  priority: string;
+}
+
+function EditTicketModal({
+  isOpen,
+  ticket,
+  categories,
+  onClose,
+  onSubmit,
+  isSaving,
+  error,
+}: {
+  isOpen: boolean;
+  ticket: Ticket | null;
+  categories: Category[];
+  onClose: () => void;
+  onSubmit: (form: EditTicketForm) => void;
+  isSaving: boolean;
+  error: string | null;
+}) {
+  const { t } = useLanguage();
+  const PRIORITY_OPTIONS = getPriorityOptions(t);
+  const [form, setForm] = useState<EditTicketForm>({ title: '', description: '', categoryId: '', priority: 'medium' });
+
+  useEffect(() => {
+    if (isOpen && ticket) {
+      setForm({
+        title: ticket.title,
+        description: ticket.description ?? '',
+        categoryId: ticket.categoryEntity?.id ?? '',
+        priority: ticket.priority,
+      });
+    }
+  }, [isOpen, ticket]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen || !ticket) return null;
+
+  const disabled = isSaving || !form.title.trim() || !form.description.trim() || !form.categoryId;
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (disabled) return;
+    onSubmit(form);
+  };
+
+  return createPortal(
+    <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal-card">
+        <div className="modal-header">
+          <span className="modal-header-icon">
+            <IconEdit width={18} height={18} />
+          </span>
+          <h3>{t('tickets.editModalTitle')}</h3>
+          <button type="button" className="modal-close" onClick={onClose} aria-label={t('common.close')}>
+            <IconClose width={18} height={18} />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            {error && <p className="form-error">{error}</p>}
+            <label className="modal-field">
+              <span>{t('tickets.subject')}</span>
+              <input
+                value={form.title}
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                placeholder={t('tickets.subjectPlaceholder')}
+                required
+                autoFocus
+              />
+            </label>
+            <label className="modal-field">
+              <span>{t('tickets.description')}</span>
+              <textarea
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                placeholder={t('tickets.descriptionPlaceholder')}
+                rows={4}
+                required
+              />
+            </label>
+            <label className="modal-field">
+              <span>{t('tickets.category')}</span>
+              <select
+                value={form.categoryId}
+                onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}
+                required
+              >
+                <option value="">{t('tickets.choose')}</option>
+                <CategoryOptionGroups categories={categories} />
+              </select>
+            </label>
+            <label className="modal-field">
+              <span>{t('tickets.priority')}</span>
+              <select
+                value={form.priority}
+                onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value }))}
+              >
+                {PRIORITY_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSaving}>
+              {t('common.cancel')}
+            </button>
+            <button className="btn btn-primary" type="submit" disabled={disabled}>
+              {isSaving ? t('tickets.saving') : t('common.save')}
             </button>
           </div>
         </form>
@@ -1042,6 +1177,9 @@ export function TicketsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [ticketToDelete, setTicketToDelete] = useState<Ticket | null>(null);
+  const [ticketToEdit, setTicketToEdit] = useState<Ticket | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkSaving, setIsBulkSaving] = useState(false);
   const [bulkStatusToConfirm, setBulkStatusToConfirm] = useState<string | null>(null);
@@ -1229,6 +1367,30 @@ export function TicketsPage() {
       else next.add(ticketId);
       return next;
     });
+  };
+
+  const handleUpdateTicket = async (form: EditTicketForm) => {
+    if (!ticketToEdit) return;
+    setIsSavingEdit(true);
+    setEditError(null);
+    try {
+      const res = await api.patch(`/admin/tickets/${ticketToEdit.id}`, {
+        title: form.title.trim(),
+        description: form.description.trim(),
+        categoryId: form.categoryId,
+        priority: form.priority,
+      });
+      const updated = res.data.data;
+      setTickets((prev) => prev.map((t2) => (t2.id === ticketToEdit.id ? { ...t2, ...updated } : t2)));
+      setTicketToEdit(null);
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
+          ?.message ?? t('tickets.updateError');
+      setEditError(message);
+    } finally {
+      setIsSavingEdit(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -1716,9 +1878,24 @@ export function TicketsPage() {
                       </td>
                       {isSuperadmin && (
                         <td className="table-actions" onClick={(e) => e.stopPropagation()}>
-                          <button className="danger ticket-delete-btn" onClick={() => setTicketToDelete(t2)}>
+                          <button
+                            className="ticket-edit-btn"
+                            onClick={() => {
+                              setEditError(null);
+                              setTicketToEdit(t2);
+                            }}
+                            aria-label={t('tickets.edit')}
+                            title={t('tickets.edit')}
+                          >
+                            <IconEdit width={13} height={13} />
+                          </button>
+                          <button
+                            className="danger ticket-delete-btn"
+                            onClick={() => setTicketToDelete(t2)}
+                            aria-label={t('tickets.delete')}
+                            title={t('tickets.delete')}
+                          >
                             <IconTrash width={13} height={13} />
-                            {t('tickets.delete')}
                           </button>
                         </td>
                       )}
@@ -1744,6 +1921,19 @@ export function TicketsPage() {
           setLegacyError(null);
           setLegacyModalOpen(true);
         }}
+      />
+
+      <EditTicketModal
+        isOpen={!!ticketToEdit}
+        ticket={ticketToEdit}
+        categories={categories}
+        onClose={() => {
+          if (isSavingEdit) return;
+          setTicketToEdit(null);
+        }}
+        onSubmit={handleUpdateTicket}
+        isSaving={isSavingEdit}
+        error={editError}
       />
 
       <CreateTicketModal

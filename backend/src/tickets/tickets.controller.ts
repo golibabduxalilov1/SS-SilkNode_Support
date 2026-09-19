@@ -11,6 +11,7 @@ import { UpdateTicketClosedAtDto } from './dto/update-ticket-closed-at.dto';
 import { UpdateTicketUserStatusDto } from './dto/update-ticket-user-status.dto';
 import { AssignTicketDto } from './dto/assign-ticket.dto';
 import { UpdateTicketPriorityDto } from './dto/update-ticket-priority.dto';
+import { UpdateTicketDetailsDto } from './dto/update-ticket-details.dto';
 import { BulkUpdateTicketsDto } from './dto/bulk-update-tickets.dto';
 import { TelegramAuthGuard } from '../auth/guards/telegram-auth.guard';
 import { UserEligibilityGuard } from '../auth/guards/user-eligibility.guard';
@@ -230,6 +231,18 @@ export class TicketsController {
   @UseGuards(AdminJwtAuthGuard)
   async assign(@Param('id') id: string, @Body() dto: AssignTicketDto, @CurrentUser() actor: User) {
     const ticket = await this.ticketsService.assign(id, dto.assignedToId || null, actor);
+    return { success: true, data: ticket };
+  }
+
+  /** PATCH /api/v1/admin/tickets/:id — mavzu/tavsif/kategoriya/muhimlikni birgalikda tahrirlash (Update tugmasi). */
+  @Patch('admin/tickets/:id')
+  @UseGuards(AdminJwtAuthGuard)
+  async updateDetails(
+    @Param('id') id: string,
+    @Body() dto: UpdateTicketDetailsDto,
+    @CurrentUser() actor: User,
+  ) {
+    const ticket = await this.ticketsService.updateDetails(id, dto, actor);
     return { success: true, data: ticket };
   }
 
