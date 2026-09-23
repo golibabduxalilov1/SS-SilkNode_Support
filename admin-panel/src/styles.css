@@ -3078,7 +3078,7 @@ button {
 
 .status--new {
   background: var(--status-new-soft);
-  color: var(--status-new);
+  color: #000;
 }
 
 .status--in_progress {
@@ -3131,6 +3131,10 @@ button {
   background: var(--error-tint);
   color: var(--error-text);
   border-color: color-mix(in srgb, var(--error-text) 22%, transparent);
+}
+
+.priority--high {
+  color: #000;
 }
 
 .priority--medium {
