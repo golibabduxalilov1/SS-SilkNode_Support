@@ -3083,32 +3083,32 @@ button {
 
 .status--in_progress {
   background: var(--status-in_progress-soft);
-  color: var(--status-in_progress);
+  color: #000;
 }
 
 .status--waiting_user {
   background: var(--status-waiting_user-soft);
-  color: var(--status-waiting_user);
+  color: #000;
 }
 
 .status--resolved {
   background: var(--status-resolved-soft);
-  color: var(--status-resolved);
+  color: #000;
 }
 
 .status--closed {
   background: var(--status-closed-soft);
-  color: var(--status-closed);
+  color: #000;
 }
 
 .status--active {
   background: var(--status-active-soft);
-  color: var(--status-active);
+  color: #000;
 }
 
 .status--inactive {
   background: var(--status-inactive-soft);
-  color: var(--status-inactive);
+  color: #000;
 }
 
 .priority {
@@ -3129,23 +3129,19 @@ button {
 .priority--urgent,
 .priority--critical {
   background: var(--error-tint);
-  color: var(--error-text);
-  border-color: color-mix(in srgb, var(--error-text) 22%, transparent);
-}
-
-.priority--high {
   color: #000;
+  border-color: color-mix(in srgb, var(--error-text) 22%, transparent);
 }
 
 .priority--medium {
   background: var(--warning-tint);
-  color: var(--warning-text);
+  color: #000;
   border-color: color-mix(in srgb, var(--warning-text) 22%, transparent);
 }
 
 .priority--low {
   background: var(--success-tint);
-  color: var(--success-text);
+  color: #000;
   border-color: color-mix(in srgb, var(--success-text) 22%, transparent);
 }
 
