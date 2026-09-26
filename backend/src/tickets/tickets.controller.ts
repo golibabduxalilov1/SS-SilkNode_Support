@@ -8,6 +8,7 @@ import { CreateTicketDto } from './dto/create-ticket.dto';
 import { CreateLegacyTicketDto } from './dto/create-legacy-ticket.dto';
 import { UpdateTicketStatusDto } from './dto/update-ticket-status.dto';
 import { UpdateTicketClosedAtDto } from './dto/update-ticket-closed-at.dto';
+import { UpdateTicketResolutionMinutesDto } from './dto/update-ticket-resolution-minutes.dto';
 import { UpdateTicketUserStatusDto } from './dto/update-ticket-user-status.dto';
 import { AssignTicketDto } from './dto/assign-ticket.dto';
 import { UpdateTicketPriorityDto } from './dto/update-ticket-priority.dto';
@@ -267,6 +268,18 @@ export class TicketsController {
     @CurrentUser() actor: User,
   ) {
     const ticket = await this.ticketsService.updateClosedAt(id, dto.closedAt, actor);
+    return { success: true, data: ticket };
+  }
+
+  /** PATCH /api/v1/admin/tickets/:id/resolution-minutes — resolutionMinutes'ni qo'lda o'rnatish (closedAt o'zgarmaydi). */
+  @Patch('admin/tickets/:id/resolution-minutes')
+  @UseGuards(AdminJwtAuthGuard)
+  async updateResolutionMinutes(
+    @Param('id') id: string,
+    @Body() dto: UpdateTicketResolutionMinutesDto,
+    @CurrentUser() actor: User,
+  ) {
+    const ticket = await this.ticketsService.updateResolutionMinutes(id, dto.resolutionMinutes, actor);
     return { success: true, data: ticket };
   }
 

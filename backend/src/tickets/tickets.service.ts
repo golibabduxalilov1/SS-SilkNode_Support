@@ -966,6 +966,35 @@ export class TicketsService {
     return updated;
   }
 
+  /** resolutionMinutes'ni to'g'ridan-to'g'ri qo'lda o'rnatish — closedAt o'zgarmaydi. */
+  async updateResolutionMinutes(id: string, resolutionMinutes: number, actor: User): Promise<Ticket> {
+    const ticket = await this.ticketsRepository.findOne({ where: { id } });
+    if (!ticket) throw new NotFoundException('Murojaat topilmadi.');
+
+    if (ticket.status !== TicketStatus.CLOSED && ticket.status !== TicketStatus.RESOLVED) {
+      throw new BadRequestException(
+        "Yopilish vaqtini faqat murojaat yopilgandan keyin tahrirlash mumkin.",
+      );
+    }
+
+    const previous = ticket.resolutionMinutes;
+    ticket.resolutionMinutes = resolutionMinutes;
+    await this.ticketsRepository.save(ticket);
+
+    await this.auditLogService.log(
+      actor.id,
+      actor.fullname ?? actor.adminLogin ?? actor.id,
+      AuditAction.TICKET_CLOSED_AT_CHANGED,
+      'ticket',
+      id,
+      { from: previous, to: resolutionMinutes },
+    );
+
+    const updated = await this.findById(id);
+    if (!updated) throw new NotFoundException('Murojaat topilmadi.');
+    return updated;
+  }
+
   async remove(id: string): Promise<void> {
     const ticket = await this.ticketsRepository.findOne({ where: { id } });
     if (!ticket) throw new NotFoundException('Murojaat topilmadi.');

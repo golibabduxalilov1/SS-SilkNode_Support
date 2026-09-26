@@ -172,10 +172,8 @@ export function TicketDetailPage() {
     setIsSavingClosedAt(true);
     setClosedAtError(null);
     try {
-      const closedAt = new Date(
-        new Date(ticket.createdAt).getTime() + Number(hoursDraft) * 60 * 60 * 1000,
-      ).toISOString();
-      const res = await api.patch(`/admin/tickets/${ticket.id}/closed-at`, { closedAt });
+      const resolutionMinutes = Math.round(Number(hoursDraft) * 60);
+      const res = await api.patch(`/admin/tickets/${ticket.id}/resolution-minutes`, { resolutionMinutes });
       setTicket(res.data.data);
       setIsEditingClosedAt(false);
     } catch (err: any) {
