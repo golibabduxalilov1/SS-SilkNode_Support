@@ -369,7 +369,8 @@ export function TicketDetailPage() {
                   <input
                     type="number"
                     min={0}
-                    style={{ width: '80px' }}
+                    step={0.1}
+                    style={{ width: '90px' }}
                     value={hoursDraft}
                     onChange={(e) =>
                       setHoursDraft(e.target.value === '' ? '' : Number(e.target.value))
@@ -398,8 +399,15 @@ export function TicketDetailPage() {
                 {closedAtError && <p className="form-error">{closedAtError}</p>}
               </div>
             ) : (
-              <span className="ticket-summary-meta-value">
-                {formatDurationMinutes(ticket.resolutionMinutes, '—')}
+              <span className="ticket-summary-meta-value" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <span>{new Date(ticket.createdAt).toLocaleString(dateLocale)}</span>
+                <span style={{ color: 'var(--color-text-secondary, #888)', fontSize: '12px' }}>↓</span>
+                <span>{ticket.closedAt ? new Date(ticket.closedAt).toLocaleString(dateLocale) : '—'}</span>
+                {ticket.resolutionMinutes != null && (
+                  <span style={{ fontSize: '12px', color: 'var(--color-text-secondary, #888)' }}>
+                    ({formatDurationMinutes(ticket.resolutionMinutes)})
+                  </span>
+                )}
               </span>
             )}
           </div>
