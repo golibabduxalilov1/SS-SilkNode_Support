@@ -78,10 +78,6 @@ const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/
   '',
 );
 
-function toDateTimeLocalValue(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
 
 export function TicketDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -107,7 +103,7 @@ export function TicketDetailPage() {
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isEditingClosedAt, setIsEditingClosedAt] = useState(false);
-  const [closedAtDraft, setClosedAtDraft] = useState('');
+  const [minutesDraft, setMinutesDraft] = useState<number | ''>('');
   const [isSavingClosedAt, setIsSavingClosedAt] = useState(false);
   const [closedAtError, setClosedAtError] = useState<string | null>(null);
 
@@ -161,7 +157,7 @@ export function TicketDetailPage() {
 
   const handleStartEditClosedAt = () => {
     if (!ticket || !canEditClosedAt) return;
-    setClosedAtDraft(toDateTimeLocalValue(ticket.closedAt ? new Date(ticket.closedAt) : new Date()));
+    setMinutesDraft(ticket.resolutionMinutes ?? 0);
     setClosedAtError(null);
     setIsEditingClosedAt(true);
   };
@@ -172,13 +168,14 @@ export function TicketDetailPage() {
   };
 
   const handleSaveClosedAt = async () => {
-    if (!ticket || !closedAtDraft) return;
+    if (!ticket || minutesDraft === '' || minutesDraft < 0) return;
     setIsSavingClosedAt(true);
     setClosedAtError(null);
     try {
-      const res = await api.patch(`/admin/tickets/${ticket.id}/closed-at`, {
-        closedAt: new Date(closedAtDraft).toISOString(),
-      });
+      const closedAt = new Date(
+        new Date(ticket.createdAt).getTime() + Number(minutesDraft) * 60 * 1000,
+      ).toISOString();
+      const res = await api.patch(`/admin/tickets/${ticket.id}/closed-at`, { closedAt });
       setTicket(res.data.data);
       setIsEditingClosedAt(false);
     } catch (err: any) {
@@ -368,17 +365,24 @@ export function TicketDetailPage() {
             </span>
             {isEditingClosedAt ? (
               <div className="ticket-summary-meta-edit">
-                <input
-                  type="datetime-local"
-                  value={closedAtDraft}
-                  onChange={(e) => setClosedAtDraft(e.target.value)}
-                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <input
+                    type="number"
+                    min={0}
+                    style={{ width: '80px' }}
+                    value={minutesDraft}
+                    onChange={(e) =>
+                      setMinutesDraft(e.target.value === '' ? '' : Number(e.target.value))
+                    }
+                  />
+                  <span style={{ fontSize: '13px' }}>daqiqa</span>
+                </div>
                 <div className="ticket-summary-meta-edit-actions">
                   <button
                     type="button"
                     className="btn btn-primary btn-sm"
                     onClick={handleSaveClosedAt}
-                    disabled={isSavingClosedAt || !closedAtDraft}
+                    disabled={isSavingClosedAt || minutesDraft === '' || Number(minutesDraft) < 0}
                   >
                     {isSavingClosedAt ? t('common.saving') : t('common.save')}
                   </button>
