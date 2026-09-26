@@ -103,7 +103,7 @@ export function TicketDetailPage() {
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isEditingClosedAt, setIsEditingClosedAt] = useState(false);
-  const [minutesDraft, setMinutesDraft] = useState<number | ''>('');
+  const [hoursDraft, setHoursDraft] = useState<number | ''>('');
   const [isSavingClosedAt, setIsSavingClosedAt] = useState(false);
   const [closedAtError, setClosedAtError] = useState<string | null>(null);
 
@@ -157,7 +157,7 @@ export function TicketDetailPage() {
 
   const handleStartEditClosedAt = () => {
     if (!ticket || !canEditClosedAt) return;
-    setMinutesDraft(ticket.resolutionMinutes ?? 0);
+    setHoursDraft(ticket.resolutionMinutes != null ? Math.round(ticket.resolutionMinutes / 60 * 10) / 10 : 0);
     setClosedAtError(null);
     setIsEditingClosedAt(true);
   };
@@ -168,12 +168,12 @@ export function TicketDetailPage() {
   };
 
   const handleSaveClosedAt = async () => {
-    if (!ticket || minutesDraft === '' || minutesDraft < 0) return;
+    if (!ticket || hoursDraft === '' || hoursDraft < 0) return;
     setIsSavingClosedAt(true);
     setClosedAtError(null);
     try {
       const closedAt = new Date(
-        new Date(ticket.createdAt).getTime() + Number(minutesDraft) * 60 * 1000,
+        new Date(ticket.createdAt).getTime() + Number(hoursDraft) * 60 * 60 * 1000,
       ).toISOString();
       const res = await api.patch(`/admin/tickets/${ticket.id}/closed-at`, { closedAt });
       setTicket(res.data.data);
@@ -370,19 +370,19 @@ export function TicketDetailPage() {
                     type="number"
                     min={0}
                     style={{ width: '80px' }}
-                    value={minutesDraft}
+                    value={hoursDraft}
                     onChange={(e) =>
-                      setMinutesDraft(e.target.value === '' ? '' : Number(e.target.value))
+                      setHoursDraft(e.target.value === '' ? '' : Number(e.target.value))
                     }
                   />
-                  <span style={{ fontSize: '13px' }}>daqiqa</span>
+                  <span style={{ fontSize: '13px' }}>soat</span>
                 </div>
                 <div className="ticket-summary-meta-edit-actions">
                   <button
                     type="button"
                     className="btn btn-primary btn-sm"
                     onClick={handleSaveClosedAt}
-                    disabled={isSavingClosedAt || minutesDraft === '' || Number(minutesDraft) < 0}
+                    disabled={isSavingClosedAt || hoursDraft === '' || Number(hoursDraft) < 0}
                   >
                     {isSavingClosedAt ? t('common.saving') : t('common.save')}
                   </button>
