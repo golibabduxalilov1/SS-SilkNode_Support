@@ -1513,7 +1513,7 @@ export function TicketsPage() {
       let resolvedCategoryId = form.categoryId;
       if (form.categoryId === '__other__') {
         try {
-          const categoryRes = await api.post('/admin/categories', { name: form.customCategoryName.trim() });
+          const categoryRes = await api.post('/admin/categories', { name: form.customCategoryName.trim(), reuseExisting: true });
           resolvedCategoryId = categoryRes.data.data.id;
         } catch {
           setCreateError(t('tickets.createCategoryError'));
@@ -1570,7 +1570,7 @@ export function TicketsPage() {
       let resolvedCategoryId = form.categoryId;
       if (form.categoryId === '__other__') {
         try {
-          const categoryRes = await api.post('/admin/categories', { name: form.customCategoryName.trim() });
+          const categoryRes = await api.post('/admin/categories', { name: form.customCategoryName.trim(), reuseExisting: true });
           resolvedCategoryId = categoryRes.data.data.id;
         } catch {
           setLegacyError(t('tickets.createCategoryError'));

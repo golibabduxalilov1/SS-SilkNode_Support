@@ -224,8 +224,15 @@ export function CategoriesPage() {
       }
       setModalOpen(false);
       load();
-    } catch {
-      setModalError(modalMode === 'create' ? t('categories.createError') : t('categories.editError'));
+    } catch (err) {
+      const isDuplicate = (err as { response?: { status?: number } })?.response?.status === 409;
+      setModalError(
+        isDuplicate
+          ? t('categories.duplicateError')
+          : modalMode === 'create'
+            ? t('categories.createError')
+            : t('categories.editError'),
+      );
     } finally {
       setIsSaving(false);
     }

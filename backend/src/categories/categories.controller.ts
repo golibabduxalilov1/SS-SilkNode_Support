@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, UseGuards } from '@nestjs/common';
-import { IsEnum, IsHexColor, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsEnum, IsHexColor, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { CategoriesService } from './categories.service';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CategoryCluster } from './entities/category.entity';
@@ -27,6 +27,14 @@ class CreateCategoryDto {
   @IsOptional()
   @IsEnum(CategoryCluster)
   cluster?: CategoryCluster;
+
+  /**
+   * true bo'lsa, bir xil nomli kategoriya mavjud bo'lganda xato o'rniga o'sha kategoriya qaytariladi
+   * (murojaat yaratishdagi "boshqa" nom oqimi uchun). Standart holatda dublikat 409 qaytaradi.
+   */
+  @IsOptional()
+  @IsBoolean()
+  reuseExisting?: boolean;
 }
 
 /** Web Admin Panel uchun — Mini App bilan hech qanday umumiy endpoint emas (Organizations bilan bir xil pattern). */
@@ -43,11 +51,14 @@ export class CategoriesController {
 
   @Post()
   async create(@Body() dto: CreateCategoryDto, @CurrentUser() actor: User) {
-    const category = await this.categoriesService.create(dto.name, actor, {
+    const extra = {
       description: dto.description,
       colorTag: dto.colorTag,
       cluster: dto.cluster,
-    });
+    };
+    const category = dto.reuseExisting
+      ? await this.categoriesService.findOrCreate(dto.name, actor, extra)
+      : await this.categoriesService.create(dto.name, actor, extra);
     return { success: true, data: category };
   }
 
@@ -80,7 +91,7 @@ export class PublicCategoriesController {
   @Post()
   @UseGuards(TelegramAuthGuard, UserEligibilityGuard)
   async create(@Body() dto: CreateCategoryDto) {
-    const category = await this.categoriesService.create(dto.name);
+    const category = await this.categoriesService.findOrCreate(dto.name);
     return { success: true, data: category };
   }
 }
